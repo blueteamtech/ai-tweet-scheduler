@@ -25,6 +25,10 @@ export default function TwitterConnect({ userId }: TwitterConnectProps) {
   const loadTwitterAccount = async () => {
     console.log('🔍 loadTwitterAccount called for userId:', userId)
     try {
+      // Get current session to ensure authentication
+      const { data: { session } } = await supabase.auth.getSession()
+      console.log('🔍 Current session:', session ? 'authenticated' : 'not authenticated')
+      
       const { data, error } = await supabase
         .from('user_twitter_accounts')
         .select('*')
