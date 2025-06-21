@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Check if environment variables are set (without exposing the actual values)
     const checks = {
@@ -21,7 +21,7 @@ export async function GET(request: NextRequest) {
         ? '✅ All Twitter API credentials are configured' 
         : '❌ Missing some Twitter API credentials'
     })
-  } catch (error) {
+  } catch {
     return NextResponse.json(
       { error: 'Failed to check configuration' },
       { status: 500 }
