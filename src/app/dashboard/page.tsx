@@ -147,7 +147,8 @@ export default function DashboardPage() {
     setSuccess('')
 
     try {
-      const { error } = await supabase
+      // First, save the tweet to database
+      const { data: tweetData, error: dbError } = await supabase
         .from('tweets')
         .insert([
           {
@@ -157,10 +158,32 @@ export default function DashboardPage() {
             scheduled_at: scheduledDate.toISOString()
           }
         ])
+        .select()
+        .single()
 
-      if (error) throw error
+      if (dbError) throw dbError
 
-      setSuccess('Tweet scheduled successfully!')
+      // Then schedule it with QStash
+      const response = await fetch('/api/schedule-tweet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          tweetId: tweetData.id,
+          userId: user.id,
+          tweetContent: tweetContent.trim(),
+          scheduledAt: scheduledDate.toISOString()
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to schedule tweet')
+      }
+
+      setSuccess('Tweet scheduled successfully with QStash!')
       setTweetContent('')
       setShowScheduler(false)
       await loadTweets(user.id)
@@ -197,9 +220,42 @@ export default function DashboardPage() {
 
   const cancelScheduledTweet = async (tweetId: string) => {
     try {
+      // First get the tweet to find the QStash message ID
+      const { data: tweet, error: fetchError } = await supabase
+        .from('tweets')
+        .select('qstash_message_id')
+        .eq('id', tweetId)
+        .single()
+
+      if (fetchError) throw fetchError
+
+      // Cancel the QStash message if it exists
+      if (tweet?.qstash_message_id) {
+        const response = await fetch('/api/cancel-tweet', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            tweetId,
+            messageId: tweet.qstash_message_id
+          }),
+        })
+
+        if (!response.ok) {
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to cancel scheduled tweet')
+        }
+      }
+
+      // Update the tweet status in database
       const { error } = await supabase
         .from('tweets')
-        .update({ status: 'draft', scheduled_at: null })
+        .update({ 
+          status: 'draft', 
+          scheduled_at: null,
+          qstash_message_id: null
+        })
         .eq('id', tweetId)
 
       if (error) throw error

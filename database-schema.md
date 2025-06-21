@@ -20,6 +20,7 @@
 | `scheduled_at` | TIMESTAMPTZ | NULLABLE | When tweet should be posted |
 | `posted_at` | TIMESTAMPTZ | NULLABLE | When tweet was actually posted |
 | `twitter_tweet_id` | TEXT | NULLABLE | Twitter's ID for the posted tweet |
+| `qstash_message_id` | TEXT | NULLABLE | QStash message ID for scheduled tweets |
 | `error_message` | TEXT | NULLABLE | Error details if posting failed |
 | `created_at` | TIMESTAMPTZ | DEFAULT NOW() | When record was created |
 | `updated_at` | TIMESTAMPTZ | DEFAULT NOW() | When record was last updated |
@@ -120,6 +121,13 @@ Any status → failed (on error)
 ---
 
 ## 🔄 **Recent Changes**
+
+**🚀 2025-01-15:** Added QStash integration for better tweet scheduling
+- Added `qstash_message_id` column to `tweets` table
+- Replaced Vercel cron job with QStash for more secure, precise scheduling
+- Individual tweet scheduling instead of bulk processing every 5 minutes
+- Ability to cancel scheduled tweets before they post
+- **REQUIRES DATABASE UPDATE:** Run `add-qstash-support.sql`
 
 **🚀 2025-01-14:** Added OAuth temporary storage for Twitter authentication
 - Created `oauth_temp_storage` table for OAuth 1.0a flow

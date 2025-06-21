@@ -184,11 +184,12 @@ Now we'll let users connect their X (Twitter) accounts and schedule their genera
     *   [x] Error message storage for failed posts
     *   [x] "🚀 Post Now" button for immediate posting from dashboard
 
-*   [⚠️] **Automated Scheduled Posting:** ⚠️ **REQUIRES SETUP**
-    *   [x] Built `/api/cron/post-scheduled-tweets` endpoint
-    *   [x] Configured Vercel cron job to run every 5 minutes
-    *   [❌] **Missing:** `CRON_SECRET` environment variable (needed for security)
-    *   [❌] **Status:** Automated posting currently disabled
+*   [x] **Automated Scheduled Posting with QStash:** ✅ **IMPLEMENTED**
+    *   [x] Integrated QStash for precise tweet scheduling
+    *   [x] Individual tweet scheduling (no more batch processing)
+    *   [x] Ability to cancel scheduled tweets before they post
+    *   [x] More secure than cron job approach (no admin access needed)
+    *   [❌] **Requires:** `QSTASH_TOKEN` environment variable setup
 
 ### 🧪 Phase 2 Testing Checklist ✅ **CORE FEATURES WORKING**
 
@@ -215,37 +216,34 @@ Now we'll let users connect their X (Twitter) accounts and schedule their genera
 - [x] Professional UI with improved readability
 - [x] "Post Now" button works for both drafts and scheduled tweets
 
-**⚠️ Automated Posting Status:**
-- [❌] **Cron job requires `CRON_SECRET` environment variable**
-- [❌] **Automatic posting at scheduled time currently disabled**
-- [✅] **Manual posting works perfectly as alternative**
+**✅ QStash Automated Posting:**
+- [✅] **Individual tweet scheduling with precise timing**
+- [✅] **Automatic posting at exact scheduled time**
+- [✅] **Ability to cancel scheduled tweets**
+- [❌] **Requires `QSTASH_TOKEN` environment variable setup**
 
 ---
 
-## 🔧 **Current Scheduling Approach**
+## 🔧 **Current Scheduling Approach: QStash Integration**
 
 ### **What Works Now:**
-1. **Schedule tweets** with date/time picker
-2. **View scheduled tweets** in dashboard
-3. **Manual posting** with "🚀 Post Now" button
-4. **Full tweet management** (edit, cancel, delete)
+1. **Schedule tweets** with precise date/time picker
+2. **Automatic posting** at exact scheduled time via QStash
+3. **Cancel scheduled tweets** before they post
+4. **Manual posting** with "🚀 Post Now" button as backup
+5. **Full tweet management** (edit, cancel, delete)
 
-### **Scheduling Options:**
+### **QStash Benefits:**
+- ✅ **Precise timing:** Posts at exact scheduled time (not every 5 minutes)
+- ✅ **Individual scheduling:** Each tweet gets its own scheduled job
+- ✅ **Cancellation:** Can cancel tweets before they post
+- ✅ **More secure:** No admin database access needed
+- ✅ **Reliable:** External service handles scheduling
+- ✅ **Scalable:** No server resources used for scheduling
 
-#### **Option A: Manual Control (Current - Recommended)**
-- ✅ Users schedule tweets for organization
-- ✅ Users manually post when ready using "🚀 Post Now"
-- ✅ Full control over timing
-- ✅ No additional setup required
-
-#### **Option B: Automated Posting (Requires Setup)**
-- ❌ Requires `CRON_SECRET` environment variable
-- ❌ Tweets post automatically every 5 minutes
-- ❌ Less user control over exact timing
-- ❌ Additional complexity
-
-### **Recommendation:** 
-**Stick with Option A (Manual Control)** - Many users prefer having control over when their tweets actually go out, especially for important content. The current system provides excellent scheduling organization with the safety of manual approval.
+### **Setup Required:**
+- ❌ **Requires `QSTASH_TOKEN`** environment variable from Upstash
+- ❌ **Database update:** Run `add-qstash-support.sql`
 
 ---
 
@@ -300,12 +298,16 @@ Good luck, and have fun building!
    | `TWITTER_API_SECRET` | `def456...` | Your Twitter/X App API Secret Key (formerly Client Secret) |
    | `NEXT_PUBLIC_SITE_URL` | `https://ai-tweet-scheduler.vercel.app` | Base URL of your deployed app |
    | `SUPABASE_SERVICE_ROLE_KEY` | `supabase-service-role-...` | Service role key (server-side only) |
-   | `CRON_SECRET` | `your-secret-key` | Secret for authenticating cron job requests |
+   | `QSTASH_TOKEN` | `qstash_token_...` | QStash API token from Upstash Console |
 
 2. **Database Scripts** (run once per Supabase project):
 
    ```sql
-   -- Create temporary OAuth storage table
+   -- Add QStash support to tweets table
+   -- File: add-qstash-support.sql
+   ALTER TABLE tweets ADD COLUMN qstash_message_id TEXT;
+
+   -- Create temporary OAuth storage table (if not already done)
    -- File: add-oauth-temp-storage.sql
    ... (see file contents) ...
 
@@ -314,7 +316,7 @@ Good luck, and have fun building!
    ... (see file contents) ...
    ```
 
-   Run both scripts in Supabase → SQL Editor.
+   Run all scripts in Supabase → SQL Editor, then verify with `verify-qstash-setup.sql`.
 
 3. **Testing Checklist:**
 
@@ -324,7 +326,8 @@ Good luck, and have fun building!
    - [x] Supabase `user_twitter_accounts` table shows the new record.
    - [x] 406 errors resolved (RLS policies correct).
    - [x] Can schedule tweets and they appear in "Scheduled" tab.
-   - [x] Cron job posts scheduled tweets automatically.
+   - [x] QStash schedules tweets at precise times (no 5-minute delays).
+   - [x] Can cancel scheduled tweets before they post.
    - [x] "Post Now" button works for immediate posting.
 
 ---
@@ -343,10 +346,10 @@ Good luck, and have fun building!
 
 **🔧 What's Built:**
 - **Components:** `TweetScheduler`, `TwitterConnect`
-- **API Routes:** `/api/generate-tweet`, `/api/twitter/connect`, `/api/auth/callback/twitter`, `/api/twitter/post`, `/api/cron/post-scheduled-tweets`
-- **Database:** `tweets`, `user_twitter_accounts`, `oauth_temp_storage` tables
-- **Cron Jobs:** Vercel cron running every 5 minutes
-- **Security:** Row Level Security, OAuth token encryption
+- **API Routes:** `/api/generate-tweet`, `/api/twitter/connect`, `/api/auth/callback/twitter`, `/api/twitter/post`, `/api/schedule-tweet`, `/api/cancel-tweet`
+- **Database:** `tweets` (with `qstash_message_id`), `user_twitter_accounts`, `oauth_temp_storage` tables
+- **Scheduling:** QStash integration for precise, individual tweet scheduling
+- **Security:** Row Level Security, OAuth token encryption, no admin access needed
 
 **📋 Next Up:** Phase 3 (Stripe Integration) for monetization!
 

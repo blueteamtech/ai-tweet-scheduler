@@ -15,6 +15,7 @@ export interface Tweet {
   scheduled_at: string | null
   posted_at: string | null
   twitter_tweet_id: string | null
+  qstash_message_id: string | null
   error_message: string | null
   created_at: string
   updated_at: string
