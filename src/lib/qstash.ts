@@ -62,7 +62,8 @@ export async function scheduleTweet(
     if (Array.isArray(result)) {
       messageId = result[0]?.messageId || 'unknown'
     } else {
-      messageId = (result as any).messageId || 'unknown'
+      // QStash single response has messageId property
+      messageId = (result as { messageId?: string }).messageId || 'unknown'
     }
 
     console.log(`[QStash Scheduling] Successfully scheduled tweet ${tweetId}:`, {
