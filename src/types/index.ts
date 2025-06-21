@@ -11,9 +11,24 @@ export interface Tweet {
   id: string
   user_id: string
   tweet_content: string
-  status: 'draft' | 'scheduled' | 'posted'
+  status: 'draft' | 'scheduled' | 'posted' | 'failed'
   scheduled_at: string | null
+  posted_at: string | null
+  twitter_tweet_id: string | null
+  error_message: string | null
   created_at: string
+  updated_at: string
+}
+
+// Twitter Account types
+export interface TwitterAccount {
+  id: string
+  user_id: string
+  twitter_user_id: string
+  twitter_username: string
+  access_token: string
+  refresh_token: string | null
+  connected_at: string
   updated_at: string
 }
 

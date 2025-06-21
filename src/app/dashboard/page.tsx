@@ -6,6 +6,7 @@ import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import type { Tweet } from '@/types'
 import TweetScheduler from '@/components/TweetScheduler'
+import TwitterConnect from '@/components/TwitterConnect'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -341,6 +342,34 @@ export default function DashboardPage() {
             </button>
           </div>
         </div>
+
+        {/* Debug Section - Always Visible */}
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
+          <h3 className="font-semibold text-blue-800 mb-2">🔍 Debug Info</h3>
+          <p className="text-blue-700 text-sm">
+            <strong>User Status:</strong> {user ? '✅ Logged in' : '❌ Not logged in'}<br/>
+            <strong>User ID:</strong> {user?.id || 'None'}<br/>
+            <strong>User Email:</strong> {user?.email || 'None'}<br/>
+            <strong>Loading State:</strong> {loading ? 'Loading...' : 'Loaded'}
+          </p>
+        </div>
+
+        {/* Twitter Integration Section */}
+        {user ? (
+          <>
+            <div className="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
+              <p className="text-green-700 text-sm">✅ Rendering TwitterConnect with userId: {user.id}</p>
+            </div>
+            <TwitterConnect userId={user.id} />
+          </>
+        ) : (
+          <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-8">
+            <p className="text-red-600">❌ TwitterConnect not showing - User object is null/undefined</p>
+            <p className="text-red-600 text-sm mt-2">
+              This usually means authentication failed or is still loading.
+            </p>
+          </div>
+        )}
 
         {/* Tweet Management Section */}
         <div className="bg-white rounded-lg shadow p-6">
