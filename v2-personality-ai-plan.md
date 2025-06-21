@@ -45,6 +45,16 @@
 - [ ] Samples are saved and retrievable
 - [ ] Error handling works for invalid inputs
 
+#### **What's Happening (Simple):**
+You paste your old tweets into a box, click "Analyze Writing," and the AI studies your writing style. It shows you insights about your personality and saves this information so future tweets can sound more like you. Think of it as teaching the AI to "speak like you" by showing it examples of how you naturally write.
+
+#### **Potential Troubleshooting Areas:**
+- **pgvector Extension**: Must be enabled in Supabase before creating vector columns (check extension list first)
+- **Embedding Dimensions**: Verify OpenAI's `text-embedding-3-small` still uses 1536 dimensions (could change)
+- **API Costs**: Embedding large amounts of text can be expensive - estimate costs first
+- **Large Text Processing**: Handle cases where users paste massive amounts of text (set limits)
+- **Empty Results**: What if AI can't extract meaningful personality traits from the samples?
+
 ---
 
 ### **Phase 2: Personality-Enhanced Tweet Generation** ✨
@@ -74,6 +84,16 @@
 - [ ] Personality AI badge appears when samples exist
 - [ ] Generated tweets feel more like your voice
 - [ ] System works without samples (fallback)
+
+#### **What's Happening (Simple):**
+Now when you type a tweet idea and click "Generate with AI," instead of getting a generic AI tweet, you get one that sounds like YOU. The AI looks at your writing samples, finds similar content, and uses that to rewrite your idea in your personal style. It's like having an AI ghostwriter who has studied your voice.
+
+#### **Potential Troubleshooting Areas:**
+- **Similarity Search Performance**: Vector searches can be slow - may need indexing strategy
+- **Context Length Limits**: GPT-4o has token limits - what if similar samples + new content exceeds limits?
+- **No Samples Edge Case**: Ensure graceful fallback when user hasn't uploaded samples yet  
+- **Similarity Threshold**: How similar is "similar enough"? May need tuning
+- **Personality Consistency**: What if AI generates tweets that don't actually match user's style?
 
 ---
 
@@ -119,6 +139,17 @@
 - [ ] Select which tweets to keep
 - [ ] All generated tweets reflect personality
 
+#### **What's Happening (Simple):**
+Instead of writing tweets one by one, you paste a list of 10 rough ideas (like "talk about coffee" or "share productivity tip"), click one button, and get back 10 polished tweets that all sound like you. It's like having a personal content team that cranks out tweets in your voice, but instantly.
+
+#### **Potential Troubleshooting Areas:**
+- **Rate Limiting**: OpenAI has request limits - may need delays between bulk requests
+- **Progress Tracking**: Users need to see progress for long lists - avoid "frozen" appearance
+- **Memory Usage**: Don't load all generated tweets into memory at once
+- **Partial Failures**: What if 8/10 tweets generate successfully but 2 fail?
+- **Edit Workflow**: How do users efficiently review and edit 10+ tweets at once?
+- **Selection UI**: Checkboxes vs other selection methods for choosing tweets to keep
+
 ---
 
 ### **Phase 4: Smart Bulk Scheduling System** 📅
@@ -152,6 +183,17 @@
 - [ ] Confirm scheduling and see success message
 - [ ] Check that tweets appear in queue
 - [ ] Verify first tweet posts at scheduled time
+
+#### **What's Happening (Simple):**
+After generating your tweets, you click "Schedule 5/Day" and the system automatically figures out the perfect times to post them - spread throughout each day between 7am-10pm, never too close together, and optimized for engagement. It's like having a social media manager who schedules everything perfectly while you sleep.
+
+#### **Potential Troubleshooting Areas:**
+- **Timezone Handling**: User's timezone vs server timezone vs posting timezone - can cause confusion
+- **QStash Limits**: Verify QStash can handle the volume of scheduled messages we're creating
+- **Scheduling Conflicts**: What if user manually scheduled a tweet at same time as auto-scheduled one?
+- **Time Calculation Logic**: Algorithm for "well-distributed" times needs testing with edge cases
+- **Weekend vs Weekday**: Should weekend posting times be different? User preferences?
+- **Queue Overflow**: What happens if user schedules 100 tweets? Performance implications?
 
 ---
 
@@ -189,6 +231,17 @@
 - [ ] See queue updates in real-time
 - [ ] Filter tweets by status
 - [ ] Queue shows accurate posting times and status
+
+#### **What's Happening (Simple):**
+You get a mission control dashboard that shows all your upcoming tweets in one place. See what's posting when, cancel tweets you don't want anymore, or move them to different times. It's like having a calendar view of your entire Twitter strategy, with full control to make changes on the fly.
+
+#### **Potential Troubleshooting Areas:**
+- **Real-time Updates**: How does the UI stay in sync when tweets post or statuses change?
+- **QStash Cancellation**: Ensure cancelling in our DB also cancels the QStash scheduled message
+- **Database Sync Issues**: What if QStash posts a tweet but our DB doesn't get updated?
+- **Status Accuracy**: How do we know if a tweet actually posted successfully vs failed?
+- **Rescheduling Complexity**: Moving a scheduled tweet requires cancelling old QStash message and creating new one
+- **Performance with Large Queues**: Dashboard needs to load quickly even with hundreds of scheduled tweets
 
 ---
 
