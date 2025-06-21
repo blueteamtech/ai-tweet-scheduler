@@ -14,20 +14,19 @@ export default function TwitterConnect({ userId }: TwitterConnectProps) {
   const [connecting, setConnecting] = useState(false)
   const [error, setError] = useState('')
 
-  // Debug logging
-  console.log('🔍 TwitterConnect component loaded with userId:', userId)
-
   useEffect(() => {
-    console.log('🔍 TwitterConnect useEffect called with userId:', userId)
     loadTwitterAccount()
   }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadTwitterAccount = async () => {
-    console.log('🔍 loadTwitterAccount called for userId:', userId)
     try {
       // Get current session to ensure authentication
       const { data: { session } } = await supabase.auth.getSession()
-      console.log('🔍 Current session:', session ? 'authenticated' : 'not authenticated')
+      
+      if (!session) {
+        console.error('No authenticated session found')
+        return
+      }
       
       const { data, error } = await supabase
         .from('user_twitter_accounts')
@@ -35,19 +34,15 @@ export default function TwitterConnect({ userId }: TwitterConnectProps) {
         .eq('user_id', userId)
         .single()
 
-      console.log('🔍 Supabase query result:', { data, error })
-
       if (error && error.code !== 'PGRST116') {
         throw error
       }
 
       setTwitterAccount(data || null)
-      console.log('🔍 Twitter account set to:', data || null)
     } catch (error) {
-      console.error('❌ Error loading Twitter account:', error)
+      console.error('Error loading Twitter account:', error)
     } finally {
       setLoading(false)
-      console.log('🔍 Loading set to false')
     }
   }
 
@@ -100,7 +95,6 @@ export default function TwitterConnect({ userId }: TwitterConnectProps) {
   }
 
   if (loading) {
-    console.log('🔍 TwitterConnect rendering loading state')
     return (
       <div className="bg-white rounded-lg shadow p-6 mb-8">
         <h3 className="text-lg font-semibold text-gray-900 mb-4">
@@ -110,8 +104,6 @@ export default function TwitterConnect({ userId }: TwitterConnectProps) {
       </div>
     )
   }
-
-  console.log('🔍 TwitterConnect rendering with:', { userId, twitterAccount, loading, error })
 
   return (
     <div className="bg-white rounded-lg shadow p-6 mb-8">

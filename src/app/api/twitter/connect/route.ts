@@ -33,10 +33,6 @@ export async function POST(request: NextRequest) {
     // Generate OAuth URL
     const authLink = await client.generateAuthLink(`${siteUrl}/api/auth/callback/twitter`)
     
-    console.log('✅ Generated auth link:', authLink.url)
-    console.log('🔑 OAuth token:', authLink.oauth_token)
-    console.log('🔐 OAuth secret:', authLink.oauth_token_secret ? 'Present' : 'Missing')
-
     // Store oauth_token_secret temporarily in Supabase
     const supabase = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -57,9 +53,7 @@ export async function POST(request: NextRequest) {
 
     if (storeError) {
       console.error('Failed to store OAuth secret:', storeError)
-      // Continue anyway - we'll try without it
-    } else {
-      console.log('✅ OAuth secret stored temporarily')
+      return NextResponse.json({ error: 'Failed to store OAuth data' }, { status: 500 })
     }
 
     return NextResponse.json({ 

@@ -3,18 +3,13 @@ import { TwitterApi } from 'twitter-api-v2'
 import { createClient } from '@supabase/supabase-js'
 
 export async function GET(request: NextRequest) {
-  console.log('🔧 Twitter callback received')
-  
   try {
     const { searchParams } = new URL(request.url)
     const oauth_token = searchParams.get('oauth_token')
     const oauth_verifier = searchParams.get('oauth_verifier')
     
-    console.log('🔧 Callback URL:', request.url)
-    console.log('🔧 OAuth params received:', { oauth_token, oauth_verifier })
-    
     if (!oauth_token || !oauth_verifier) {
-      console.error('❌ Missing OAuth params:', { oauth_token, oauth_verifier })
+      console.error('Missing OAuth params:', { oauth_token, oauth_verifier })
       return NextResponse.redirect(new URL('/dashboard?error=missing_oauth_params', request.url))
     }
 
@@ -32,15 +27,13 @@ export async function GET(request: NextRequest) {
       .single()
 
     if (fetchError || !oauthData) {
-      console.error('❌ Failed to retrieve OAuth secret:', fetchError)
+      console.error('Failed to retrieve OAuth secret:', fetchError)
       return NextResponse.redirect(new URL('/dashboard?error=oauth_secret_not_found', request.url))
     }
 
-    console.log('✅ Retrieved OAuth secret for user:', oauthData.user_id)
-
     // Check if token has expired
     if (new Date(oauthData.expires_at) < new Date()) {
-      console.error('❌ OAuth token expired')
+      console.error('OAuth token expired')
       await supabase.from('oauth_temp_storage').delete().eq('oauth_token', oauth_token)
       return NextResponse.redirect(new URL('/dashboard?error=oauth_expired', request.url))
     }
@@ -50,7 +43,7 @@ export async function GET(request: NextRequest) {
     const apiSecret = process.env.TWITTER_API_SECRET
     
     if (!apiKey || !apiSecret) {
-      console.error('❌ Missing Twitter API credentials')
+      console.error('Missing Twitter API credentials')
       return NextResponse.redirect(new URL('/dashboard?error=missing_credentials', request.url))
     }
 
@@ -66,12 +59,8 @@ export async function GET(request: NextRequest) {
       // Exchange for permanent access tokens
       const { client: loggedClient, accessToken, accessSecret } = await client.login(oauth_verifier)
 
-      console.log('✅ OAuth login successful')
-
       // Get user info from Twitter
       const { data: twitterUser } = await loggedClient.v2.me()
-      
-      console.log('✅ Retrieved Twitter user info:', twitterUser.username)
 
       // Store Twitter account info
       const { error: storeError } = await supabase
@@ -85,11 +74,9 @@ export async function GET(request: NextRequest) {
         })
 
       if (storeError) {
-        console.error('❌ Database error:', storeError)
+        console.error('Database error:', storeError)
         return NextResponse.redirect(new URL('/dashboard?error=database_error', request.url))
       }
-
-      console.log('✅ Twitter account stored successfully')
 
       // Clean up temporary OAuth storage
       await supabase.from('oauth_temp_storage').delete().eq('oauth_token', oauth_token)
@@ -98,12 +85,12 @@ export async function GET(request: NextRequest) {
       return NextResponse.redirect(new URL('/dashboard?twitter_connected=true', request.url))
 
     } catch (oauthError) {
-      console.error('❌ OAuth login error:', oauthError)
+      console.error('OAuth login error:', oauthError)
       return NextResponse.redirect(new URL('/dashboard?error=oauth_login_failed', request.url))
     }
 
   } catch (error) {
-    console.error('❌ Twitter callback error:', error)
+    console.error('Twitter callback error:', error)
     return NextResponse.redirect(new URL('/dashboard?error=callback_failed', request.url))
   }
 } 
