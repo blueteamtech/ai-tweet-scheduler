@@ -6,6 +6,49 @@ This `README.md` is your checklist. As you complete each step, you can come back
 
 ---
 
+## 🗂️ Project Structure & Git Workflow
+
+**IMPORTANT:** This project has a specific directory structure. Always follow these rules:
+
+### Directory Structure:
+```
+AI-Personality-Tweets-to-Scheduler/          ← Main git repository
+├── README.md                                ← This file
+├── CODING_LOG.md
+└── ai-tweet-scheduler/                      ← Next.js app directory
+    ├── src/
+    ├── package.json
+    └── ... (all your app files)
+```
+
+### Git Workflow Rules:
+🚨 **ALWAYS run git commands from the ROOT directory:**
+- ✅ **Correct:** `/AI-Personality-Tweets-to-Scheduler/`
+- ❌ **Wrong:** `/AI-Personality-Tweets-to-Scheduler/ai-tweet-scheduler/`
+
+### Commands to Remember:
+```bash
+# Always start here:
+cd AI-Personality-Tweets-to-Scheduler
+
+# Then run git commands:
+git add .
+git commit -m "your message"
+git push origin main
+
+# For npm commands, go into the app directory:
+cd ai-tweet-scheduler && npm run dev
+```
+
+### Quick Check Commands:
+```bash
+pwd                    # Should show: /path/to/AI-Personality-Tweets-to-Scheduler
+git status             # Should work without errors
+ls                     # Should show: README.md, ai-tweet-scheduler/, etc.
+```
+
+---
+
 ## 🎯 The Goal
 
 We're solving a common problem for creators, founders, and anyone looking to build a personal brand: writing consistent, high-quality tweets is hard and time-consuming. Our app will do the heavy lifting for you.
