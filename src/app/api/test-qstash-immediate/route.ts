@@ -1,7 +1,7 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { qstash } from '@/lib/qstash'
 
-export async function POST(_request: NextRequest) {
+export async function POST() {
   try {
     const now = new Date()
     const testDelay = 10000 // 10 seconds from now
