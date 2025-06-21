@@ -12,7 +12,7 @@ export async function scheduleTweet(
   scheduledAt: Date
 ) {
   const now = new Date()
-  const delay = Math.max(0, scheduledAt.getTime() - now.getTime())
+  const delay = scheduledAt.getTime() - now.getTime()
   
   console.log(`[QStash Scheduling] Tweet ${tweetId}:`, {
     now: now.toISOString(),
@@ -20,24 +20,17 @@ export async function scheduleTweet(
     delayMs: delay,
     delayMinutes: Math.round(delay / 1000 / 60 * 100) / 100,
     scheduledAtTimestamp: scheduledAt.getTime(),
-    nowTimestamp: now.getTime()
+    nowTimestamp: now.getTime(),
+    isPastDue: delay < 0
   })
   
-  // If the scheduled time is in the past, don't schedule
-  if (delay <= 0) {
-    console.error(`[QStash Scheduling] Cannot schedule tweet ${tweetId} in the past:`, {
-      scheduledAt: scheduledAt.toISOString(),
-      now: now.toISOString(),
-      delay
-    })
-    throw new Error('Cannot schedule tweet in the past')
-  }
-
-  // Add minimum delay of 30 seconds to avoid immediate execution issues
+  // For past-due tweets, use minimum delay to post immediately
   const minimumDelay = 30 * 1000 // 30 seconds
   const finalDelay = Math.max(delay, minimumDelay)
   
-  if (finalDelay !== delay) {
+  if (delay < 0) {
+    console.log(`[QStash Scheduling] Tweet ${tweetId} is ${Math.abs(delay)}ms overdue, scheduling for immediate posting with ${minimumDelay}ms delay`)
+  } else if (finalDelay !== delay) {
     console.log(`[QStash Scheduling] Adjusted delay from ${delay}ms to ${finalDelay}ms (minimum 30s)`)
   }
 
@@ -51,7 +44,9 @@ export async function scheduleTweet(
         tweetContent,
         scheduledVia: 'qstash',
         originalScheduledAt: scheduledAt.toISOString(),
-        actualScheduledAt: new Date(now.getTime() + finalDelay).toISOString()
+        actualScheduledAt: new Date(now.getTime() + finalDelay).toISOString(),
+        wasPastDue: delay < 0,
+        delayUsed: finalDelay
       },
       headers: {
         'Content-Type': 'application/json',
@@ -62,7 +57,8 @@ export async function scheduleTweet(
       messageId: result.messageId,
       scheduledFor: scheduledAt.toISOString(),
       willExecuteAt: new Date(now.getTime() + finalDelay).toISOString(),
-      delayMs: finalDelay
+      delayMs: finalDelay,
+      wasPastDue: delay < 0
     })
     
     return result
