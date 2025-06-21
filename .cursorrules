@@ -1,0 +1,90 @@
+# AI Tweet Scheduler - Cursor Rules
+
+## Project Context
+This is a beginner-friendly SaaS project building an AI-powered tweet scheduler. The user is learning to code and needs clear explanations and step-by-step guidance.
+
+## Tech Stack
+- Frontend: Next.js 14 with TypeScript
+- Styling: Tailwind CSS
+- Backend: Supabase (database + auth)
+- AI: OpenAI API
+- Payments: Stripe
+- Deployment: Vercel
+
+## Development Guidelines
+
+### For the AI Assistant:
+1. **Always explain what you're doing** - Don't just write code, explain why
+2. **Use beginner-friendly language** - Avoid jargon without explanation
+3. **Show file structure** - Help the user understand where files go
+4. **Provide context** - Explain how each piece fits into the bigger picture
+5. **Include error handling** - Show proper error handling patterns
+6. **Use TypeScript properly** - Define types and interfaces clearly
+7. **Follow Next.js 14 App Router patterns** - Use modern Next.js conventions
+
+### Code Standards:
+- Use TypeScript for all files
+- Use Tailwind CSS for styling
+- Follow Next.js App Router structure
+- Use proper error boundaries
+- Include loading states
+- Add proper TypeScript types
+- Use environment variables for secrets
+- Follow React best practices (hooks, components)
+
+### File Organization:
+```
+ai-tweet-scheduler/
+├── src/
+│   ├── app/                 # Next.js App Router pages
+│   ├── components/          # Reusable React components
+│   ├── lib/                # Utility functions, API clients
+│   ├── types/              # TypeScript type definitions
+│   └── styles/             # Global styles
+├── public/                 # Static assets
+└── ...config files
+```
+
+### When Writing Code:
+1. Always include proper TypeScript types
+2. Add comments explaining complex logic
+3. Use meaningful variable and function names
+4. Include error handling and loading states
+5. Make components reusable when possible
+6. Follow the principle of separation of concerns
+
+### For Database Design:
+- Use Supabase Row Level Security (RLS)
+- Create proper foreign key relationships
+- Use meaningful table and column names
+- Include created_at and updated_at timestamps
+
+### Security Best Practices:
+- Never expose API keys in client-side code
+- Use environment variables for all secrets
+- Implement proper authentication checks
+- Use Supabase RLS for data security
+- Validate all user inputs
+
+### When Helping the User:
+1. Break down complex tasks into smaller steps
+2. Explain the "why" behind each decision
+3. Show examples of how to test the code
+4. Provide debugging tips when things go wrong
+5. Reference the README.md checklist to track progress
+6. Suggest best practices for each feature
+7. **Environment Files**: Cannot read .env.local files for security reasons - always assume they exist and are configured correctly when user says they are
+8. **Directory Navigation**: Always run npm commands from inside the ai-tweet-scheduler directory, not the parent directory. Use `cd ai-tweet-scheduler && npm run dev` when needed
+9. **Critical Directory Rule**: NEVER run npm commands from AI-Personality-Tweets-to-Scheduler directory. Always check current directory with pwd first. If not in ai-tweet-scheduler, always use `cd ai-tweet-scheduler &&` before any npm command
+10. **Directory Reminder**: The user's terminal may be in a different directory than the AI's shell. Always remind the user to navigate to ai-tweet-scheduler directory before running npm commands. Tell them explicitly: "In YOUR terminal, run: cd ai-tweet-scheduler && npm run dev"
+
+### Common Beginner Mistakes to Avoid:
+- Not handling loading and error states
+- Exposing secrets in client-side code
+- Not using TypeScript properly
+- Not following Next.js conventions
+- Not implementing proper error boundaries
+- Not using environment variables
+- Not securing API routes
+
+Remember: This is a learning project, so prioritize clarity and education over brevity. 
