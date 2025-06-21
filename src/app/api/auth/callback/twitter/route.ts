@@ -80,10 +80,8 @@ export async function GET(request: NextRequest) {
           user_id: oauthData.user_id,
           twitter_user_id: twitterUser.id,
           twitter_username: twitterUser.username,
-          twitter_display_name: twitterUser.name || twitterUser.username,
           access_token: accessToken,
           refresh_token: accessSecret, // OAuth 1.0a uses access secret
-          is_active: true
         })
 
       if (storeError) {
