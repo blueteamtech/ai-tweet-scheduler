@@ -57,8 +57,13 @@ export async function scheduleTweet(
       },
     })
 
-    // Handle different response types
-    const messageId = 'messageId' in result ? result.messageId : result[0]?.messageId || 'unknown'
+    // Extract messageId from result, handling different response types
+    let messageId: string
+    if (Array.isArray(result)) {
+      messageId = result[0]?.messageId || 'unknown'
+    } else {
+      messageId = (result as any).messageId || 'unknown'
+    }
 
     console.log(`[QStash Scheduling] Successfully scheduled tweet ${tweetId}:`, {
       messageId: messageId,
