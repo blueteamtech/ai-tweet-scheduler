@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
-import type { User } from '@supabase/supabase-js'
+import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import type { Tweet } from '@/types'
 import TweetScheduler from '@/components/TweetScheduler'
 import TwitterConnect from '@/components/TwitterConnect'
@@ -43,7 +43,7 @@ export default function DashboardPage() {
 
     // Listen for auth changes
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event: any, session: any) => {
+      (event: AuthChangeEvent, session: Session | null) => {
         if (event === 'SIGNED_OUT' || !session) {
           router.push('/login')
         }
