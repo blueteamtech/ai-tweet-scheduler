@@ -53,6 +53,27 @@
 
 ---
 
+### 3. `oauth_temp_storage` Table
+**Purpose:** Temporarily store OAuth 1.0a token secrets during authentication flow
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Unique storage identifier |
+| `oauth_token` | TEXT | NOT NULL, UNIQUE | OAuth request token from Twitter |
+| `oauth_token_secret` | TEXT | NOT NULL | OAuth request token secret (needed for login) |
+| `user_id` | UUID | REFERENCES auth.users(id) ON DELETE CASCADE | Links to Supabase Auth user |
+| `expires_at` | TIMESTAMPTZ | NOT NULL | When this temp storage expires (15 min) |
+| `created_at` | TIMESTAMPTZ | DEFAULT NOW() | When record was created |
+
+**Row Level Security:** ✅ Enabled  
+**Policy:** Users can manage their own OAuth temp data (`auth.uid() = user_id`)  
+**Indexes:** 
+- `idx_oauth_temp_storage_token` on `oauth_token`
+- `idx_oauth_temp_storage_expires` on `expires_at`
+**Cleanup:** Expired tokens auto-deleted by `cleanup_expired_oauth_tokens()` function
+
+---
+
 ## 🔧 **Database Functions**
 
 ### `update_updated_at_column()`
@@ -99,6 +120,13 @@ Any status → failed (on error)
 ---
 
 ## 🔄 **Recent Changes**
+
+**🚀 2025-01-14:** Added OAuth temporary storage for Twitter authentication
+- Created `oauth_temp_storage` table for OAuth 1.0a flow
+- Stores `oauth_token_secret` temporarily during authentication (15 min expiry)
+- Added RLS policies and indexes for secure OAuth handling
+- Implemented `cleanup_expired_oauth_tokens()` function for automatic cleanup
+- **REQUIRES DATABASE UPDATE:** Run the updated `database-setup.sql`
 
 **✅ 2025-01-14:** Database verification completed - ALL SYSTEMS OPERATIONAL
 - Confirmed all tables exist with correct structure

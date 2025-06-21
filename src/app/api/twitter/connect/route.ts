@@ -1,50 +1,74 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { TwitterApi } from 'twitter-api-v2'
+import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
-    // Get the user from the request
     const { userId } = await request.json()
     
     if (!userId) {
-      return NextResponse.json({ error: 'User ID required' }, { status: 400 })
+      return NextResponse.json({ error: 'User ID is required' }, { status: 400 })
     }
 
-    // Verify environment variables - using OAuth 1.0a keys
+    // Verify environment variables
     const apiKey = process.env.TWITTER_API_KEY
     const apiSecret = process.env.TWITTER_API_SECRET
+    const siteUrl = process.env.NEXT_PUBLIC_SITE_URL
     
-    if (!apiKey || !apiSecret) {
-      console.error('Missing Twitter API credentials')
-      return NextResponse.json({ error: 'Twitter API credentials not configured' }, { status: 500 })
+    if (!apiKey || !apiSecret || !siteUrl) {
+      console.error('Missing environment variables:', { 
+        hasApiKey: !!apiKey, 
+        hasApiSecret: !!apiSecret, 
+        hasSiteUrl: !!siteUrl 
+      })
+      return NextResponse.json({ error: 'Server configuration error' }, { status: 500 })
     }
 
-    // Initialize Twitter client for OAuth 1.0a
+    // Initialize Twitter client
     const client = new TwitterApi({
       appKey: apiKey,
       appSecret: apiSecret,
     })
 
-    const callbackUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ai-tweet-scheduler.vercel.app'}/api/auth/callback/twitter`
+    // Generate OAuth URL
+    const authLink = await client.generateAuthLink(`${siteUrl}/api/auth/callback/twitter`)
     
-    // Get OAuth request token - don't modify the URL
-    const authLink = await client.generateAuthLink(callbackUrl)
-    
-    // Log for debugging
-    console.log('Generated auth link:', authLink.url)
-    console.log('OAuth token:', authLink.oauth_token)
-    console.log('Callback URL used:', callbackUrl)
+    console.log('✅ Generated auth link:', authLink.url)
+    console.log('🔑 OAuth token:', authLink.oauth_token)
+    console.log('🔐 OAuth secret:', authLink.oauth_token_secret ? 'Present' : 'Missing')
 
-    // Return the unmodified Twitter OAuth URL
-    return NextResponse.json({ authUrl: authLink.url })
+    // Store oauth_token_secret temporarily in Supabase
+    const supabase = createClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    )
+
+    // Store the oauth secret temporarily (expires in 15 minutes)
+    const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString()
+    
+    const { error: storeError } = await supabase
+      .from('oauth_temp_storage')
+      .upsert({
+        oauth_token: authLink.oauth_token,
+        oauth_token_secret: authLink.oauth_token_secret,
+        user_id: userId,
+        expires_at: expiresAt
+      })
+
+    if (storeError) {
+      console.error('Failed to store OAuth secret:', storeError)
+      // Continue anyway - we'll try without it
+    } else {
+      console.log('✅ OAuth secret stored temporarily')
+    }
+
+    return NextResponse.json({ 
+      authUrl: authLink.url,
+      oauth_token: authLink.oauth_token
+    })
 
   } catch (error) {
     console.error('Twitter connect error:', error)
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
-    return NextResponse.json({ 
-      error: 'Failed to initiate Twitter connection',
-      details: errorMessage,
-      debug: String(error)
-    }, { status: 500 })
+    return NextResponse.json({ error: 'Failed to generate auth URL' }, { status: 500 })
   }
 } 
