@@ -58,6 +58,8 @@ ai-tweet-scheduler/
 - Create proper foreign key relationships
 - Use meaningful table and column names
 - Include created_at and updated_at timestamps
+- **ALWAYS check database-schema.md before making database assumptions**
+- Current tables: `tweets`, `user_twitter_accounts` (see database-schema.md for full details)
 
 ### Security Best Practices:
 - Never expose API keys in client-side code
