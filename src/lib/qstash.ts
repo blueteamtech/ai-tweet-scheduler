@@ -26,42 +26,49 @@ export async function scheduleTweet(
   
   // For past-due tweets, use minimum delay to post immediately
   const minimumDelay = 30 * 1000 // 30 seconds
-  const finalDelay = Math.max(delay, minimumDelay)
+  const finalDelayMs = Math.max(delay, minimumDelay)
+  
+  // Convert milliseconds to QStash format (seconds as bigint string)
+  const finalDelaySeconds = BigInt(Math.ceil(finalDelayMs / 1000))
+  const qstashDelay = `${finalDelaySeconds}s` as const
   
   if (delay < 0) {
-    console.log(`[QStash Scheduling] Tweet ${tweetId} is ${Math.abs(delay)}ms overdue, scheduling for immediate posting with ${minimumDelay}ms delay`)
-  } else if (finalDelay !== delay) {
-    console.log(`[QStash Scheduling] Adjusted delay from ${delay}ms to ${finalDelay}ms (minimum 30s)`)
+    console.log(`[QStash Scheduling] Tweet ${tweetId} is ${Math.abs(delay)}ms overdue, scheduling for immediate posting with ${finalDelaySeconds}s delay`)
+  } else {
+    console.log(`[QStash Scheduling] Scheduling tweet ${tweetId} with ${finalDelaySeconds}s delay (${finalDelayMs}ms)`)
   }
 
   try {
     const result = await qstash.publishJSON({
       url: `${process.env.NEXT_PUBLIC_SITE_URL}/api/twitter/post`,
-      delay: finalDelay, // milliseconds from now
+      delay: qstashDelay, // Use bigint string format like "30s"
       body: {
         tweetId,
         userId,
         tweetContent,
         scheduledVia: 'qstash',
         originalScheduledAt: scheduledAt.toISOString(),
-        actualScheduledAt: new Date(now.getTime() + finalDelay).toISOString(),
+        actualScheduledAt: new Date(now.getTime() + finalDelayMs).toISOString(),
         wasPastDue: delay < 0,
-        delayUsed: finalDelay
+        delayUsed: qstashDelay
       },
       headers: {
         'Content-Type': 'application/json',
       },
     })
 
+    // Handle different response types
+    const messageId = 'messageId' in result ? result.messageId : result[0]?.messageId || 'unknown'
+
     console.log(`[QStash Scheduling] Successfully scheduled tweet ${tweetId}:`, {
-      messageId: result.messageId,
+      messageId: messageId,
       scheduledFor: scheduledAt.toISOString(),
-      willExecuteAt: new Date(now.getTime() + finalDelay).toISOString(),
-      delayMs: finalDelay,
+      willExecuteAt: new Date(now.getTime() + finalDelayMs).toISOString(),
+      delayUsed: qstashDelay,
       wasPastDue: delay < 0
     })
     
-    return result
+    return { messageId }
   } catch (error) {
     console.error(`[QStash Scheduling] Failed to schedule tweet ${tweetId}:`, error)
     throw error
