@@ -159,29 +159,20 @@ Before moving to Phase 2, manually test these core features:
 
 Now we'll let users connect their X (Twitter) accounts and schedule their generated tweets to be posted automatically.
 
-*   [ ] **Get X (Twitter) API Access:**
-    *   [ ] Apply for a developer account on the X Developer Portal.
-    *   [ ] Create a new App and get your API keys (Client ID and Client Secret).
-    *   [ ] Make sure to enable OAuth 2.0 and specify a callback URL (e.g., `http://localhost:3000/api/auth/callback/twitter`).
+*   [x] **Get X (Twitter) API Access:**
+    *   [x] Apply for a developer account on the X Developer Portal.
+    *   [x] Create a new App and get your API keys (API Key + API Secret Key).
+    *   [x] Enable OAuth **1.0a** and specify the callback URL: `https://ai-tweet-scheduler.vercel.app/api/auth/callback/twitter`.
 
-*   [ ] **Implement X (Twitter) Login (OAuth):**
-    *   [ ] Add a "Connect to X" button in your app's settings.
-    *   [ ] When clicked, redirect the user to X to authorize your app.
-    *   [ ] Securely save the user's `access_token` and `refresh_token` in your database, associated with their user ID. **Important: Never expose these tokens on the client-side.**
+*   [x] **Implement X (Twitter) Login (OAuth 1.0a):** ✅ **COMPLETED & TESTED**
+    *   [x] Added a "Connect to X" button in the dashboard (`TwitterConnect` component).
+    *   [x] Users are redirected to Twitter, authorize the app, and return to `/dashboard` with `twitter_connected=true`.
+    *   [x] `access_token` and `access_secret` are stored securely in `user_twitter_accounts` table.
+    *   [x] Row Level Security ensures users only see their own connections.
 
-*   [ ] **Build the Scheduler UI:**
-    *   [ ] Add a "Schedule" button next to the "Save Draft" button.
-    *   [ ] When clicked, show a date and time picker.
-    *   [ ] Update your `tweets` table to save the scheduled date and time.
-
-*   [ ] **Create a Scheduled Job:**
-    *   [ ] We need a process that runs periodically (e.g., every minute) to check for due tweets. We can use "Vercel Cron Jobs" for this.
-    *   [ ] Create an API route in Next.js that will act as our cron job.
-    *   [ ] This route will query your Supabase `tweets` table for any tweets where `status` is 'scheduled' and `scheduled_at` is in the past.
-
-*   [ ] **Post the Tweet:**
-    *   [ ] For each due tweet, use the owner's stored X `access_token` to make a POST request to the X API's tweet endpoint.
-    *   [ ] After successfully posting, update the tweet's `status` in your database to 'posted'.
+*   [ ] **Build the Scheduler UI:** (next)
+*   [ ] **Create a Scheduled Job:** (next)
+*   [ ] **Post the Tweet:** (next)
 
 ### 🧪 Phase 2 Testing Checklist
 
@@ -348,4 +339,39 @@ Once you've launched, here are some ideas for what to build next:
 *   **Browser Plugin:** Let users grab interesting content from around the web and turn it into a tweet.
 *   **AI Fine-Tuning:** "Train" the AI on a user's past tweets to better match their style.
 
-Good luck, and have fun building! 
+Good luck, and have fun building!
+
+---
+
+## 🔑 Twitter Integration Setup (for new environments)
+
+1. **Environment Variables** (set in Vercel):
+
+   | Variable | Example Value | Description |
+   |----------|---------------|-------------|
+   | `TWITTER_API_KEY` | `abc123...` | Your Twitter/X App API Key (formerly Client ID) |
+   | `TWITTER_API_SECRET` | `def456...` | Your Twitter/X App API Secret Key (formerly Client Secret) |
+   | `NEXT_PUBLIC_SITE_URL` | `https://ai-tweet-scheduler.vercel.app` | Base URL of your deployed app |
+   | `SUPABASE_SERVICE_ROLE_KEY` | `supabase-service-role-...` | Service role key (server-side only) |
+
+2. **Database Scripts** (run once per Supabase project):
+
+   ```sql
+   -- Create temporary OAuth storage table
+   -- File: add-oauth-temp-storage.sql
+   ... (see file contents) ...
+
+   -- Fix RLS policies (optional if already applied)
+   -- File: fix-user-twitter-accounts-rls.sql
+   ... (see file contents) ...
+   ```
+
+   Run both scripts in Supabase → SQL Editor.
+
+3. **Testing Checklist:**
+
+   - [x] Click "Connect to X" → redirected to Twitter consent screen.
+   - [x] Accept → redirected back to dashboard with success message.
+   - [x] Refresh page → connected account persists.
+   - [x] Supabase `user_twitter_accounts` table shows the new record.
+   - [x] 406 errors resolved (RLS policies correct). 
