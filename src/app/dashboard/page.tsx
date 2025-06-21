@@ -106,7 +106,7 @@ export default function DashboardPage() {
     setSuccess('')
 
     try {
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('tweets')
         .insert([
           {
@@ -115,7 +115,6 @@ export default function DashboardPage() {
             status: 'draft'
           }
         ])
-        .select()
 
       if (error) throw error
 

@@ -2,7 +2,6 @@
 
 import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 
 export default function SignUpPage() {
@@ -12,7 +11,6 @@ export default function SignUpPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
-  const router = useRouter()
 
   const handleSignUp = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -45,7 +43,7 @@ export default function SignUpPage() {
         setMessage('Check your email for the confirmation link!')
         // Don't redirect immediately - user needs to confirm email first
       }
-    } catch (err) {
+    } catch {
       setError('An unexpected error occurred')
     } finally {
       setLoading(false)
