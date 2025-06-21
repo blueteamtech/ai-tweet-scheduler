@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { TwitterApi } from 'twitter-api-v2'
-import { createClient } from '@supabase/supabase-js'
 import { createAuthenticatedClient, sanitizeError } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
@@ -122,15 +121,17 @@ export async function POST(request: NextRequest) {
         message: 'Tweet posted successfully' 
       })
 
-    } catch (twitterError: any) {
+    } catch (twitterError: unknown) {
       console.error(`[${requestTime}] Twitter API error:`, twitterError)
       
       // Update tweet with error status using user-scoped client
+      const errorMessage = twitterError instanceof Error ? twitterError.message : 'Failed to post tweet'
+      
       await supabase
         .from('tweets')
         .update({
           status: 'failed',
-          error_message: twitterError.message || 'Failed to post tweet',
+          error_message: errorMessage,
         })
         .eq('id', tweetId)
 

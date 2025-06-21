@@ -32,7 +32,7 @@ export async function createAuthenticatedClient(request: NextRequest) {
     }
 
     return { client: supabase, user, error: null }
-  } catch (error) {
+  } catch {
     return { client: null, user: null, error: 'Authentication failed' }
   }
 }
@@ -61,7 +61,7 @@ export async function getUserFromRequest(request: NextRequest) {
     }
 
     return { user, error: null }
-  } catch (error) {
+  } catch {
     return { user: null, error: 'Authentication failed' }
   }
 }
@@ -107,12 +107,12 @@ export function checkRateLimit(userId: string, maxRequests = 10, windowMs = 6000
 }
 
 // Sanitize error messages for client response
-export function sanitizeError(error: any): string {
+export function sanitizeError(error: unknown): string {
   if (typeof error === 'string') {
     return error
   }
   
-  if (error?.message) {
+  if (error instanceof Error) {
     // Don't expose database errors or internal details
     if (error.message.includes('relation') || error.message.includes('column')) {
       return 'Database error occurred'

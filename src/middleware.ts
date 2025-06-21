@@ -17,10 +17,6 @@ export function middleware(request: NextRequest) {
   
   // Rate limiting for API routes (basic protection)
   if (request.nextUrl.pathname.startsWith('/api/')) {
-    const ip = request.headers.get('x-forwarded-for') || 
-              request.headers.get('x-real-ip') || 
-              'unknown'
-    
     // Add rate limiting headers (actual implementation would use Redis/database)
     response.headers.set('X-RateLimit-Limit', '100')
     response.headers.set('X-RateLimit-Remaining', '99')
