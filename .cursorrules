@@ -60,6 +60,7 @@ ai-tweet-scheduler/
 - Include created_at and updated_at timestamps
 - **ALWAYS check database-schema.md before making database assumptions**
 - Current tables: `tweets`, `user_twitter_accounts` (see database-schema.md for full details)
+- **CRITICAL: Update database-schema.md whenever making database changes (new tables, columns, constraints, etc.)**
 
 ### Security Best Practices:
 - Never expose API keys in client-side code
@@ -85,6 +86,12 @@ ai-tweet-scheduler/
 12. **Directory Reminder**: The user's terminal may be in a different directory than the AI's shell. Always remind them:
     - For Git: "In YOUR terminal, run: cd AI-Personality-Tweets-to-Scheduler && git add . && git commit && git push"
     - For NPM: "In YOUR terminal, run: cd ai-tweet-scheduler && npm run dev"
+
+### 🗄️ CRITICAL DATABASE WORKFLOW RULES:
+13. **Schema Documentation**: ALWAYS update `database-schema.md` when making ANY database changes (tables, columns, constraints, policies)
+14. **Schema Verification**: After database changes, provide the verification SQL from `verify-database-schema.sql` for user to run
+15. **Schema First**: Check `database-schema.md` BEFORE making assumptions about database structure
+16. **Change Log**: Add database changes to "Recent Changes" section in `database-schema.md` with date
 
 ### Common Beginner Mistakes to Avoid:
 - Not handling loading and error states
