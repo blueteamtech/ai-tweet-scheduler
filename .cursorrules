@@ -69,6 +69,70 @@ ai-tweet-scheduler/
 - Use Supabase RLS for data security
 - Validate all user inputs
 
+### API Integration Workflow
+1.  **Understand the Auth Flow First:** Before writing any code, thoroughly read the API's authentication documentation.
+    -   Confirm the exact OAuth version (e.g., OAuth 1.0a, OAuth 2.0).
+    -   Identify all required parameters (`state`, `PKCE`, temporary secrets, etc.).
+    -   Map out the entire flow on paper or in a comment: `User Clicks -> Our API -> External API -> Callback -> Finalize`.
+
+2.  **Schema Before Code:** Define the database table structure needed to store API credentials (`access_token`, `refresh_token`, `user_id`, etc.) *before* writing the API routes.
+    -   Update `database-schema.md` and the `database-setup.sql` file first. This prevents database errors during the callback.
+
+3.  **Build a Debug Route:** For every new external API, create a dedicated server-side debug route (e.g., `/api/debug/new-api-config`).
+    -   This route should check that all required environment variables are loaded correctly in the production environment without exposing their values.
+
+4.  **Create a "Dumb" Callback First:** When building the callback handler (e.g., `/api/auth/callback/new-api`), make the first version extremely simple.
+    -   It should only do one thing: `console.log()` all the headers and query parameters it receives.
+    -   This allows you to instantly see what the external API is sending back, confirming the redirect is working *before* adding complex logic.
+
+5.  **Comprehensive RLS Policies:** When creating a new table that stores user-specific data from an API:
+    -   Immediately create RLS policies for `SELECT`, `INSERT`, `UPDATE`, and `DELETE`.
+    -   This prevents `406 Not Acceptable` errors and ensures the frontend can both read and write data securely.
+
+### Stripe API Best Practices (2025)
+6.  **Webhook Security (Critical):** Always verify webhook signatures to prevent security breaches.
+    -   Use the raw request body (UTF-8 encoded) without any modifications for signature verification.
+    -   Store webhook secrets securely and rotate them periodically (every 6-12 months).
+    -   Implement idempotency checks using event IDs to handle duplicate webhook deliveries.
+    -   Return HTTP 200 status codes quickly (within 10 seconds) to prevent retries.
+
+7.  **Payment Flow Architecture:** Design payment flows with proper error handling and user experience.
+    -   Use Stripe Checkout for simple implementations, Payment Intents for custom flows.
+    -   Always handle asynchronous payment confirmations via webhooks, not just API responses.
+    -   Implement proper 3D Secure (SCA) handling for European customers.
+    -   Store Stripe customer IDs and payment method IDs, never raw card data.
+
+8.  **Subscription Management:** For SaaS applications, implement robust subscription handling.
+    -   Use `checkout.session.completed` and `invoice.payment_succeeded` webhooks for subscription activation.
+    -   Handle failed payments gracefully with retry logic and customer communication.
+    -   Implement prorated upgrades/downgrades using Stripe's billing features.
+    -   Set up usage-based billing with Stripe Metering if applicable.
+
+### OpenAI API Best Practices (2025)
+9.  **Rate Limiting & Cost Management:** Implement intelligent request management to avoid surprises.
+    -   Use exponential backoff with jitter for rate limit errors (429 status codes).
+    -   Set `max_tokens` appropriately to match expected response length (don't over-allocate).
+    -   Implement request queuing for batch processing to maximize throughput.
+    -   Cache responses for repeated queries to reduce costs and improve performance.
+
+10. **Model Selection & Optimization:** Choose the right model for each task to balance cost and performance.
+    -   Use GPT-4o for general tasks, o1 series only for complex reasoning that requires it.
+    -   Implement fallback models (e.g., GPT-4o-mini) when primary models hit rate limits.
+    -   Use streaming responses for real-time user interfaces to improve perceived performance.
+    -   Monitor token usage patterns and adjust limits dynamically based on user tiers.
+
+11. **Security & Content Safety:** Protect against misuse and ensure safe AI interactions.
+    -   Never expose API keys in client-side code - always use server-side proxy endpoints.
+    -   Implement content filtering for user inputs to prevent policy violations.
+    -   Use structured outputs (JSON schema) for reliable data parsing when possible.
+    -   Set up monitoring for unusual usage patterns that might indicate abuse.
+
+12. **Error Handling & Resilience:** Build robust applications that gracefully handle AI service issues.
+    -   Handle content policy rejections (400 errors) with user-friendly messages.
+    -   Implement circuit breakers for repeated API failures to prevent cascading issues.
+    -   Use request timeouts (30-60 seconds) to prevent hanging requests.
+    -   Log detailed error information for debugging while protecting user privacy.
+
 ### When Helping the User:
 1. Break down complex tasks into smaller steps
 2. Explain the "why" behind each decision
