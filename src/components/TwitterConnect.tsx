@@ -51,12 +51,22 @@ export default function TwitterConnect({ userId }: TwitterConnectProps) {
     setError('')
 
     try {
+      // Get current session token
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        setError('Please login to connect your Twitter account')
+        setConnecting(false)
+        return
+      }
+
       const response = await fetch('/api/twitter/connect', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`,
         },
-        body: JSON.stringify({ userId }),
+        body: JSON.stringify({}), // No need to send userId anymore
       })
 
       const data = await response.json()

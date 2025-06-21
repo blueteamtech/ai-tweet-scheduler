@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { TwitterApi } from 'twitter-api-v2'
 import { createClient } from '@supabase/supabase-js'
+import { createAuthenticatedClient, sanitizeError } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   // Add comprehensive logging for debugging
@@ -8,39 +9,55 @@ export async function POST(request: NextRequest) {
   console.log(`[${requestTime}] Tweet post request received`)
   
   try {
+    // 1. Authenticate user and create user-scoped client
+    const { client: supabase, user, error: authError } = await createAuthenticatedClient(request)
+    
+    if (authError || !user || !supabase) {
+      console.error(`[${requestTime}] Authentication failed:`, authError)
+      return NextResponse.json(
+        { error: 'Authentication required' },
+        { status: 401 }
+      )
+    }
+
+    // 2. Parse request body
     const body = await request.json()
-    const { tweetId, userId, tweetContent, scheduledVia } = body
+    const { tweetId, tweetContent, scheduledVia } = body
     
     console.log(`[${requestTime}] Request body:`, {
       tweetId,
-      userId,
+      userId: user.id,
       tweetContent: tweetContent?.substring(0, 50) + '...',
       scheduledVia,
-      headers: Object.fromEntries(request.headers.entries())
     })
     
-    if (!tweetId || !userId || !tweetContent) {
-      console.error(`[${requestTime}] Missing required parameters:`, { tweetId, userId, tweetContent: !!tweetContent })
+    if (!tweetId || !tweetContent) {
+      console.error(`[${requestTime}] Missing required parameters:`, { tweetId, tweetContent: !!tweetContent })
       return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
     }
 
-    // Get Supabase admin client
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+    // 3. Verify tweet belongs to authenticated user (RLS will handle this automatically)
+    const { data: tweet, error: tweetError } = await supabase
+      .from('tweets')
+      .select('*')
+      .eq('id', tweetId)
+      .single()
 
-    console.log(`[${requestTime}] Fetching Twitter account for user: ${userId}`)
+    if (tweetError || !tweet) {
+      console.error(`[${requestTime}] Tweet not found or unauthorized:`, tweetError)
+      return NextResponse.json({ error: 'Tweet not found or unauthorized' }, { status: 404 })
+    }
 
-    // Get user's Twitter account
-    const { data: twitterAccount, error: accountError } = await supabaseAdmin
+    console.log(`[${requestTime}] Fetching Twitter account for user: ${user.id}`)
+
+    // 4. Get user's Twitter account (RLS ensures only their account)
+    const { data: twitterAccount, error: accountError } = await supabase
       .from('user_twitter_accounts')
       .select('*')
-      .eq('user_id', userId)
       .single()
 
     if (accountError || !twitterAccount) {
       console.error(`[${requestTime}] Twitter account error:`, accountError)
-      console.error(`[${requestTime}] Twitter account data:`, twitterAccount)
       return NextResponse.json({ error: 'Twitter account not connected' }, { status: 400 })
     }
 
@@ -51,43 +68,43 @@ export async function POST(request: NextRequest) {
       hasRefreshToken: !!twitterAccount.refresh_token
     })
 
-    // Verify environment variables
+    // 5. Verify environment variables
     const apiKey = process.env.TWITTER_API_KEY
     const apiSecret = process.env.TWITTER_API_SECRET
     
     if (!apiKey || !apiSecret) {
       console.error(`[${requestTime}] Missing Twitter API credentials`)
-      return NextResponse.json({ error: 'Twitter API credentials not configured' }, { status: 500 })
+      return NextResponse.json({ error: 'Service temporarily unavailable' }, { status: 503 })
     }
 
     console.log(`[${requestTime}] Twitter API credentials available, attempting to post tweet`)
 
     try {
-      // Initialize Twitter client with user's tokens
+      // 6. Initialize Twitter client with user's tokens
       const client = new TwitterApi({
         appKey: apiKey,
         appSecret: apiSecret,
         accessToken: twitterAccount.access_token,
-        accessSecret: twitterAccount.refresh_token, // This is actually the access secret in OAuth 1.0a
+        accessSecret: twitterAccount.refresh_token, // OAuth 1.0a uses access secret
       })
 
       console.log(`[${requestTime}] Twitter client initialized, posting tweet...`)
 
-      // Post the tweet
-      const { data: tweet } = await client.v2.tweet(tweetContent)
+      // 7. Post the tweet
+      const { data: postedTweet } = await client.v2.tweet(tweetContent)
 
       console.log(`[${requestTime}] Tweet posted successfully:`, {
-        tweetId: tweet.id,
-        text: tweet.text?.substring(0, 50) + '...'
+        tweetId: postedTweet.id,
+        text: postedTweet.text?.substring(0, 50) + '...'
       })
 
-      // Update the tweet in database
-      const { error: updateError } = await supabaseAdmin
+      // 8. Update the tweet in database using user-scoped client
+      const { error: updateError } = await supabase
         .from('tweets')
         .update({
           status: 'posted',
           posted_at: new Date().toISOString(),
-          twitter_tweet_id: tweet.id,
+          twitter_tweet_id: postedTweet.id,
           error_message: null,
         })
         .eq('id', tweetId)
@@ -101,41 +118,33 @@ export async function POST(request: NextRequest) {
 
       return NextResponse.json({ 
         success: true, 
-        tweetId: tweet.id,
-        message: 'Tweet posted successfully',
-        postedAt: requestTime
+        tweetId: postedTweet.id,
+        message: 'Tweet posted successfully' 
       })
 
-    } catch (twitterError: unknown) {
+    } catch (twitterError: any) {
       console.error(`[${requestTime}] Twitter API error:`, twitterError)
       
-      const errorMessage = twitterError instanceof Error ? twitterError.message : 'Failed to post tweet'
-      
-      console.log(`[${requestTime}] Updating tweet status to failed`)
-      
-      // Update tweet with error status
-      await supabaseAdmin
+      // Update tweet with error status using user-scoped client
+      await supabase
         .from('tweets')
         .update({
           status: 'failed',
-          error_message: errorMessage,
+          error_message: twitterError.message || 'Failed to post tweet',
         })
         .eq('id', tweetId)
 
-      console.log(`[${requestTime}] Tweet marked as failed in database`)
-
       return NextResponse.json({ 
         error: 'Failed to post tweet to Twitter',
-        details: errorMessage,
-        timestamp: requestTime
+        details: sanitizeError(twitterError)
       }, { status: 500 })
     }
 
   } catch (error) {
     console.error(`[${requestTime}] Post tweet error:`, error)
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      timestamp: requestTime 
-    }, { status: 500 })
+    return NextResponse.json(
+      { error: sanitizeError(error) },
+      { status: 500 }
+    )
   }
 } 
