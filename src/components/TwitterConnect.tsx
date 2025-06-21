@@ -20,7 +20,7 @@ export default function TwitterConnect({ userId }: TwitterConnectProps) {
   useEffect(() => {
     console.log('🔍 TwitterConnect useEffect called with userId:', userId)
     loadTwitterAccount()
-  }, [userId])
+  }, [userId]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadTwitterAccount = async () => {
     console.log('🔍 loadTwitterAccount called for userId:', userId)
@@ -156,7 +156,7 @@ export default function TwitterConnect({ userId }: TwitterConnectProps) {
               <br />
               2. Get your Client ID and Client Secret
               <br />
-              3. Configure OAuth settings with your app's callback URL
+              3. Configure OAuth settings with your app&apos;s callback URL
             </p>
           </div>
 
