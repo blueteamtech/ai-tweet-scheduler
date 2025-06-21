@@ -44,6 +44,11 @@ export async function POST(request: NextRequest) {
 
   } catch (error) {
     console.error('Twitter connect error:', error)
-    return NextResponse.json({ error: 'Failed to initiate Twitter connection' }, { status: 500 })
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+    return NextResponse.json({ 
+      error: 'Failed to initiate Twitter connection',
+      details: errorMessage,
+      debug: String(error)
+    }, { status: 500 })
   }
 } 
