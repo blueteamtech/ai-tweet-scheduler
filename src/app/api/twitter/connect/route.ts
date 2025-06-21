@@ -27,20 +27,16 @@ export async function POST(request: NextRequest) {
 
     const callbackUrl = `${process.env.NEXT_PUBLIC_SITE_URL || 'https://ai-tweet-scheduler.vercel.app'}/api/auth/callback/twitter`
     
-    // Get OAuth request token
+    // Get OAuth request token - don't modify the URL
     const authLink = await client.generateAuthLink(callbackUrl)
     
-    // Store the oauth_token_secret temporarily (in a real app, use Redis or database)
-    // For now, we'll encode it in the authorization URL state
-    const stateData = {
-      userId,
-      secret: authLink.oauth_token_secret,
-    }
-    
-    const encodedState = Buffer.from(JSON.stringify(stateData)).toString('base64')
-    const finalAuthUrl = `${authLink.url}&state=${encodedState}`
+    // Log for debugging
+    console.log('Generated auth link:', authLink.url)
+    console.log('OAuth token:', authLink.oauth_token)
+    console.log('Callback URL used:', callbackUrl)
 
-    return NextResponse.json({ authUrl: finalAuthUrl })
+    // Return the unmodified Twitter OAuth URL
+    return NextResponse.json({ authUrl: authLink.url })
 
   } catch (error) {
     console.error('Twitter connect error:', error)
