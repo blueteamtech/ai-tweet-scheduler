@@ -83,15 +83,16 @@ ai-tweet-scheduler/
 9. **Git Workflow**: Always use `cd AI-Personality-Tweets-to-Scheduler && git add . && git commit -m "message" && git push origin main`
 10. **Directory Check**: Before git commands, always run `pwd` to confirm you're in the root directory
 11. **NPM vs Git**: NPM commands run from `/ai-tweet-scheduler/`, Git commands run from `/AI-Personality-Tweets-to-Scheduler/`
-12. **Directory Reminder**: The user's terminal may be in a different directory than the AI's shell. Always remind them:
+12. **Deployment Preference**: User prefers Vercel deployment over local testing. ALWAYS suggest pushing to Vercel rather than running npm run dev locally
+13. **Directory Reminder**: The user's terminal may be in a different directory than the AI's shell. Always remind them:
     - For Git: "In YOUR terminal, run: cd AI-Personality-Tweets-to-Scheduler && git add . && git commit && git push"
-    - For NPM: "In YOUR terminal, run: cd ai-tweet-scheduler && npm run dev"
+    - Avoid suggesting local npm run dev - user prefers Vercel deployment testing
 
 ### 🗄️ CRITICAL DATABASE WORKFLOW RULES:
-13. **Schema Documentation**: ALWAYS update `database-schema.md` when making ANY database changes (tables, columns, constraints, policies)
-14. **Schema Verification**: After database changes, provide the verification SQL from `verify-database-schema.sql` for user to run
-15. **Schema First**: Check `database-schema.md` BEFORE making assumptions about database structure
-16. **Change Log**: Add database changes to "Recent Changes" section in `database-schema.md` with date
+14. **Schema Documentation**: ALWAYS update `database-schema.md` when making ANY database changes (tables, columns, constraints, policies)
+15. **Schema Verification**: After database changes, provide the verification SQL from `verify-database-schema.sql` for user to run
+16. **Schema First**: Check `database-schema.md` BEFORE making assumptions about database structure
+17. **Change Log**: Add database changes to "Recent Changes" section in `database-schema.md` with date
 
 ### Common Beginner Mistakes to Avoid:
 - Not handling loading and error states
