@@ -1,192 +1,217 @@
-# AI Tweet Scheduler - Cursor Rules
+# AI Tweet Scheduler v2.0 - Cursor Rules
 
 ## Project Context
-This is a beginner-friendly SaaS project building an AI-powered tweet scheduler. The user is learning to code and needs clear explanations and step-by-step guidance.
+**MVP COMPLETE** - Building v2.0 Personality AI Enhancement
+- v1.0: Basic AI tweet scheduler with Twitter integration ✅
+- v2.0: Personality-driven content generation with bulk scheduling
+- Reference: `v2-personality-ai-plan.md` for development roadmap
 
-## Tech Stack
+## Tech Stack (v2.0)
 - Frontend: Next.js 14 with TypeScript
+- Database: Supabase + pgvector (vector embeddings)
+- AI: OpenAI GPT-4o + text-embedding-3-small
+- Scheduling: QStash by Upstash
 - Styling: Tailwind CSS
-- Backend: Supabase (database + auth)
-- AI: OpenAI API
-- Payments: Stripe
 - Deployment: Vercel
 
-## Development Guidelines
+---
 
-### For the AI Assistant:
-1. **Always explain what you're doing** - Don't just write code, explain why
-2. **Use beginner-friendly language** - Avoid jargon without explanation
-3. **Show file structure** - Help the user understand where files go
-4. **Provide context** - Explain how each piece fits into the bigger picture
-5. **Include error handling** - Show proper error handling patterns
-6. **Use TypeScript properly** - Define types and interfaces clearly
-7. **Follow Next.js 14 App Router patterns** - Use modern Next.js conventions
+## 🚨 CRITICAL SAFEGUARDS (Prevent Hours of Troubleshooting)
 
-### 📚 CRITICAL API DOCUMENTATION RULE:
-**ALWAYS CHECK CURRENT DOCUMENTATION BEFORE API INTEGRATION**
-- **Before writing any API integration code**, use web_search to find the most current API documentation
-- **Verify parameter formats, authentication methods, and response structures** from official docs
-- **Check for recent breaking changes** or deprecations in the API
-- **Example**: QStash delay parameter format changed from integers to string format ("30s" not 30000)
-- **When debugging API issues**, first check if our implementation matches current documentation
-- **Don't rely on outdated examples** or assume API formats haven't changed
-
-### Code Standards:
-- Use TypeScript for all files
-- Use Tailwind CSS for styling
-- Follow Next.js App Router structure
-- Use proper error boundaries
-- Include loading states
-- Add proper TypeScript types
-- Use environment variables for secrets
-- Follow React best practices (hooks, components)
-
-### File Organization:
+### 📚 API DOCUMENTATION - ALWAYS CHECK FIRST
+**MANDATORY:** Before ANY API integration, search for current documentation
 ```
-ai-tweet-scheduler/
-├── src/
-│   ├── app/                 # Next.js App Router pages
-│   ├── components/          # Reusable React components
-│   ├── lib/                # Utility functions, API clients
-│   ├── types/              # TypeScript type definitions
-│   └── styles/             # Global styles
-├── public/                 # Static assets
-└── ...config files
+1. web_search: "OpenAI embeddings API 2025 documentation"
+2. web_search: "Supabase pgvector extension syntax 2025"
+3. Verify parameter formats, response structures, rate limits
+4. Check for breaking changes in last 6 months
 ```
 
-### When Writing Code:
-1. Always include proper TypeScript types
-2. Add comments explaining complex logic
-3. Use meaningful variable and function names
-4. Include error handling and loading states
-5. Make components reusable when possible
-6. Follow the principle of separation of concerns
+### 🗄️ DATABASE ROLLBACK STRATEGY
+**PROBLEM:** Git revert doesn't rollback database changes
+**SOLUTION:** 
+1. **Before ANY database changes:**
+   - Create backup SQL in comments: `-- ROLLBACK: DROP TABLE new_table;`
+   - Document rollback commands in `database-rollback-commands.md`
+   - Test rollback SQL in development first
 
-### For Database Design:
-- Use Supabase Row Level Security (RLS)
-- Create proper foreign key relationships
-- Use meaningful table and column names
-- Include created_at and updated_at timestamps
-- **ALWAYS check database-schema.md before making database assumptions**
-- Current tables: `tweets`, `user_twitter_accounts` (see database-schema.md for full details)
-- **CRITICAL: Update database-schema.md whenever making database changes (new tables, columns, constraints, etc.)**
+2. **Database Migration Pattern:**
+   ```sql
+   -- FORWARD MIGRATION
+   CREATE TABLE user_writing_samples (...);
+   
+   -- ROLLBACK (test these first!):
+   -- DROP TABLE IF EXISTS user_writing_samples CASCADE;
+   ```
 
-### Security Best Practices:
-- Never expose API keys in client-side code
-- Use environment variables for all secrets
-- Implement proper authentication checks
-- Use Supabase RLS for data security
-- Validate all user inputs
+3. **Always create rollback before forward migration**
 
-### API Integration Workflow
-1.  **CHECK CURRENT DOCUMENTATION FIRST:** Before writing any code, use web_search to find and verify the latest API documentation, parameter formats, and authentication requirements.
+### 🚀 VERCEL DEPLOYMENT STATE TRACKING
+**PROBLEM:** Environment variables and database can get out of sync
+**SOLUTION:**
+1. **Before deploying:** Document current state in `deployment-state.md`
+2. **Environment Variables:** Keep local `.env.local` and Vercel settings in sync
+3. **Database Schema:** Ensure Supabase matches local SQL files
+4. **Rollback Plan:** Document how to revert Vercel + Database to previous working state
 
-2.  **Understand the Auth Flow First:** Before writing any code, thoroughly read the API's authentication documentation.
-    -   Confirm the exact OAuth version (e.g., OAuth 1.0a, OAuth 2.0).
-    -   Identify all required parameters (`state`, `PKCE`, temporary secrets, etc.).
-    -   Map out the entire flow on paper or in a comment: `User Clicks -> Our API -> External API -> Callback -> Finalize`.
+---
 
-3.  **Schema Before Code:** Define the database table structure needed to store API credentials (`access_token`, `refresh_token`, `user_id`, etc.) *before* writing the API routes.
-    -   Update `database-schema.md` and the `database-setup.sql` file first. This prevents database errors during the callback.
+## 🔧 V2.0 SPECIFIC RULES
 
-4.  **Build a Debug Route:** For every new external API, create a dedicated server-side debug route (e.g., `/api/debug/new-api-config`).
-    -   This route should check that all required environment variables are loaded correctly in the production environment without exposing their values.
+### OpenAI Embeddings (v2.0)
+- **Model:** `text-embedding-3-small` (check current pricing)
+- **Dimensions:** 1536 (verify current default)
+- **Rate Limits:** Check current limits before bulk operations
+- **Cost Management:** Estimate costs for embedding user writing samples
 
-5.  **Create a "Dumb" Callback First:** When building the callback handler (e.g., `/api/auth/callback/new-api`), make the first version extremely simple.
-    -   It should only do one thing: `console.log()` all the headers and query parameters it receives.
-    -   This allows you to instantly see what the external API is sending back, confirming the redirect is working *before* adding complex logic.
+### Supabase pgvector (v2.0)
+- **Extension:** Enable pgvector extension first
+- **Vector Storage:** `embedding vector(1536)` (verify dimensions)
+- **Similarity Search:** Use cosine similarity for semantic matching
+- **Performance:** Add indexes for user_id + similarity queries
 
-6.  **Comprehensive RLS Policies:** When creating a new table that stores user-specific data from an API:
-    -   Immediately create RLS policies for `SELECT`, `INSERT`, `UPDATE`, and `DELETE`.
-    -   This prevents `406 Not Acceptable` errors and ensures the frontend can both read and write data securely.
+### Bulk Processing (v2.0)
+- **Rate Limiting:** Implement delays between API calls
+- **Error Handling:** Graceful failure for bulk operations
+- **Progress Tracking:** Show progress for long-running operations
+- **Cancellation:** Allow users to cancel bulk operations
 
-### Stripe API Best Practices (2025)
-7.  **Webhook Security (Critical):** Always verify webhook signatures to prevent security breaches.
-    -   Use the raw request body (UTF-8 encoded) without any modifications for signature verification.
-    -   Store webhook secrets securely and rotate them periodically (every 6-12 months).
-    -   Implement idempotency checks using event IDs to handle duplicate webhook deliveries.
-    -   Return HTTP 200 status codes quickly (within 10 seconds) to prevent retries.
+---
 
-8.  **Payment Flow Architecture:** Design payment flows with proper error handling and user experience.
-    -   Use Stripe Checkout for simple implementations, Payment Intents for custom flows.
-    -   Always handle asynchronous payment confirmations via webhooks, not just API responses.
-    -   Implement proper 3D Secure (SCA) handling for European customers.
-    -   Store Stripe customer IDs and payment method IDs, never raw card data.
+## 📋 V2.0 DEVELOPMENT WORKFLOW
 
-9.  **Subscription Management:** For SaaS applications, implement robust subscription handling.
-    -   Use `checkout.session.completed` and `invoice.payment_succeeded` webhooks for subscription activation.
-    -   Handle failed payments gracefully with retry logic and customer communication.
-    -   Implement prorated upgrades/downgrades using Stripe's billing features.
-    -   Set up usage-based billing with Stripe Metering if applicable.
+### Before Starting ANY Phase:
+1. ✅ Check `v2-personality-ai-plan.md` checklist
+2. ✅ Check current API documentation (web_search)
+3. ✅ Update `database-schema.md` with planned changes
+4. ✅ Create rollback commands for database changes
+5. ✅ Test rollback commands before implementing forward changes
 
-### OpenAI API Best Practices (2025)
-10. **Rate Limiting & Cost Management:** Implement intelligent request management to avoid surprises.
-    -   Use exponential backoff with jitter for rate limit errors (429 status codes).
-    -   Set `max_tokens` appropriately to match expected response length (don't over-allocate).
-    -   Implement request queuing for batch processing to maximize throughput.
-    -   Cache responses for repeated queries to reduce costs and improve performance.
+### Database Changes:
+1. **Plan:** Update `database-schema.md` first
+2. **Rollback:** Create and test rollback SQL
+3. **Forward:** Implement changes
+4. **Verify:** Run verification SQL
+5. **Document:** Add to recent changes with date
 
-11. **Model Selection & Optimization:** Choose the right model for each task to balance cost and performance.
-    -   Use GPT-4o for general tasks, o1 series only for complex reasoning that requires it.
-    -   Implement fallback models (e.g., GPT-4o-mini) when primary models hit rate limits.
-    -   Use streaming responses for real-time user interfaces to improve perceived performance.
-    -   Monitor token usage patterns and adjust limits dynamically based on user tiers.
+### API Integration:
+1. **Research:** web_search for current documentation
+2. **Debug Route:** Create simple test endpoint first
+3. **Parameters:** Verify formats match current docs
+4. **Error Handling:** Handle rate limits and failures
+5. **Testing:** Test edge cases and error scenarios
 
-12. **Security & Content Safety:** Protect against misuse and ensure safe AI interactions.
-    -   Never expose API keys in client-side code - always use server-side proxy endpoints.
-    -   Implement content filtering for user inputs to prevent policy violations.
-    -   Use structured outputs (JSON schema) for reliable data parsing when possible.
-    -   Set up monitoring for unusual usage patterns that might indicate abuse.
+---
 
-13. **Error Handling & Resilience:** Build robust applications that gracefully handle AI service issues.
-    -   Handle content policy rejections (400 errors) with user-friendly messages.
-    -   Implement circuit breakers for repeated API failures to prevent cascading issues.
-    -   Use request timeouts (30-60 seconds) to prevent hanging requests.
-    -   Log detailed error information for debugging while protecting user privacy.
+## 🗂️ FILE ORGANIZATION (v2.0)
 
-### QStash API Best Practices (2025)
-14. **Delay Parameter Format:** QStash expects delay as string with time units, not milliseconds.
-    -   Use format like `"30s"`, `"5m"`, `"2h"`, `"1d"` 
-    -   Convert milliseconds to seconds: `const qstashDelay = \`\${Math.ceil(delayMs / 1000)}s\``
-    -   Never use raw millisecond integers as delay values
+```
+AI-Personality-Tweets-to-Scheduler/
+├── v2-personality-ai-plan.md          # Development roadmap
+├── database-schema.md                 # Schema documentation
+├── database-rollback-commands.md      # Rollback procedures
+├── deployment-state.md                # Vercel/DB state tracking
+└── ai-tweet-scheduler/
+    ├── src/
+    │   ├── components/
+    │   │   ├── WritingSampleInput.tsx  # v2.0: Writing analysis
+    │   │   ├── BulkTweetInput.tsx      # v2.0: Bulk generation
+    │   │   └── TweetQueue.tsx          # v2.0: Queue management
+    │   ├── lib/
+    │   │   ├── embeddings.ts           # v2.0: OpenAI embeddings
+    │   │   ├── similarity.ts           # v2.0: Vector similarity
+    │   │   └── bulk-scheduler.ts       # v2.0: Smart scheduling
+    │   └── app/api/
+    │       ├── analyze-writing/        # v2.0: Writing analysis
+    │       ├── bulk-generate-tweets/   # v2.0: Bulk generation
+    │       └── bulk-schedule-tweets/   # v2.0: Bulk scheduling
+```
 
-15. **Response Handling:** QStash publishJSON returns different response types depending on destination.
-    -   Handle both single responses and array responses for URL groups
-    -   Extract messageId safely: `const messageId = Array.isArray(result) ? result[0]?.messageId : (result as any).messageId`
+---
 
-### When Helping the User:
-1. Break down complex tasks into smaller steps
-2. Explain the "why" behind each decision
-3. Show examples of how to test the code
-4. Provide debugging tips when things go wrong
-5. Reference the README.md checklist to track progress
-6. Suggest best practices for each feature
-7. **Environment Files**: Cannot read .env.local files for security reasons - always assume they exist and are configured correctly when user says they are
+## ⚠️ COMMON V2.0 PITFALLS TO AVOID
 
-### 🚨 CRITICAL GIT WORKFLOW RULES:
-8. **Git Commands Directory**: ALWAYS run git commands from the ROOT directory `/AI-Personality-Tweets-to-Scheduler/`, NEVER from `/ai-tweet-scheduler/`
-9. **Git Workflow**: Always use `cd AI-Personality-Tweets-to-Scheduler && git add . && git commit -m "message" && git push origin main`
-10. **Directory Check**: Before git commands, always run `pwd` to confirm you're in the root directory
-11. **NPM vs Git**: NPM commands run from `/ai-tweet-scheduler/`, Git commands run from `/AI-Personality-Tweets-to-Scheduler/`
-12. **Deployment Preference**: User prefers Vercel deployment over local testing. ALWAYS suggest pushing to Vercel rather than running npm run dev locally
-13. **Directory Reminder**: The user's terminal may be in a different directory than the AI's shell. Always remind them:
-    - For Git: "In YOUR terminal, run: cd AI-Personality-Tweets-to-Scheduler && git add . && git commit && git push"
-    - Avoid suggesting local npm run dev - user prefers Vercel deployment testing
+### OpenAI API Issues:
+- **Embeddings Model:** Verify `text-embedding-3-small` is still current
+- **Rate Limits:** Different limits for chat vs embeddings APIs
+- **Batch Processing:** Don't overwhelm API with concurrent requests
+- **Error Codes:** Handle 429 (rate limit) and 400 (content policy) properly
 
-### 🗄️ CRITICAL DATABASE WORKFLOW RULES:
-14. **Schema Documentation**: ALWAYS update `database-schema.md` when making ANY database changes (tables, columns, constraints, policies)
-15. **Schema Verification**: After database changes, provide the verification SQL from `verify-database-schema.sql` for user to run
-16. **Schema First**: Check `database-schema.md` BEFORE making assumptions about database structure
-17. **Change Log**: Add database changes to "Recent Changes" section in `database-schema.md` with date
+### Vector Database Issues:
+- **pgvector Extension:** Must be enabled before creating vector columns
+- **Dimension Mismatch:** Embedding dimensions must match vector column
+- **Index Performance:** Create proper indexes for similarity searches
+- **Storage Costs:** Vector storage is expensive, optimize storage
 
-### Common Beginner Mistakes to Avoid:
-- Not handling loading and error states
-- Exposing secrets in client-side code
-- Not using TypeScript properly
-- Not following Next.js conventions
-- Not implementing proper error boundaries
-- Not using environment variables
-- Not securing API routes
-- **Not checking current API documentation before integration**
+### Bulk Operations Issues:
+- **Memory Usage:** Don't load all data into memory at once
+- **User Experience:** Show progress for long operations
+- **Error Recovery:** Allow retry of failed bulk operations
+- **Rate Limiting:** Respect API limits during bulk processing
 
-Remember: This is a learning project, so prioritize clarity and education over brevity. 
+---
+
+## 🎯 DEVELOPMENT PRIORITIES
+
+1. **Database First:** Set up tables and rollback procedures
+2. **API Research:** Verify current documentation for all APIs
+3. **Simple Implementation:** Start with basic functionality
+4. **Error Handling:** Robust error handling for all operations
+5. **User Experience:** Progress indicators and feedback
+6. **Performance:** Optimize for bulk operations
+7. **Testing:** Test edge cases and failure scenarios
+
+---
+
+## 🛑 TROUBLESHOOTING WORKFLOW (Prevent Getting Stuck)
+
+### **3-Attempt Rule**: 
+If working on the same problem for more than 3 attempts based on user feedback:
+
+1. **STOP** making agentic attempts
+2. **SWITCH TO PLAN MODE:**
+   - **Analyze**: What exactly is wrong?
+   - **Logic**: What are we trying to fix and why?
+   - **Impact**: How does this affect the overall v2.0 plan?
+   - **Strategy**: Clear step-by-step plan to resolve the issue
+3. **Present the analysis** to user for agreement
+4. **Continue with 3 more attempts** after plan approval
+
+### **Plan Mode Template:**
+```
+🛑 **SWITCHING TO PLAN MODE** (3+ attempts on same issue)
+
+**Problem Analysis:**
+- What's broken: [specific issue]
+- Root cause: [why it's happening]
+- Current attempts tried: [list what was tried]
+
+**Fix Strategy:**
+- Step 1: [specific action]
+- Step 2: [specific action]
+- Step 3: [specific action]
+
+**Overall Impact:**
+- How this affects v2.0 development
+- Which phases might be delayed
+- Dependencies that are blocked
+
+**Next Steps:**
+- Immediate actions needed
+- Success criteria to confirm fix
+- Backup plan if this approach fails
+```
+
+---
+
+## 📝 REFERENCE CHECKLIST
+
+Before any major work:
+- [ ] Current API docs checked (web_search)
+- [ ] Database rollback plan created
+- [ ] `v2-personality-ai-plan.md` phase identified
+- [ ] `database-schema.md` updated
+- [ ] Deployment state documented
+- [ ] Not stuck on same problem for 3+ attempts
+
+Remember: v2.0 introduces complex AI and vector operations. Take time to research and plan to avoid costly mistakes. 
