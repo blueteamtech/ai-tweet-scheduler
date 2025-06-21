@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { User } from '@supabase/supabase-js'
 import type { Tweet } from '@/types'
+import TweetScheduler from '@/components/TweetScheduler'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -12,7 +13,10 @@ export default function DashboardPage() {
   const [tweetContent, setTweetContent] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [drafts, setDrafts] = useState<Tweet[]>([])
+  const [isScheduling, setIsScheduling] = useState(false)
+  const [showScheduler, setShowScheduler] = useState(false)
+  const [tweets, setTweets] = useState<Tweet[]>([])
+  const [activeTab, setActiveTab] = useState<'drafts' | 'scheduled' | 'all'>('drafts')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const router = useRouter()
@@ -30,8 +34,8 @@ export default function DashboardPage() {
       setUser(user)
       setLoading(false)
       
-      // Load user's drafts
-      await loadDrafts(user.id)
+      // Load user's tweets
+      await loadTweets(user.id)
     }
 
     checkUser()
@@ -48,19 +52,18 @@ export default function DashboardPage() {
     return () => subscription.unsubscribe()
   }, [router])
 
-  const loadDrafts = async (userId: string) => {
+  const loadTweets = async (userId: string) => {
     try {
       const { data, error } = await supabase
         .from('tweets')
         .select('*')
         .eq('user_id', userId)
-        .eq('status', 'draft')
         .order('created_at', { ascending: false })
 
       if (error) throw error
-      setDrafts(data || [])
+      setTweets(data || [])
     } catch (error) {
-      console.error('Error loading drafts:', error)
+      console.error('Error loading tweets:', error)
     }
   }
 
@@ -120,7 +123,7 @@ export default function DashboardPage() {
 
       setSuccess('Draft saved successfully!')
       setTweetContent('')
-      await loadDrafts(user.id)
+      await loadTweets(user.id)
       
       // Clear success message after 3 seconds
       setTimeout(() => setSuccess(''), 3000)
@@ -132,24 +135,81 @@ export default function DashboardPage() {
     }
   }
 
-  const deleteDraft = async (draftId: string) => {
+  const scheduleTweet = async (scheduledDate: Date) => {
+    if (!user || !tweetContent.trim()) {
+      setError('Please enter some content before scheduling')
+      return
+    }
+
+    setIsScheduling(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      const { error } = await supabase
+        .from('tweets')
+        .insert([
+          {
+            user_id: user.id,
+            tweet_content: tweetContent.trim(),
+            status: 'scheduled',
+            scheduled_at: scheduledDate.toISOString()
+          }
+        ])
+
+      if (error) throw error
+
+      setSuccess('Tweet scheduled successfully!')
+      setTweetContent('')
+      setShowScheduler(false)
+      await loadTweets(user.id)
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (error) {
+      setError('Failed to schedule tweet. Please try again.')
+      console.error('Error scheduling tweet:', error)
+    } finally {
+      setIsScheduling(false)
+    }
+  }
+
+  const deleteTweet = async (tweetId: string) => {
     try {
       const { error } = await supabase
         .from('tweets')
         .delete()
-        .eq('id', draftId)
+        .eq('id', tweetId)
 
       if (error) throw error
 
-      await loadDrafts(user!.id)
+      await loadTweets(user!.id)
     } catch (error) {
-      setError('Failed to delete draft')
-      console.error('Error deleting draft:', error)
+      setError('Failed to delete tweet')
+      console.error('Error deleting tweet:', error)
     }
   }
 
-  const loadDraft = (draft: Tweet) => {
-    setTweetContent(draft.tweet_content)
+  const loadDraft = (tweet: Tweet) => {
+    setTweetContent(tweet.tweet_content)
+  }
+
+  const cancelScheduledTweet = async (tweetId: string) => {
+    try {
+      const { error } = await supabase
+        .from('tweets')
+        .update({ status: 'draft', scheduled_at: null })
+        .eq('id', tweetId)
+
+      if (error) throw error
+
+      await loadTweets(user!.id)
+      setSuccess('Tweet cancelled and moved to drafts')
+      setTimeout(() => setSuccess(''), 3000)
+    } catch (error) {
+      setError('Failed to cancel tweet')
+      console.error('Error cancelling tweet:', error)
+    }
   }
 
   const handleLogout = async () => {
@@ -167,6 +227,18 @@ export default function DashboardPage() {
 
   const characterCount = tweetContent.length
   const isOverLimit = characterCount > 280
+
+  // Filter tweets based on active tab
+  const filteredTweets = tweets.filter(tweet => {
+    if (activeTab === 'drafts') return tweet.status === 'draft'
+    if (activeTab === 'scheduled') return tweet.status === 'scheduled'
+    return true // 'all' tab
+  })
+
+  const formatScheduledDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -259,37 +331,103 @@ export default function DashboardPage() {
             >
               {isSaving ? 'Saving...' : '💾 Save Draft'}
             </button>
+            
+            <button
+              onClick={() => setShowScheduler(true)}
+              disabled={!tweetContent.trim() || isOverLimit}
+              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white px-6 py-2 rounded-md font-medium"
+            >
+              📅 Schedule Tweet
+            </button>
           </div>
         </div>
 
-        {/* Drafts Section */}
+        {/* Tweet Management Section */}
         <div className="bg-white rounded-lg shadow p-6">
-          <h3 className="text-xl font-bold text-gray-900 mb-4">
-            Your Drafts ({drafts.length})
-          </h3>
-          
-          {drafts.length === 0 ? (
+          {/* Tab Navigation */}
+          <div className="flex space-x-1 mb-6">
+            <button
+              onClick={() => setActiveTab('drafts')}
+              className={`px-4 py-2 rounded-md font-medium ${
+                activeTab === 'drafts'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Drafts ({tweets.filter(t => t.status === 'draft').length})
+            </button>
+            <button
+              onClick={() => setActiveTab('scheduled')}
+              className={`px-4 py-2 rounded-md font-medium ${
+                activeTab === 'scheduled'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Scheduled ({tweets.filter(t => t.status === 'scheduled').length})
+            </button>
+            <button
+              onClick={() => setActiveTab('all')}
+              className={`px-4 py-2 rounded-md font-medium ${
+                activeTab === 'all'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              All ({tweets.length})
+            </button>
+          </div>
+
+          {/* Tweet List */}
+          {filteredTweets.length === 0 ? (
             <p className="text-gray-500 text-center py-8">
-              No drafts yet. Create your first tweet above!
+              {activeTab === 'drafts' && 'No drafts yet. Create your first tweet above!'}
+              {activeTab === 'scheduled' && 'No scheduled tweets yet. Schedule your first tweet above!'}
+              {activeTab === 'all' && 'No tweets yet. Create your first tweet above!'}
             </p>
           ) : (
             <div className="space-y-4">
-              {drafts.map((draft) => (
-                <div key={draft.id} className="border border-gray-200 rounded-lg p-4">
-                  <p className="text-gray-900 mb-3">{draft.tweet_content}</p>
-                  <div className="flex justify-between items-center text-sm text-gray-500">
-                    <span>
-                      Created: {new Date(draft.created_at).toLocaleDateString()}
+              {filteredTweets.map((tweet) => (
+                <div key={tweet.id} className="border border-gray-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-3">
+                    <p className="text-gray-900 flex-1">{tweet.tweet_content}</p>
+                    <span className={`ml-4 px-2 py-1 rounded-full text-xs font-medium ${
+                      tweet.status === 'draft' ? 'bg-gray-100 text-gray-800' :
+                      tweet.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-green-100 text-green-800'
+                    }`}>
+                      {tweet.status}
                     </span>
+                  </div>
+                  
+                  <div className="flex justify-between items-center text-sm text-gray-500">
+                    <div>
+                      <span>Created: {new Date(tweet.created_at).toLocaleDateString()}</span>
+                      {tweet.scheduled_at && (
+                        <span className="ml-4 font-medium text-yellow-600">
+                          📅 Scheduled for: {formatScheduledDate(tweet.scheduled_at)}
+                        </span>
+                      )}
+                    </div>
                     <div className="flex gap-2">
+                      {tweet.status === 'draft' && (
+                        <button
+                          onClick={() => loadDraft(tweet)}
+                          className="text-blue-600 hover:text-blue-800"
+                        >
+                          Edit
+                        </button>
+                      )}
+                      {tweet.status === 'scheduled' && (
+                        <button
+                          onClick={() => cancelScheduledTweet(tweet.id)}
+                          className="text-yellow-600 hover:text-yellow-800"
+                        >
+                          Cancel
+                        </button>
+                      )}
                       <button
-                        onClick={() => loadDraft(draft)}
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        Edit
-                      </button>
-                      <button
-                        onClick={() => deleteDraft(draft.id)}
+                        onClick={() => deleteTweet(tweet.id)}
                         className="text-red-600 hover:text-red-800"
                       >
                         Delete
@@ -302,6 +440,15 @@ export default function DashboardPage() {
           )}
         </div>
       </main>
+
+      {/* Tweet Scheduler Modal */}
+      {showScheduler && (
+        <TweetScheduler
+          onSchedule={scheduleTweet}
+          onCancel={() => setShowScheduler(false)}
+          isScheduling={isScheduling}
+        />
+      )}
     </div>
   )
 } 
