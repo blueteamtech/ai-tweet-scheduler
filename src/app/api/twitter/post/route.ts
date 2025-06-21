@@ -68,21 +68,23 @@ export async function POST(request: NextRequest) {
         message: 'Tweet posted successfully' 
       })
 
-    } catch (twitterError: any) {
+    } catch (twitterError: unknown) {
       console.error('Twitter API error:', twitterError)
+      
+      const errorMessage = twitterError instanceof Error ? twitterError.message : 'Failed to post tweet'
       
       // Update tweet with error status
       await supabaseAdmin
         .from('tweets')
         .update({
           status: 'failed',
-          error_message: twitterError.message || 'Failed to post tweet',
+          error_message: errorMessage,
         })
         .eq('id', tweetId)
 
       return NextResponse.json({ 
         error: 'Failed to post tweet to Twitter',
-        details: twitterError.message 
+        details: errorMessage 
       }, { status: 500 })
     }
 
