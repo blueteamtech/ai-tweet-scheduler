@@ -1,7 +1,28 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
-export async function GET(request: NextRequest) {
+interface TweetAnalysis {
+  id: string
+  user_id: string
+  tweet_content: string
+  status: string
+  scheduled_at: string | null
+  posted_at: string | null
+  twitter_tweet_id: string | null
+  qstash_message_id: string | null
+  error_message: string | null
+  created_at: string
+  updated_at: string
+  timing?: {
+    scheduled_at_iso: string
+    current_time_iso: string
+    minutes_until_scheduled: number
+    is_overdue: boolean
+    overdue_minutes: number
+  }
+}
+
+export async function GET() {
   try {
     // Get Supabase admin client
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
@@ -36,8 +57,8 @@ export async function GET(request: NextRequest) {
 
     // Add timing analysis
     const now = new Date()
-    const tweetsWithAnalysis = tweets?.map(tweet => {
-      const analysis: any = {
+    const tweetsWithAnalysis: TweetAnalysis[] = tweets?.map(tweet => {
+      const analysis: TweetAnalysis = {
         ...tweet,
         tweet_content: tweet.tweet_content?.substring(0, 100) + '...' // Truncate for display
       }
