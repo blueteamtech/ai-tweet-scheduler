@@ -123,7 +123,7 @@ The tweet should be:
 - Under 280 characters
 - Match the user's writing style, tone, and personality from the examples
 - Sound authentic to how this person naturally writes
-- Include relevant hashtags if they match the user's style
+- NO hashtags - focus on pure text content
 - No quotes around the tweet text
 - Avoid emojis unless they're very common in the user's writing samples
 
@@ -134,7 +134,7 @@ Generate a single tweet based on the user's input. The tweet should be:
 - Under 280 characters
 - Engaging and authentic
 - Professional but conversational
-- Include relevant hashtags if appropriate
+- NO hashtags - focus on pure text content
 - No quotes around the tweet text
 - Avoid emojis - focus on text-based content
 
