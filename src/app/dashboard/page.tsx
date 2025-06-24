@@ -76,10 +76,14 @@ export default function DashboardPage() {
     setError('')
     
     try {
+      // Get current session token for authentication
+      const { data: { session } } = await supabase.auth.getSession();
+      
       const response = await fetch('/api/generate-tweet', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(session && { 'Authorization': `Bearer ${session.access_token}` }),
         },
         body: JSON.stringify({
           prompt: tweetContent || 'Write a motivational tweet about entrepreneurship and building startups'
