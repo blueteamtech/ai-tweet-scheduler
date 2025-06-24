@@ -322,7 +322,7 @@ Example:
           {/* Next Steps */}
           <div className="mt-4 p-3 bg-blue-50 rounded-md">
             <div className="text-sm text-blue-700">
-              <strong>What's Next:</strong> Your writing sample has been analyzed and stored. 
+              <strong>What&apos;s Next:</strong> Your writing sample has been analyzed and stored. 
               The AI will now use this to generate tweets that match your personality and writing style!
             </div>
           </div>

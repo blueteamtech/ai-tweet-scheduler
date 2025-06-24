@@ -91,11 +91,14 @@ export async function generateEmbedding(
       estimated_cost: estimatedCost
     };
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('OpenAI Embeddings API Error:', error);
 
+    // Type guard for OpenAI API errors
+    const apiError = error as { status?: number; message?: string };
+
     // Handle specific OpenAI errors
-    if (error?.status === 429) {
+    if (apiError?.status === 429) {
       return {
         error: 'Rate limit exceeded. Please try again later.',
         code: '429',
@@ -103,15 +106,15 @@ export async function generateEmbedding(
       };
     }
 
-    if (error?.status === 400) {
+    if (apiError?.status === 400) {
       return {
-        error: error?.message || 'Invalid request to OpenAI API',
+        error: apiError?.message || 'Invalid request to OpenAI API',
         code: '400',
         type: 'invalid_input'
       };
     }
 
-    if (error?.status === 401) {
+    if (apiError?.status === 401) {
       return {
         error: 'Invalid OpenAI API key',
         code: '401',
@@ -121,8 +124,8 @@ export async function generateEmbedding(
 
     // Generic error
     return {
-      error: error?.message || 'Unknown error generating embedding',
-      code: error?.status?.toString(),
+      error: apiError?.message || 'Unknown error generating embedding',
+      code: apiError?.status?.toString(),
       type: 'unknown'
     };
   }
@@ -187,7 +190,7 @@ export function cosineSimilarity(embedding1: number[], embedding2: number[]): nu
  * @param embedding - Embedding vector to validate
  * @returns boolean
  */
-export function isValidEmbedding(embedding: any): embedding is number[] {
+export function isValidEmbedding(embedding: unknown): embedding is number[] {
   return (
     Array.isArray(embedding) &&
     embedding.length === EMBEDDING_DIMENSIONS &&

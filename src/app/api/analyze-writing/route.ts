@@ -201,7 +201,7 @@ export async function POST(request: NextRequest) {
  * GET /api/analyze-writing
  * Get user's writing samples count and stats
  */
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get authenticated user
     const { data: { user }, error: authError } = await supabase.auth.getUser();
