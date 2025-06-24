@@ -76,6 +76,65 @@
 
 ---
 
+## 🔍 CODE QUALITY & ESLINT PREVENTION
+**MANDATORY:** Prevent build failures by following these rules BEFORE committing
+
+### **ESLint Rules to Follow:**
+1. **TypeScript Strictness:**
+   - ❌ NEVER use `any` type - create proper interfaces instead
+   - ✅ Use `const` for variables that are never reassigned (not `let`)
+   - ✅ Define proper types for function parameters and returns
+   - ✅ Use type guards for runtime type checking
+
+2. **React/JSX Rules:**
+   - ❌ NEVER use unescaped quotes in JSX: `"text"` 
+   - ✅ Always escape quotes: `&quot;text&quot;` or `&ldquo;text&rdquo;`
+   - ✅ Use proper event handler types: `React.MouseEvent`, `React.ChangeEvent`
+   - ✅ Include `key` props for mapped elements
+
+3. **Variable Declaration:**
+   - ✅ Use `const` for values that never change
+   - ✅ Use `let` only when the variable will be reassigned
+   - ❌ Avoid `var` completely
+
+### **Pre-Commit Checklist:**
+Before ANY git commit, verify:
+- [ ] No TypeScript errors (`any` types, missing interfaces)
+- [ ] No unescaped entities in JSX (quotes, apostrophes)
+- [ ] Proper const/let usage (prefer const when possible)
+- [ ] All imports are used and correctly typed
+- [ ] Event handlers have proper TypeScript types
+
+### **Common Pitfalls & Fixes:**
+```typescript
+// ❌ BAD: Using 'any' type
+const items = data.map((item: any) => ({ ... }))
+
+// ✅ GOOD: Proper interface
+interface DatabaseItem { id: string; name: string; }
+const items = data.map((item: DatabaseItem) => ({ ... }))
+
+// ❌ BAD: Using 'let' when never reassigned
+let config = { apiKey: '...', timeout: 5000 }
+
+// ✅ GOOD: Using 'const' 
+const config = { apiKey: '...', timeout: 5000 }
+
+// ❌ BAD: Unescaped quotes in JSX
+<span>Click "Save" to continue</span>
+
+// ✅ GOOD: Escaped quotes
+<span>Click &quot;Save&quot; to continue</span>
+```
+
+### **Build Validation Process:**
+1. **Local Testing:** Run `npm run build` locally before pushing
+2. **Type Check:** Ensure all TypeScript types are properly defined
+3. **ESLint Clean:** No warnings or errors in ESLint output
+4. **Import Check:** All imports are used and paths are correct
+
+---
+
 ## 🔧 V2.0 SPECIFIC RULES
 
 ### OpenAI Embeddings (v2.0)
@@ -234,5 +293,11 @@ Before any major work:
 - [ ] `database-schema.md` updated
 - [ ] Deployment state documented
 - [ ] Not stuck on same problem for 3+ attempts
+
+**Before ANY commit:**
+- [ ] Code Quality: No `any` types, proper interfaces defined
+- [ ] ESLint Clean: No unescaped JSX entities, proper const/let usage
+- [ ] Build Test: `npm run build` passes locally (recommended)
+- [ ] Type Safety: All imports typed correctly
 
 Remember: v2.0 introduces complex AI and vector operations. Take time to research and plan to avoid costly mistakes. 

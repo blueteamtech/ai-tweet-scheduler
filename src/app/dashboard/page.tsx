@@ -79,16 +79,21 @@ export default function DashboardPage() {
 
   const checkWritingSamples = async (userId: string) => {
     try {
-      const { count } = await supabase
+      // Get actual samples to count them properly
+      const { data: samples, error } = await supabase
         .from('user_writing_samples')
-        .select('*', { count: 'exact', head: true })
+        .select('id')
         .eq('user_id', userId)
 
-      // Initialize personality AI state to show initial guidance
+      if (error) throw error
+
+      const actualCount = samples ? samples.length : 0
+
+      // Initialize personality AI state with actual count
       setPersonalityAI({
         used: false,
         samplesUsed: 0,
-        hasWritingSamples: (count || 0) > 0
+        hasWritingSamples: actualCount > 0
       })
     } catch (error) {
       console.error('Error checking writing samples:', error)

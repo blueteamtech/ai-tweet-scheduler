@@ -69,7 +69,7 @@ export async function POST(request: NextRequest) {
           user.id, 
           embeddingResult.embedding,
           3, // Top 3 most similar samples
-          0.3 // Lower threshold for broader matches
+          0.1 // Much lower threshold for better matching - was 0.3
         )
 
         personalityInfo.hasWritingSamples = similarityResult.hasWritingSamples
@@ -103,6 +103,7 @@ The tweet should be:
 - Sound authentic to how this person naturally writes
 - Include relevant hashtags if they match the user's style
 - No quotes around the tweet text
+- Avoid emojis unless they're very common in the user's writing samples
 
 Generate the tweet:`
     } else {
@@ -113,6 +114,7 @@ Generate a single tweet based on the user's input. The tweet should be:
 - Professional but conversational
 - Include relevant hashtags if appropriate
 - No quotes around the tweet text
+- Avoid emojis - focus on text-based content
 
 User's request: ${prompt}`
     }
