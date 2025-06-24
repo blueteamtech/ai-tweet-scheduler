@@ -61,9 +61,11 @@ export async function POST(request: NextRequest) {
 
     try {
       // Generate embedding for the prompt to find similar writing samples
+      console.log('🧠 Generating embedding for prompt:', prompt)
       const embeddingResult = await generateEmbedding(prompt)
       
       if ('embedding' in embeddingResult) {
+        console.log('✅ Embedding generated successfully')
         // Search for similar writing samples
         const similarityResult = await findSimilarWritingSamples(
           user.id, 
@@ -72,6 +74,15 @@ export async function POST(request: NextRequest) {
           0.1 // Much lower threshold for better matching - was 0.3
         )
 
+        console.log('🔍 Similarity search result:', {
+          hasWritingSamples: similarityResult.hasWritingSamples,
+          samplesFound: similarityResult.samples.length,
+          samples: similarityResult.samples.map(s => ({
+            similarity: s.similarity,
+            content: s.content.substring(0, 50) + '...'
+          }))
+        })
+
         personalityInfo.hasWritingSamples = similarityResult.hasWritingSamples
 
         if (similarityResult.samples.length > 0) {
@@ -79,12 +90,17 @@ export async function POST(request: NextRequest) {
           usedPersonalityAI = true
           personalityInfo.samplesUsed = similarityResult.samples.length
           
-          console.log(`Using ${similarityResult.samples.length} writing samples for personality context`)
+          console.log(`🎯 Using ${similarityResult.samples.length} writing samples for personality context`)
+          console.log('📝 Personality context:', personalityContext.substring(0, 200) + '...')
+        } else {
+          console.log('❌ No similar writing samples found')
         }
+      } else {
+        console.log('❌ Embedding generation failed:', embeddingResult.error)
       }
     } catch (embeddingError) {
       // If personality AI fails, continue with regular generation
-      console.warn('Personality AI enhancement failed, using regular generation:', embeddingError)
+      console.warn('💥 Personality AI enhancement failed, using regular generation:', embeddingError)
     }
 
     // 6. Create the AI prompt for tweet generation (with or without personality)
