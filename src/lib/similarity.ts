@@ -3,7 +3,13 @@
 // Phase 2: Personality-Enhanced Tweet Generation
 // =========================================
 
-import { supabase } from './supabase';
+import { createClient } from '@supabase/supabase-js';
+
+// Create admin client to bypass RLS when running server-side similarity search
+const supabaseAdmin = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 export interface SimilarWritingSample {
   id: string;
@@ -50,7 +56,7 @@ export async function findSimilarWritingSamples(
     });
 
     // First check if user has any writing samples at all
-    const { count: totalSamples, error: countError } = await supabase
+    const { count: totalSamples, error: countError } = await supabaseAdmin
       .from('user_writing_samples')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
@@ -76,7 +82,7 @@ export async function findSimilarWritingSamples(
     // Use pgvector similarity search with cosine similarity
     // The match_writing_samples function returns similarity score directly (0-1)
     console.log('🔍 Calling match_writing_samples function...');
-    const { data, error } = await supabase.rpc('match_writing_samples', {
+    const { data, error } = await supabaseAdmin.rpc('match_writing_samples', {
       query_embedding: queryEmbedding,
       user_id_param: userId,
       similarity_threshold: similarityThreshold,
@@ -119,7 +125,7 @@ export async function findSimilarWritingSamples(
     console.error('💥 Error in findSimilarWritingSamples:', error);
     
     // Return empty results on error but preserve the fact that user may have samples
-    const { count: totalSamples } = await supabase
+    const { count: totalSamples } = await supabaseAdmin
       .from('user_writing_samples')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
@@ -141,7 +147,7 @@ export async function findSimilarWritingSamples(
  */
 export async function getWritingSampleCount(userId: string): Promise<number> {
   try {
-    const { count } = await supabase
+    const { count } = await supabaseAdmin
       .from('user_writing_samples')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
