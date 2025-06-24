@@ -10,9 +10,12 @@ const openai = new OpenAI({
 })
 
 export async function POST(request: NextRequest) {
+  console.log('🚀 generate-tweet API called');
+  
   try {
     // 1. Authenticate user
     const { user, error: authError } = await getUserFromRequest(request)
+    console.log('👤 User auth result:', { userId: user?.id, hasError: !!authError });
     
     if (authError || !user) {
       return NextResponse.json(
@@ -32,6 +35,7 @@ export async function POST(request: NextRequest) {
     // 3. Parse and validate input
     const body = await request.json()
     const validation = promptSchema.safeParse(body)
+    console.log('📝 Request validation:', { isValid: validation.success, prompt: validation.success ? validation.data.prompt : 'invalid' });
     
     if (!validation.success) {
       return NextResponse.json(
@@ -53,6 +57,8 @@ export async function POST(request: NextRequest) {
         { status: 503 }
       )
     }
+
+    console.log('🔑 OpenAI API key configured, proceeding to personality AI check...');
 
     // 5. PERSONALITY AI ENHANCEMENT: Check for writing samples
     let personalityContext = ''
@@ -173,6 +179,13 @@ User's request: ${prompt}`
         used: usedPersonalityAI,
         samplesUsed: personalityInfo.samplesUsed,
         hasWritingSamples: personalityInfo.hasWritingSamples
+      },
+      // TEMPORARY DEBUG INFO
+      debug: {
+        userId: user.id,
+        personalityAttempted: true,
+        personalityContext: personalityContext ? personalityContext.substring(0, 100) + '...' : 'none',
+        embeddingGenerated: 'will be set in personality section'
       }
     })
 
