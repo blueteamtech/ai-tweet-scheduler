@@ -57,7 +57,7 @@ export async function POST(request: NextRequest) {
     // 5. PERSONALITY AI ENHANCEMENT: Check for writing samples
     let personalityContext = ''
     let usedPersonalityAI = false
-    let personalityInfo = { samplesUsed: 0, hasWritingSamples: false }
+    const personalityInfo = { samplesUsed: 0, hasWritingSamples: false }
 
     try {
       // Generate embedding for the prompt to find similar writing samples

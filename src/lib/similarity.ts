@@ -19,6 +19,14 @@ export interface SimilaritySearchResult {
   hasWritingSamples: boolean;
 }
 
+interface DatabaseWritingSample {
+  id: string;
+  content: string;
+  content_type: string;
+  similarity: number;
+  created_at: string;
+}
+
 /**
  * Find similar writing samples using pgvector cosine similarity
  * @param userId - The user's ID
@@ -63,7 +71,7 @@ export async function findSimilarWritingSamples(
     }
 
     // Function already returns similarity scores and filters by threshold
-    const samples: SimilarWritingSample[] = (data || []).map((item: any) => ({
+    const samples: SimilarWritingSample[] = (data || []).map((item: DatabaseWritingSample) => ({
       id: item.id,
       content: item.content,
       content_type: item.content_type,

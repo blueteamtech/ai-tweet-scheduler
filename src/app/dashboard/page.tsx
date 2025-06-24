@@ -519,7 +519,7 @@ export default function DashboardPage() {
                       <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <span className="text-blue-600 text-sm">📝</span>
                         <span className="text-blue-700 text-sm">
-                          Add writing samples in the "Writing Analysis" tab to enable Personality AI
+                          Add writing samples in the &quot;Writing Analysis&quot; tab to enable Personality AI
                         </span>
                       </div>
                     )}
