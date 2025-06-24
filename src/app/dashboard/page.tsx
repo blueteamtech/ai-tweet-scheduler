@@ -21,6 +21,11 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'drafts' | 'scheduled' | 'all'>('compose')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
+  const [personalityAI, setPersonalityAI] = useState<{
+    used: boolean;
+    samplesUsed: number;
+    hasWritingSamples: boolean;
+  } | null>(null)
   const router = useRouter()
 
   useEffect(() => {
@@ -36,8 +41,11 @@ export default function DashboardPage() {
       setUser(user)
       setLoading(false)
       
-      // Load user's tweets
-      await loadTweets(user.id)
+      // Load user's tweets and check writing samples
+      await Promise.all([
+        loadTweets(user.id),
+        checkWritingSamples(user.id)
+      ])
     }
 
     checkUser()
@@ -69,6 +77,24 @@ export default function DashboardPage() {
     }
   }
 
+  const checkWritingSamples = async (userId: string) => {
+    try {
+      const { count } = await supabase
+        .from('user_writing_samples')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', userId)
+
+      // Initialize personality AI state to show initial guidance
+      setPersonalityAI({
+        used: false,
+        samplesUsed: 0,
+        hasWritingSamples: (count || 0) > 0
+      })
+    } catch (error) {
+      console.error('Error checking writing samples:', error)
+    }
+  }
+
   const generateTweet = async () => {
     if (!user) return
     
@@ -96,6 +122,7 @@ export default function DashboardPage() {
 
       const data = await response.json()
       setTweetContent(data.tweet)
+      setPersonalityAI(data.personalityAI || null)
     } catch (error) {
       setError('Failed to generate tweet. Please try again.')
       console.error('Error generating tweet:', error)
@@ -471,6 +498,34 @@ export default function DashboardPage() {
                   </div>
                 </div>
 
+                {/* Personality AI Status */}
+                {personalityAI && (
+                  <div className="mb-4">
+                    {personalityAI.used ? (
+                      <div className="flex items-center gap-2 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+                        <span className="text-purple-600 text-sm">🧠</span>
+                        <span className="text-purple-700 text-sm font-medium">
+                          Personality AI used {personalityAI.samplesUsed} writing sample{personalityAI.samplesUsed > 1 ? 's' : ''} to match your style
+                        </span>
+                      </div>
+                    ) : personalityAI.hasWritingSamples ? (
+                      <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
+                        <span className="text-orange-600 text-sm">💡</span>
+                        <span className="text-orange-700 text-sm">
+                          You have writing samples, but none were similar enough to this prompt. Try a different topic.
+                        </span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                        <span className="text-blue-600 text-sm">📝</span>
+                        <span className="text-blue-700 text-sm">
+                          Add writing samples in the "Writing Analysis" tab to enable Personality AI
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                )}
+
                 {/* Action Buttons */}
                 <div className="flex flex-wrap gap-3">
                   <button
@@ -487,7 +542,14 @@ export default function DashboardPage() {
                         Generating...
                       </>
                     ) : (
-                      '✨ Generate with AI'
+                      <>
+                        ✨ Generate with AI
+                        {personalityAI?.hasWritingSamples && (
+                          <span className="ml-2 px-2 py-1 bg-purple-500 text-purple-100 text-xs rounded-full">
+                            Personality
+                          </span>
+                        )}
+                      </>
                     )}
                   </button>
                   
