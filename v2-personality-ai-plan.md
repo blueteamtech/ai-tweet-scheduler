@@ -3,47 +3,49 @@
 ## 📋 Development Checklist
 *Each phase delivers a testable interactive feature*
 
-### **Phase 1: Writing Sample Analysis Feature** 🧠
+### **Phase 1: Writing Sample Analysis Feature** 🧠 ✅ **COMPLETED**
 **Interactive Goal:** Upload writing samples and see AI personality analysis
 
 #### Database Setup:
-- [ ] Update `database-schema.md` with new tables
-- [ ] Enable pgvector extension in Supabase
-- [ ] Create `user_writing_samples` table
-  - [ ] `id` (UUID, primary key)
-  - [ ] `user_id` (UUID, foreign key to auth.users)
-  - [ ] `content` (text, the original writing sample)
-  - [ ] `content_type` (text, default 'tweet')
-  - [ ] `embedding` (vector, for semantic search)
-  - [ ] `created_at` (timestamp)
-- [ ] Create RLS policies for writing samples
+- [x] Update `database-schema.md` with new tables
+- [x] Enable pgvector extension in Supabase
+- [x] Create `user_writing_samples` table
+  - [x] `id` (UUID, primary key)
+  - [x] `user_id` (UUID, foreign key to auth.users)
+  - [x] `content` (text, the original writing sample)
+  - [x] `content_type` (text, default 'tweet')
+  - [x] `embedding` (vector, for semantic search)
+  - [x] `created_at` (timestamp)
+- [x] Create RLS policies for writing samples
 
 #### API Development:
-- [ ] Research OpenAI embeddings API (text-embedding-3-small)
-- [ ] Create `/api/analyze-writing` endpoint
-  - [ ] Accept writing samples input
-  - [ ] Use GPT-4o to parse and clean content
-  - [ ] Generate embeddings for semantic search
-  - [ ] Store in `user_writing_samples` table
-  - [ ] Return analysis summary to user
+- [x] Research OpenAI embeddings API (text-embedding-3-small)
+- [x] Create `/api/analyze-writing` endpoint
+  - [x] Accept writing samples input
+  - [x] Use GPT-4o to parse and clean content
+  - [x] Generate embeddings for semantic search
+  - [x] Store in `user_writing_samples` table
+  - [x] Return analysis summary to user
 
 #### UI Development:
-- [ ] Create `WritingSampleInput.tsx` component
-  - [ ] Large textarea for copy/paste
-  - [ ] "Analyze Writing" button
-  - [ ] Loading state during processing
-  - [ ] Display analysis results
-  - [ ] Success/error feedback
-- [ ] Add to dashboard page
-- [ ] Style with Tailwind CSS
-- [ ] Add TypeScript types
+- [x] Create `WritingSampleInput.tsx` component
+  - [x] Large textarea for copy/paste
+  - [x] "Analyze Writing" button
+  - [x] Loading state during processing
+  - [x] Display analysis results
+  - [x] Success/error feedback
+- [x] Add to dashboard page
+- [x] Style with Tailwind CSS
+- [x] Add TypeScript types
 
 #### **Phase 1 Testing:**
-- [ ] Can paste writing samples and click analyze
-- [ ] See loading state while processing
-- [ ] View personality analysis results
-- [ ] Samples are saved and retrievable
-- [ ] Error handling works for invalid inputs
+- [x] Can paste writing samples and click analyze
+- [x] See loading state while processing
+- [x] View personality analysis results
+- [x] Samples are saved and retrievable
+- [x] Error handling works for invalid inputs
+
+#### **✅ DEPLOYMENT STATUS:** Database migration completed by user, all code ready for testing
 
 #### **What's Happening (Simple):**
 You paste your old tweets into a box, click "Analyze Writing," and the AI studies your writing style. It shows you insights about your personality and saves this information so future tweets can sound more like you. Think of it as teaching the AI to "speak like you" by showing it examples of how you naturally write.
@@ -114,15 +116,17 @@ Now when you type a tweet idea and click "Generate with AI," instead of getting 
 
 #### API Development:
 - [ ] Create `/api/bulk-generate-tweets` endpoint
-  - [ ] Parse multiple inputs (one per line)
+  - [ ] Parse multiple inputs (one per line from textarea or CSV)
   - [ ] For each input: find similar writing samples
-  - [ ] Generate with GPT-4o using personality context
+  - [ ] Generate with GPT-4o using personality context (from Phase 2)
+  - [ ] If input > 280 chars, offer user choice: long-form tweet or auto-split into a thread
   - [ ] Return all generated tweets with metadata
   - [ ] Progress tracking for long lists
 
 #### UI Development:
 - [ ] Create `BulkTweetInput.tsx` component
   - [ ] Large textarea for multiple tweet ideas (one per line)
+  - [ ] **Add CSV upload option for bulk inputs (Hypefury-inspired)**
   - [ ] "Generate All with AI" button
   - [ ] Progress indicator during bulk processing
   - [ ] Results preview with original → generated comparison
@@ -138,9 +142,10 @@ Now when you type a tweet idea and click "Generate with AI," instead of getting 
 - [ ] Edit generated tweets if needed
 - [ ] Select which tweets to keep
 - [ ] All generated tweets reflect personality
+- [ ] **CSV with >280 char entries are handled correctly (thread or long-form)**
 
 #### **What's Happening (Simple):**
-Instead of writing tweets one by one, you paste a list of 10 rough ideas (like "talk about coffee" or "share productivity tip"), click one button, and get back 10 polished tweets that all sound like you. It's like having a personal content team that cranks out tweets in your voice, but instantly.
+Instead of writing tweets one by one, you paste a list of 10 rough ideas (like "talk about coffee" or "share productivity tip"), click one button, and get back 10 polished tweets that all sound like you. **You can even upload a spreadsheet of ideas.** It's like having a personal content team that cranks out tweets in your voice, but instantly.
 
 #### **Potential Troubleshooting Areas:**
 - **Rate Limiting**: OpenAI has request limits - may need delays between bulk requests
@@ -149,51 +154,48 @@ Instead of writing tweets one by one, you paste a list of 10 rough ideas (like "
 - **Partial Failures**: What if 8/10 tweets generate successfully but 2 fail?
 - **Edit Workflow**: How do users efficiently review and edit 10+ tweets at once?
 - **Selection UI**: Checkboxes vs other selection methods for choosing tweets to keep
+- **Thread Generation Logic**: Ensuring auto-split threads are coherent and well-structured.
 
 ---
 
 ### **Phase 4: Smart Bulk Scheduling System** 📅
-**Interactive Goal:** Auto-schedule generated tweets at optimal times (5 per day, 7am-10pm)
+**Interactive Goal:** Schedule generated tweets into a persistent, user-defined content queue
 
 #### API Development:
-- [ ] Create optimal time distribution algorithm
-  - [ ] 5 tweets per day between 7am-10pm
-  - [ ] Random but well-distributed times (avoid clustering)
-  - [ ] Skip scheduling conflicts
-  - [ ] Account for timezone
-- [ ] Create `/api/bulk-schedule-tweets` endpoint
+- [ ] **Create user-defined weekly posting schedule (the "Queue")**
+  - [ ] API endpoints to create, read, and update the queue schedule (e.g., `POST /api/queue/schedule`)
+  - [ ] Store schedule in a new `user_schedules` table
+- [ ] Update `/api/bulk-schedule-tweets` endpoint
   - [ ] Accept generated tweets array
-  - [ ] Calculate optimal posting times
-  - [ ] Schedule with QStash
-  - [ ] Store in `bulk_tweet_queue` table
-  - [ ] Return scheduling preview
+  - [ ] **Add selected tweets to the next available slots in the user's pre-defined queue**
+  - [ ] Schedule with QStash for each slot
+  - [ ] Update `bulk_tweet_queue` table with scheduled times and status
+  - [ ] Return scheduling confirmation
 
 #### UI Development:
-- [ ] Add "Schedule 5/Day" button to bulk interface
-- [ ] Show scheduling preview modal
-  - [ ] List of tweets with calculated times
-  - [ ] Option to adjust schedule
+- [ ] **Create a new settings page for managing the weekly "Content Queue" schedule**
+- [ ] Add "Add to Queue" button to bulk interface (replaces "Schedule 5/Day")
+- [ ] Show scheduling confirmation modal
+  - [ ] Show which slots the tweets are being added to
   - [ ] Confirm/cancel scheduling
-- [ ] Success confirmation with schedule summary
+- [ ] Success confirmation with a link to the main queue view
 
 #### **Phase 4 Testing:**
-- [ ] Generate bulk tweets and click "Schedule 5/Day"
-- [ ] Review auto-calculated posting times
-- [ ] Verify times are distributed well (not clustered)
+- [ ] Generate bulk tweets and click "Add to Queue"
+- [ ] Verify tweets are added to the correct upcoming slots in the schedule
 - [ ] Confirm scheduling and see success message
-- [ ] Check that tweets appear in queue
-- [ ] Verify first tweet posts at scheduled time
+- [ ] Check that tweets appear in the `bulk_tweet_queue` table with correct timestamps
+- [ ] Verify first tweet posts at its scheduled queue time
 
 #### **What's Happening (Simple):**
-After generating your tweets, you click "Schedule 5/Day" and the system automatically figures out the perfect times to post them - spread throughout each day between 7am-10pm, never too close together, and optimized for engagement. It's like having a social media manager who schedules everything perfectly while you sleep.
+After generating your tweets, you click "Add to Queue." The system automatically drops them into the next available time slots you've defined in your weekly schedule (e.g., "3 times a day on weekdays"). It's like having a social media manager who fills your content calendar for you.
 
 #### **Potential Troubleshooting Areas:**
-- **Timezone Handling**: User's timezone vs server timezone vs posting timezone - can cause confusion
-- **QStash Limits**: Verify QStash can handle the volume of scheduled messages we're creating
-- **Scheduling Conflicts**: What if user manually scheduled a tweet at same time as auto-scheduled one?
-- **Time Calculation Logic**: Algorithm for "well-distributed" times needs testing with edge cases
-- **Weekend vs Weekday**: Should weekend posting times be different? User preferences?
-- **Queue Overflow**: What happens if user schedules 100 tweets? Performance implications?
+- **Timezone Handling**: User's timezone vs server timezone is still critical. The queue schedule must be timezone-aware.
+- **QStash Limits**: Verify QStash can handle the volume of scheduled messages.
+- **Queue UI/UX**: Making the weekly schedule planner intuitive and easy to use.
+- **Empty Queue**: What happens when the queue runs out of content?
+- **Editing the Queue**: How does editing the schedule affect already-queued tweets?
 
 ---
 

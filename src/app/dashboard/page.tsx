@@ -7,6 +7,7 @@ import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import type { Tweet } from '@/types'
 import TweetScheduler from '@/components/TweetScheduler'
 import TwitterConnect from '@/components/TwitterConnect'
+import WritingSampleInput from '@/components/WritingSampleInput'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -17,7 +18,7 @@ export default function DashboardPage() {
   const [isScheduling, setIsScheduling] = useState(false)
   const [showScheduler, setShowScheduler] = useState(false)
   const [tweets, setTweets] = useState<Tweet[]>([])
-  const [activeTab, setActiveTab] = useState<'drafts' | 'scheduled' | 'all'>('drafts')
+  const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'drafts' | 'scheduled' | 'all'>('compose')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const router = useRouter()
@@ -359,105 +360,35 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
-        {/* Tweet Composer */}
-        <div className="bg-white rounded-lg shadow p-6 mb-8">
-          <h2 className="text-2xl font-bold text-gray-900 mb-6">
-            Compose Tweet
-          </h2>
-          
-          {/* Error/Success Messages */}
-          {error && (
-            <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
-              <p className="text-red-600 text-sm">{error}</p>
-            </div>
-          )}
-          
-          {success && (
-            <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
-              <p className="text-green-600 text-sm">{success}</p>
-            </div>
-          )}
 
-          {/* Tweet Textarea */}
-          <div className="mb-6">
-            <label className="block text-sm font-semibold text-gray-700 mb-2">
-              Tweet Content
-            </label>
-            <textarea
-              value={tweetContent}
-              onChange={(e) => setTweetContent(e.target.value)}
-              placeholder="What's happening? Or click 'Generate with AI' for inspiration..."
-              className="w-full p-4 border-2 border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 text-base leading-relaxed"
-              rows={5}
-            />
-            <div className="flex justify-between items-center mt-3">
-              <span className={`text-sm font-medium ${isOverLimit ? 'text-red-600' : 'text-gray-600'}`}>
-                {characterCount}/280 characters
-              </span>
-              {isOverLimit && (
-                <span className="text-red-600 text-sm font-medium bg-red-50 px-2 py-1 rounded">
-                  Tweet is too long!
-                </span>
-              )}
-            </div>
-          </div>
-
-          {/* Action Buttons */}
-          <div className="flex flex-wrap gap-3">
-            <button
-              onClick={generateTweet}
-              disabled={isGenerating}
-              className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white px-6 py-3 rounded-lg font-medium flex items-center text-sm"
-            >
-              {isGenerating ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Generating...
-                </>
-              ) : (
-                '✨ Generate with AI'
-              )}
-            </button>
-            
-            <button
-              onClick={saveDraft}
-              disabled={isSaving || !tweetContent.trim() || isOverLimit}
-              className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg font-medium text-sm"
-            >
-              {isSaving ? 'Saving...' : '💾 Save Draft'}
-            </button>
-            
-            <button
-              onClick={() => setShowScheduler(true)}
-              disabled={!tweetContent.trim() || isOverLimit}
-              className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg font-medium text-sm"
-            >
-              📅 Schedule Tweet
-            </button>
-          </div>
-        </div>
-
-        {/* Twitter Integration Section */}
-        {user ? (
-          <TwitterConnect userId={user.id} />
-        ) : (
-          <div className="bg-gray-100 rounded-lg p-6 animate-pulse">
-            <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
-            <div className="h-8 bg-gray-200 rounded w-1/2"></div>
-          </div>
-        )}
-
-        {/* Tweet Management Section */}
+        {/* Main Navigation */}
         <div className="mt-8">
           <h2 className="text-2xl font-bold tracking-tight text-gray-900 mb-4">
-            Tweet Management
+            AI Tweet Scheduler v2.0
           </h2>
 
           {/* Tab Navigation */}
-          <div className="flex space-x-1 mb-6">
+          <div className="flex flex-wrap space-x-1 mb-6">
+            <button
+              onClick={() => setActiveTab('compose')}
+              className={`px-4 py-2 rounded-md font-medium ${
+                activeTab === 'compose'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              📝 Compose
+            </button>
+            <button
+              onClick={() => setActiveTab('writing')}
+              className={`px-4 py-2 rounded-md font-medium ${
+                activeTab === 'writing'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              ✨ Writing Analysis
+            </button>
             <button
               onClick={() => setActiveTab('drafts')}
               className={`px-4 py-2 rounded-md font-medium ${
@@ -490,7 +421,109 @@ export default function DashboardPage() {
             </button>
           </div>
 
-          {/* Tweet List */}
+          {/* Tab Content */}
+          {activeTab === 'compose' && (
+            <div className="space-y-8">
+              {/* Tweet Composer */}
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Compose Tweet
+                </h2>
+                
+                {/* Error/Success Messages */}
+                {error && (
+                  <div className="mb-4 p-4 bg-red-50 border border-red-200 rounded-md">
+                    <p className="text-red-600 text-sm">{error}</p>
+                  </div>
+                )}
+                
+                {success && (
+                  <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-md">
+                    <p className="text-green-600 text-sm">{success}</p>
+                  </div>
+                )}
+
+                {/* Tweet Textarea */}
+                <div className="mb-6">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
+                    Tweet Content
+                  </label>
+                  <textarea
+                    value={tweetContent}
+                    onChange={(e) => setTweetContent(e.target.value)}
+                    placeholder="What's happening? Or click 'Generate with AI' for inspiration..."
+                    className="w-full p-4 border-2 border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 text-base leading-relaxed"
+                    rows={5}
+                  />
+                  <div className="flex justify-between items-center mt-3">
+                    <span className={`text-sm font-medium ${isOverLimit ? 'text-red-600' : 'text-gray-600'}`}>
+                      {characterCount}/280 characters
+                    </span>
+                    {isOverLimit && (
+                      <span className="text-red-600 text-sm font-medium bg-red-50 px-2 py-1 rounded">
+                        Tweet is too long!
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                {/* Action Buttons */}
+                <div className="flex flex-wrap gap-3">
+                  <button
+                    onClick={generateTweet}
+                    disabled={isGenerating}
+                    className="bg-purple-600 hover:bg-purple-700 disabled:bg-purple-300 text-white px-6 py-3 rounded-lg font-medium flex items-center text-sm"
+                  >
+                    {isGenerating ? (
+                      <>
+                        <svg className="animate-spin -ml-1 mr-3 h-4 w-4 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                        </svg>
+                        Generating...
+                      </>
+                    ) : (
+                      '✨ Generate with AI'
+                    )}
+                  </button>
+                  
+                  <button
+                    onClick={saveDraft}
+                    disabled={isSaving || !tweetContent.trim() || isOverLimit}
+                    className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg font-medium text-sm"
+                  >
+                    {isSaving ? 'Saving...' : '💾 Save Draft'}
+                  </button>
+                  
+                  <button
+                    onClick={() => setShowScheduler(true)}
+                    disabled={!tweetContent.trim() || isOverLimit}
+                    className="bg-green-600 hover:bg-green-700 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg font-medium text-sm"
+                  >
+                    📅 Schedule Tweet
+                  </button>
+                </div>
+              </div>
+
+              {/* Twitter Integration Section */}
+              {user ? (
+                <TwitterConnect userId={user.id} />
+              ) : (
+                <div className="bg-gray-100 rounded-lg p-6 animate-pulse">
+                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-4"></div>
+                  <div className="h-8 bg-gray-200 rounded w-1/2"></div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {activeTab === 'writing' && (
+            <WritingSampleInput />
+          )}
+
+          {(activeTab === 'drafts' || activeTab === 'scheduled' || activeTab === 'all') && (
+            <div>
+              {/* Tweet List */}
           {filteredTweets.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">
@@ -569,6 +602,8 @@ export default function DashboardPage() {
                   </div>
                 </div>
               ))}
+                        </div>
+          )}
             </div>
           )}
         </div>

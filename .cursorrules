@@ -18,33 +18,53 @@
 
 ## 🚨 CRITICAL SAFEGUARDS (Prevent Hours of Troubleshooting)
 
-### 📚 API DOCUMENTATION - ALWAYS CHECK FIRST
-**MANDATORY:** Before ANY API integration, search for current documentation
+### 📚 API INTEGRATION STRATEGY - CHECK EXISTING FIRST
+**MANDATORY:** Before ANY API work, check what's already integrated
 ```
-1. web_search: "OpenAI embeddings API 2025 documentation"
-2. web_search: "Supabase pgvector extension syntax 2025"
-3. Verify parameter formats, response structures, rate limits
-4. Check for breaking changes in last 6 months
+1. EXISTING APIs (Keys Already Set):
+   ✅ OpenAI API (OPENAI_API_KEY) - GPT-4o + text-embedding-3-small
+   ✅ Supabase (NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, etc.)
+   ✅ QStash (QSTASH_TOKEN) - Scheduling service
+   ✅ Twitter API (TWITTER_API_KEY, TWITTER_API_SECRET) - OAuth + posting
+
+2. ONLY for NEW APIs:
+   - web_search: "[API NAME] documentation 2025"
+   - Verify parameter formats, response structures, rate limits
+   - Check for breaking changes in last 6 months
+   - Get API keys from user
+
+3. For EXISTING APIs:
+   - Assume keys are already configured
+   - Check current documentation for updates/changes
+   - Verify we're using latest best practices
 ```
 
-### 🗄️ DATABASE ROLLBACK STRATEGY
-**PROBLEM:** Git revert doesn't rollback database changes
-**SOLUTION:** 
-1. **Before ANY database changes:**
-   - Create backup SQL in comments: `-- ROLLBACK: DROP TABLE new_table;`
-   - Document rollback commands in `database-rollback-commands.md`
-   - Test rollback SQL in development first
+### 🗄️ DATABASE MANAGEMENT STRATEGY
+**CONTEXT:** `database-schema.md` documents LIVE database state for development context
+**IMPORTANT:** User still applies migration files manually to update live Supabase database
 
-2. **Database Migration Pattern:**
+**WORKFLOW:**
+1. **Local Development:**
+   - Update `database-schema.md` to reflect planned changes (documentation only)
+   - Create migration SQL files (e.g., `v2-phase1-database-migration.sql`)
+   - Create rollback commands in `database-rollback-commands.md`
+   - Test rollback SQL locally first
+
+2. **Live Database Updates:**
+   - User manually runs migration SQL in Supabase SQL Editor
+   - User applies environment variable changes to Vercel
+   - `database-schema.md` stays in sync with live database for reference
+
+3. **Database Migration Pattern:**
    ```sql
-   -- FORWARD MIGRATION
+   -- FORWARD MIGRATION (user runs in Supabase)
    CREATE TABLE user_writing_samples (...);
    
    -- ROLLBACK (test these first!):
    -- DROP TABLE IF EXISTS user_writing_samples CASCADE;
    ```
 
-3. **Always create rollback before forward migration**
+4. **Always create rollback before forward migration**
 
 ### 🚀 VERCEL DEPLOYMENT STATE TRACKING
 **PROBLEM:** Environment variables and database can get out of sync
@@ -88,11 +108,12 @@
 5. ✅ Test rollback commands before implementing forward changes
 
 ### Database Changes:
-1. **Plan:** Update `database-schema.md` first
-2. **Rollback:** Create and test rollback SQL
-3. **Forward:** Implement changes
-4. **Verify:** Run verification SQL
-5. **Document:** Add to recent changes with date
+1. **Plan:** Update `database-schema.md` first (documentation only)
+2. **Create Migration:** Write SQL migration file (e.g., `v2-phase1-database-migration.sql`)
+3. **Rollback:** Create and test rollback SQL in `database-rollback-commands.md`
+4. **User Applies:** User runs migration SQL in Supabase SQL Editor manually
+5. **Verify:** Run verification SQL to confirm changes
+6. **Document:** Add to recent changes with date in `database-schema.md`
 
 ### API Integration:
 1. **Research:** web_search for current documentation

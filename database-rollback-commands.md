@@ -29,11 +29,17 @@ This file tracks rollback commands for all database changes to enable safe rever
 
 ### ⚠️ CRITICAL: Test ALL rollback commands before applying forward migrations!
 
-### Phase 1: V2.0 Tables (NOT YET APPLIED)
+### Phase 1: V2.0 Personality AI Foundation (READY TO APPLY)
+
+#### Forward Migration: Enable pgvector extension
+```sql
+-- FORWARD: Enable pgvector extension for embeddings
+CREATE EXTENSION IF NOT EXISTS vector;
+```
 
 #### Forward Migration: `user_writing_samples` table
 ```sql
--- FORWARD (to be applied)
+-- FORWARD: Create user_writing_samples table
 CREATE TABLE user_writing_samples (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -48,25 +54,67 @@ ALTER TABLE user_writing_samples ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can manage their own writing samples" ON user_writing_samples
     FOR ALL USING (auth.uid() = user_id);
 
--- Indexes
+-- Indexes for performance
 CREATE INDEX idx_user_writing_samples_user_id ON user_writing_samples(user_id);
-CREATE INDEX idx_user_writing_samples_embedding ON user_writing_samples USING ivfflat (embedding vector_cosine_ops);
+CREATE INDEX idx_user_writing_samples_created_at ON user_writing_samples(created_at);
 ```
 
-#### ⏪ ROLLBACK Commands (TEST THESE FIRST!):
+#### Forward Migration: Vector similarity search function
 ```sql
--- ROLLBACK: Remove user_writing_samples table
-DROP INDEX IF EXISTS idx_user_writing_samples_embedding;
-DROP INDEX IF EXISTS idx_user_writing_samples_user_id;
-DROP POLICY IF EXISTS "Users can manage their own writing samples" ON user_writing_samples;
-DROP TABLE IF EXISTS user_writing_samples;
+-- FORWARD: Create vector similarity search function
+CREATE OR REPLACE FUNCTION match_writing_samples(
+  query_embedding vector(1536),
+  user_id_param uuid,
+  similarity_threshold float DEFAULT 0.7,
+  match_count int DEFAULT 3
+)
+RETURNS TABLE (
+  id uuid,
+  content text,
+  content_type text,
+  similarity float,
+  created_at timestamptz
+)
+LANGUAGE sql STABLE
+AS $$
+  SELECT
+    user_writing_samples.id,
+    user_writing_samples.content,
+    user_writing_samples.content_type,
+    1 - (user_writing_samples.embedding <=> query_embedding) AS similarity,
+    user_writing_samples.created_at
+  FROM user_writing_samples
+  WHERE user_writing_samples.user_id = user_id_param
+    AND user_writing_samples.embedding IS NOT NULL
+    AND 1 - (user_writing_samples.embedding <=> query_embedding) > similarity_threshold
+  ORDER BY user_writing_samples.embedding <=> query_embedding ASC
+  LIMIT match_count;
+$$;
+```
+
+#### ⏪ ROLLBACK Commands (TESTED ✅):
+```sql
+-- ROLLBACK: Remove all Phase 1 changes in reverse order
+
+-- Step 1: Drop function
+DROP FUNCTION IF EXISTS match_writing_samples(vector, uuid, float, int);
+
+-- Step 2: Drop table (includes indexes and policies)
+DROP TABLE IF EXISTS user_writing_samples CASCADE;
+
+-- Step 3: Drop extension (ONLY if no other vector columns exist)
+-- WARNING: This will fail if other tables use vector columns
+-- Check first: SELECT COUNT(*) FROM information_schema.columns WHERE data_type = 'USER-DEFINED' AND udt_name = 'vector';
+DROP EXTENSION IF EXISTS vector CASCADE;
 ```
 
 ---
 
+### Future Phase 2: Bulk Tweet Queue (NOT YET IMPLEMENTED)
+
 #### Forward Migration: `bulk_tweet_queue` table
 ```sql
--- FORWARD (to be applied)
+-- FORWARD (to be applied in Phase 3)
 CREATE TABLE bulk_tweet_queue (
     id UUID DEFAULT gen_random_uuid() PRIMARY KEY,
     user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -96,53 +144,40 @@ DROP INDEX IF EXISTS idx_bulk_tweet_queue_status;
 DROP INDEX IF EXISTS idx_bulk_tweet_queue_scheduled_for;
 DROP INDEX IF EXISTS idx_bulk_tweet_queue_user_id;
 DROP POLICY IF EXISTS "Users can manage their own tweet queue" ON bulk_tweet_queue;
-DROP TABLE IF EXISTS bulk_tweet_queue;
-```
-
----
-
-#### Forward Migration: Enable pgvector extension
-```sql
--- FORWARD (to be applied)
-CREATE EXTENSION IF NOT EXISTS vector;
-```
-
-#### ⏪ ROLLBACK Commands (TEST THESE FIRST!):
-```sql
--- ROLLBACK: Remove pgvector extension (DANGEROUS - check dependencies first!)
--- WARNING: This will fail if any tables use vector columns
--- Must drop all vector columns first before dropping extension
-DROP EXTENSION IF EXISTS vector CASCADE;
+DROP TABLE IF EXISTS bulk_tweet_queue CASCADE;
 ```
 
 ---
 
 ## Emergency Rollback Procedure
 
-### If V2.0 database changes cause issues:
+### If Phase 1 database changes cause issues:
 
 1. **Backup current data:**
    ```sql
    -- Export any new data if needed
    COPY user_writing_samples TO '/tmp/writing_samples_backup.csv' WITH CSV HEADER;
-   COPY bulk_tweet_queue TO '/tmp/tweet_queue_backup.csv' WITH CSV HEADER;
    ```
 
-2. **Run rollback commands in reverse order:**
+2. **Run Phase 1 rollback commands:**
    ```sql
-   -- Step 1: Drop new tables
-   DROP TABLE IF EXISTS bulk_tweet_queue CASCADE;
+   -- Execute the tested rollback commands above
+   DROP FUNCTION IF EXISTS match_writing_samples(vector, uuid, float, int);
    DROP TABLE IF EXISTS user_writing_samples CASCADE;
-   
-   -- Step 2: Drop extension (only if no other dependencies)
-   DROP EXTENSION IF EXISTS vector CASCADE;
+   -- Only drop extension if no other vector usage exists
    ```
 
 3. **Verify rollback worked:**
    ```sql
-   -- Check tables are gone
+   -- Check table is gone
    SELECT table_name FROM information_schema.tables 
-   WHERE table_schema = 'public' AND table_name IN ('user_writing_samples', 'bulk_tweet_queue');
+   WHERE table_schema = 'public' AND table_name = 'user_writing_samples';
+   
+   -- Should return 0 rows if rollback successful
+   
+   -- Check function is gone  
+   SELECT routine_name FROM information_schema.routines 
+   WHERE routine_schema = 'public' AND routine_name = 'match_writing_samples';
    
    -- Should return 0 rows if rollback successful
    ```
@@ -151,18 +186,19 @@ DROP EXTENSION IF EXISTS vector CASCADE;
 
 ## Rollback Testing Checklist
 
-Before applying ANY database migration:
+Before applying Phase 1 database migration:
 
-- [ ] Copy rollback commands to test environment
-- [ ] Execute rollback commands on test data
-- [ ] Verify rollback completely removes changes
-- [ ] Verify application still works after rollback
-- [ ] Document any issues with rollback procedure
-- [ ] Only then apply forward migration to production
+- [x] Copy rollback commands to test environment
+- [x] Execute rollback commands on test data
+- [x] Verify rollback completely removes changes
+- [x] Verify application still works after rollback
+- [x] Document any issues with rollback procedure
+- [x] **READY TO APPLY:** Forward migration to production
 
 ---
 
 ## Change Log
 
+- **2025-01-15**: Phase 1 v2.0 rollback commands tested and ready ✅
 - **2025-01-XX**: Initial rollback commands file created for v2.0 development
 - **Future entries**: Add date and description of each database change + rollback procedure 

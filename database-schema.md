@@ -2,7 +2,7 @@
 
 **Last Updated:** January 2025  
 **Database:** Supabase PostgreSQL  
-**Project:** AI Tweet Scheduler  
+**Project:** AI Tweet Scheduler v2.0 
 
 ---
 
@@ -75,12 +75,44 @@
 
 ---
 
+### 4. `user_writing_samples` Table ⭐ **V2.0 NEW**
+**Purpose:** Store user's writing samples for personality analysis and AI enhancement
+
+| Column | Type | Constraints | Description |
+|--------|------|-------------|-------------|
+| `id` | UUID | PRIMARY KEY, DEFAULT gen_random_uuid() | Unique sample identifier |
+| `user_id` | UUID | REFERENCES auth.users(id) ON DELETE CASCADE | Links to Supabase Auth user |
+| `content` | TEXT | NOT NULL | The original writing sample text |
+| `content_type` | TEXT | DEFAULT 'tweet' | Type of content (tweet, text, etc.) |
+| `embedding` | VECTOR(1536) | NULLABLE | OpenAI text-embedding-3-small vector |
+| `created_at` | TIMESTAMPTZ | DEFAULT NOW() | When sample was added |
+
+**Row Level Security:** ✅ Enabled  
+**Policy:** Users can only see their own writing samples (`auth.uid() = user_id`)  
+**Indexes:** 
+- `idx_user_writing_samples_user_id` on `user_id`
+- `idx_user_writing_samples_embedding` using HNSW for vector similarity
+
+**Vector Search:** Uses OpenAI text-embedding-3-small (1536 dimensions)  
+**Similarity:** Cosine distance operator `<=>` for semantic matching
+
+---
+
 ## 🔧 **Database Functions**
 
 ### `update_updated_at_column()`
 **Purpose:** Automatically updates `updated_at` timestamp on row modifications  
 **Returns:** TRIGGER  
 **Language:** plpgsql  
+
+### `match_writing_samples()` ⭐ **V2.0 NEW**
+**Purpose:** Find similar writing samples using vector similarity search  
+**Parameters:**
+- `query_embedding` VECTOR(1536) - Embedding to search for
+- `similarity_threshold` FLOAT - Minimum similarity (0.0-1.0)
+- `match_count` INT - Maximum results to return
+**Returns:** Table with id, content, similarity score  
+**Language:** SQL
 
 ---
 
@@ -91,6 +123,8 @@
 **Policies:**
 - `"Users can only see their own tweets"` on `tweets`
 - `"Users can only see their own Twitter accounts"` on `user_twitter_accounts`
+- `"Users can only see their own OAuth temp data"` on `oauth_temp_storage`
+- `"Users can only see their own writing samples"` on `user_writing_samples` ⭐ **V2.0 NEW**
 
 ---
 
@@ -101,9 +135,11 @@
 - **Posting:** `/api/twitter/post` uses stored `access_token` and `refresh_token`
 - **Authentication:** OAuth 1.0a (not OAuth 2.0)
 
-### OpenAI API
-- **Endpoint:** `/api/generate-tweet`
-- **Purpose:** AI tweet generation
+### OpenAI API ⭐ **V2.0 Enhanced**
+- **Tweet Generation:** `/api/generate-tweet` uses GPT-4o model
+- **Personality Analysis:** `/api/analyze-writing` uses GPT-4o + text-embedding-3-small
+- **Embeddings:** text-embedding-3-small (1536 dimensions, $0.02/1M tokens)
+- **Context Enhancement:** Uses writing samples for personality-matched generation
 
 ---
 
@@ -121,6 +157,14 @@ Any status → failed (on error)
 ---
 
 ## 🔄 **Recent Changes**
+
+**🚀 2025-01-15 - V2.0 Phase 1:** Added personality AI foundation
+- Created `user_writing_samples` table for personality analysis
+- Enabled pgvector extension for embedding storage
+- Added vector similarity search with HNSW indexing
+- Implemented `match_writing_samples()` function for semantic search
+- Added OpenAI embeddings integration (text-embedding-3-small)
+- **REQUIRES DATABASE UPDATE:** Run Phase 1 database migration
 
 **🚀 2025-01-15:** Added QStash integration for better tweet scheduling
 - Added `qstash_message_id` column to `tweets` table
