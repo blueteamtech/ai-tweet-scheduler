@@ -42,13 +42,28 @@ export async function findSimilarWritingSamples(
   similarityThreshold: number = 0.5
 ): Promise<SimilaritySearchResult> {
   try {
+    console.log('🔍 findSimilarWritingSamples called with:', {
+      userId,
+      embeddingLength: queryEmbedding.length,
+      limit,
+      similarityThreshold
+    });
+
     // First check if user has any writing samples at all
-    const { count: totalSamples } = await supabase
+    const { count: totalSamples, error: countError } = await supabase
       .from('user_writing_samples')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
 
+    console.log('📊 Total samples check result:', { totalSamples, countError });
+
+    if (countError) {
+      console.error('❌ Error checking total samples:', countError);
+      throw countError;
+    }
+
     if (!totalSamples || totalSamples === 0) {
+      console.log('❌ No writing samples found for user');
       return {
         samples: [],
         count: 0,
@@ -56,8 +71,11 @@ export async function findSimilarWritingSamples(
       };
     }
 
+    console.log(`✅ User has ${totalSamples} writing samples, proceeding with similarity search`);
+
     // Use pgvector similarity search with cosine similarity
     // The match_writing_samples function returns similarity score directly (0-1)
+    console.log('🔍 Calling match_writing_samples function...');
     const { data, error } = await supabase.rpc('match_writing_samples', {
       query_embedding: queryEmbedding,
       user_id_param: userId,
@@ -65,8 +83,14 @@ export async function findSimilarWritingSamples(
       match_count: limit
     });
 
+    console.log('🔍 match_writing_samples result:', { 
+      data: data ? `${data.length} samples` : 'null',
+      error,
+      rawData: data
+    });
+
     if (error) {
-      console.error('Error searching similar writing samples:', error);
+      console.error('❌ Error searching similar writing samples:', error);
       throw error;
     }
 
@@ -79,6 +103,12 @@ export async function findSimilarWritingSamples(
       created_at: item.created_at
     }));
 
+    console.log('✅ Final similarity result:', {
+      samplesFound: samples.length,
+      hasWritingSamples: true,
+      similarities: samples.map(s => s.similarity)
+    });
+
     return {
       samples,
       count: samples.length,
@@ -86,13 +116,15 @@ export async function findSimilarWritingSamples(
     };
 
   } catch (error) {
-    console.error('Error in findSimilarWritingSamples:', error);
+    console.error('💥 Error in findSimilarWritingSamples:', error);
     
     // Return empty results on error but preserve the fact that user may have samples
     const { count: totalSamples } = await supabase
       .from('user_writing_samples')
       .select('*', { count: 'exact', head: true })
       .eq('user_id', userId);
+
+    console.log('🔄 Fallback check - total samples:', totalSamples);
 
     return {
       samples: [],
