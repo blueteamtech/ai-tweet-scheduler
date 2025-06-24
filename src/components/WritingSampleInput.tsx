@@ -6,6 +6,7 @@
 'use client';
 
 import { useState } from 'react';
+import { supabase } from '@/lib/supabase';
 
 // Types
 interface PersonalityAnalysis {
@@ -47,7 +48,11 @@ export default function WritingSampleInput() {
   // Load user stats
   const loadStats = async () => {
     try {
-      const response = await fetch('/api/analyze-writing');
+      // Include user auth token in headers
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/analyze-writing', {
+        headers: session ? { 'Authorization': `Bearer ${session.access_token}` } : undefined,
+      });
       if (response.ok) {
         const data = await response.json();
         if (data.success) {
@@ -73,10 +78,13 @@ export default function WritingSampleInput() {
     setAnalysisResult(null);
 
     try {
+      // Include user auth token in headers
+      const { data: { session } } = await supabase.auth.getSession();
       const response = await fetch('/api/analyze-writing', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(session && { 'Authorization': `Bearer ${session.access_token}` }),
         },
         body: JSON.stringify({
           content: content.trim(),
