@@ -194,7 +194,7 @@ export default function WritingSampleInput() {
             id="content-type"
             value={contentType}
             onChange={(e) => setContentType(e.target.value as typeof contentType)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
           >
             <option value="tweet">Tweet</option>
             <option value="text">General Text</option>
@@ -220,7 +220,7 @@ export default function WritingSampleInput() {
 Example:
 &quot;Just finished debugging the most frustrating issue - turns out it was a missing semicolon. Sometimes the simplest things trip you up! 🤦‍♂️ Always double-check the basics before diving deep into complex solutions.&quot;"
             rows={8}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical"
+            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical text-gray-900 bg-white placeholder-gray-500"
             disabled={isAnalyzing}
           />
           

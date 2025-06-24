@@ -4,14 +4,21 @@
 // =========================================
 
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '@/lib/supabase';
 import { generateEmbedding, prepareTextForEmbedding, isValidEmbedding } from '@/lib/embeddings';
+import { getUserFromRequest } from '@/lib/auth';
+import { createClient } from '@supabase/supabase-js';
 import OpenAI from 'openai';
 
 // Initialize OpenAI for personality analysis
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
+
+// Initialize Supabase with service role key for server-side operations
+const supabase = createClient(
+  process.env.NEXT_PUBLIC_SUPABASE_URL!,
+  process.env.SUPABASE_SERVICE_ROLE_KEY!
+);
 
 // Types
 interface AnalyzeWritingRequest {
@@ -118,7 +125,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    const { user, error: authError } = await getUserFromRequest(request);
     if (authError || !user) {
       return NextResponse.json({
         success: false,
@@ -201,10 +208,10 @@ export async function POST(request: NextRequest) {
  * GET /api/analyze-writing
  * Get user's writing samples count and stats
  */
-export async function GET() {
+export async function GET(request: NextRequest) {
   try {
-    // Get authenticated user
-    const { data: { user }, error: authError } = await supabase.auth.getUser();
+    // Get authenticated user  
+    const { user, error: authError } = await getUserFromRequest(request);
     if (authError || !user) {
       return NextResponse.json({
         success: false,
@@ -229,7 +236,7 @@ export async function GET() {
     }
 
     // Count by content type
-    const typeCount = samples?.reduce((acc, sample) => {
+    const typeCount = samples?.reduce((acc: Record<string, number>, sample: { content_type: string }) => {
       acc[sample.content_type] = (acc[sample.content_type] || 0) + 1;
       return acc;
     }, {} as Record<string, number>) || {};
@@ -239,7 +246,7 @@ export async function GET() {
       stats: {
         total_samples: samples?.length || 0,
         by_type: typeCount,
-        latest_samples: samples?.map(s => ({
+        latest_samples: samples?.map((s: { id: string; content_type: string; created_at: string }) => ({
           id: s.id,
           content_type: s.content_type,
           created_at: s.created_at
