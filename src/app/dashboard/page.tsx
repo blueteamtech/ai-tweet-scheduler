@@ -8,7 +8,6 @@ import type { Tweet } from '@/types'
 import TweetScheduler from '@/components/TweetScheduler'
 import TwitterConnect from '@/components/TwitterConnect'
 import WritingSampleInput from '@/components/WritingSampleInput'
-import TweetInputForm from '@/components/TweetInputForm'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -19,7 +18,7 @@ export default function DashboardPage() {
   const [isScheduling, setIsScheduling] = useState(false)
   const [showScheduler, setShowScheduler] = useState(false)
   const [tweets, setTweets] = useState<Tweet[]>([])
-  const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'drafts' | 'scheduled' | 'all' | 'queue'>('compose')
+  const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'drafts' | 'scheduled' | 'all'>('compose')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [personalityAI, setPersonalityAI] = useState<{
@@ -169,6 +168,62 @@ export default function DashboardPage() {
     } catch (error) {
       setError('Failed to save draft. Please try again.')
       console.error('Error saving draft:', error)
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  const addToQueue = async () => {
+    if (!user || !tweetContent.trim()) {
+      setError('Please enter some content before adding to queue')
+      return
+    }
+
+    setIsSaving(true)
+    setError('')
+    setSuccess('')
+
+    try {
+      // Get current session
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setError('You must be logged in to add tweets to the queue')
+        return
+      }
+
+      // Call the queue-tweet API
+      const response = await fetch('/api/queue-tweet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ content: tweetContent.trim() })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to add tweet to queue')
+      }
+
+      // Show success message
+      const queueDate = new Date(result.queueSlot.date + 'T00:00:00').toLocaleDateString('en-US', {
+        weekday: 'short',
+        month: 'short',
+        day: 'numeric'
+      })
+      
+      setSuccess(`Tweet added to queue for ${queueDate} (slot ${result.queueSlot.slot})`)
+      setTweetContent('')
+      await loadTweets(user.id)
+      
+      // Clear success message after 5 seconds
+      setTimeout(() => setSuccess(''), 5000)
+    } catch (err) {
+      console.error('Error adding tweet to queue:', err)
+      setError(err instanceof Error ? err.message : 'Failed to add tweet to queue')
     } finally {
       setIsSaving(false)
     }
@@ -372,7 +427,7 @@ export default function DashboardPage() {
   // Filter tweets based on active tab
   const filteredTweets = tweets.filter((tweet: Tweet) => {
     if (activeTab === 'drafts') return tweet.status === 'draft'
-    if (activeTab === 'scheduled') return tweet.status === 'scheduled'
+    if (activeTab === 'scheduled') return tweet.status === 'scheduled' || tweet.status === 'queued'
     return true // 'all' tab
   })
 
@@ -454,7 +509,7 @@ export default function DashboardPage() {
                   : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
               }`}
             >
-              Scheduled ({tweets.filter((t: Tweet) => t.status === 'scheduled').length})
+              Scheduled ({tweets.filter((t: Tweet) => t.status === 'scheduled' || t.status === 'queued').length})
             </button>
             <button
               onClick={() => setActiveTab('all')}
@@ -465,16 +520,6 @@ export default function DashboardPage() {
               }`}
             >
               All ({tweets.length})
-            </button>
-            <button
-              onClick={() => setActiveTab('queue')}
-              className={`px-4 py-2 rounded-md font-medium ${
-                activeTab === 'queue'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Queue ({tweets.filter((t: Tweet) => t.status === 'queued').length})
             </button>
           </div>
 
@@ -587,6 +632,14 @@ export default function DashboardPage() {
                   >
                     📅 Schedule Tweet
                   </button>
+                  
+                  <button
+                    onClick={addToQueue}
+                    disabled={!tweetContent.trim() || isOverLimit}
+                    className="bg-orange-600 hover:bg-orange-700 disabled:bg-gray-300 text-white px-6 py-3 rounded-lg font-medium text-sm"
+                  >
+                    🔄 Add to Queue
+                  </button>
                 </div>
               </div>
 
@@ -606,86 +659,7 @@ export default function DashboardPage() {
             <WritingSampleInput />
           )}
 
-          {activeTab === 'queue' && (
-            <div className="space-y-6">
-              <div className="bg-white rounded-lg shadow p-6">
-                <h2 className="text-2xl font-bold text-gray-900 mb-6">
-                  Tweet Queue
-                </h2>
-                <p className="text-gray-600 mb-6">
-                  Add tweets to your queue and they&apos;ll be automatically scheduled for 5 posts per day with natural timing.
-                </p>
-                <TweetInputForm 
-                  onTweetAdded={async () => {
-                    // Refresh tweets when a new one is added
-                    if (user) {
-                      await loadTweets(user.id);
-                    }
-                  }}
-                />
-              </div>
-              
-              <div className="bg-white rounded-lg shadow p-6">
-                <h3 className="text-xl font-semibold text-gray-900 mb-4">
-                  Queued Tweets
-                </h3>
-                {tweets.filter((t: Tweet) => t.status === 'queued').length === 0 ? (
-                  <div className="text-center py-8">
-                    <p className="text-gray-500">No tweets in queue yet. Add your first tweet above!</p>
-                  </div>
-                ) : (
-                  <div className="space-y-4">
-                    {tweets
-                      .filter((t: Tweet) => t.status === 'queued')
-                      .sort((a, b) => {
-                        // Sort by queue_date first, then by time_slot
-                        if (a.queue_date && b.queue_date) {
-                          const dateCompare = a.queue_date.localeCompare(b.queue_date);
-                          if (dateCompare !== 0) return dateCompare;
-                          return (a.time_slot || 0) - (b.time_slot || 0);
-                        }
-                        return 0;
-                      })
-                      .map((tweet: Tweet) => (
-                        <div key={tweet.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
-                          <div className="flex justify-between items-start mb-3">
-                            <p className="text-gray-900 flex-1 pr-4">{tweet.tweet_content}</p>
-                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full whitespace-nowrap">
-                              Queued
-                            </span>
-                          </div>
-                          
-                          <div className="flex justify-between items-center text-sm text-gray-600">
-                            <div>
-                              {tweet.queue_date && (
-                                <div className="font-medium">
-                                  📅 {new Date(tweet.queue_date + 'T00:00:00').toLocaleDateString('en-US', {
-                                    weekday: 'short',
-                                    month: 'short',
-                                    day: 'numeric'
-                                  })} • Slot {tweet.time_slot}
-                                </div>
-                              )}
-                              {tweet.scheduled_at && (
-                                <div className="text-xs text-gray-500 mt-1">
-                                  ⏰ {formatScheduledDate(tweet.scheduled_at)}
-                                </div>
-                              )}
-                            </div>
-                            <button
-                              onClick={() => deleteTweet(tweet.id)}
-                              className="text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded hover:bg-red-50"
-                            >
-                              Remove
-                            </button>
-                          </div>
-                        </div>
-                      ))}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+
 
           {(activeTab === 'drafts' || activeTab === 'scheduled' || activeTab === 'all') && (
             <div>
@@ -694,7 +668,7 @@ export default function DashboardPage() {
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">
                 {activeTab === 'drafts' && 'No drafts yet. Create your first tweet above!'}
-                {activeTab === 'scheduled' && 'No scheduled tweets yet. Schedule your first tweet above!'}
+                {activeTab === 'scheduled' && 'No scheduled or queued tweets yet. Use "Schedule Tweet" or "Add to Queue" above!'}
                 {activeTab === 'all' && 'No tweets yet. Create your first tweet above!'}
               </p>
             </div>
@@ -707,6 +681,7 @@ export default function DashboardPage() {
                     <span className={`px-3 py-1 rounded-full text-xs font-semibold ${
                       tweet.status === 'draft' ? 'bg-gray-100 text-gray-800' :
                       tweet.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800' :
+                      tweet.status === 'queued' ? 'bg-blue-100 text-blue-800' :
                       tweet.status === 'posted' ? 'bg-green-100 text-green-800' :
                       'bg-red-100 text-red-800'
                     }`}>
@@ -718,8 +693,17 @@ export default function DashboardPage() {
                     <div className="space-y-1">
                       <div>Created: {new Date(tweet.created_at).toLocaleDateString()}</div>
                       {tweet.scheduled_at && (
-                        <div className="font-medium text-yellow-700">
-                          📅 Scheduled for: {formatScheduledDate(tweet.scheduled_at)}
+                        <div className={`font-medium ${tweet.status === 'queued' ? 'text-blue-700' : 'text-yellow-700'}`}>
+                          📅 {tweet.status === 'queued' ? 'Queued for' : 'Scheduled for'}: {formatScheduledDate(tweet.scheduled_at)}
+                          {tweet.status === 'queued' && tweet.queue_date && tweet.time_slot && (
+                            <span className="text-xs text-gray-500 ml-2">
+                              ({new Date(tweet.queue_date + 'T00:00:00').toLocaleDateString('en-US', {
+                                weekday: 'short',
+                                month: 'short',
+                                day: 'numeric'
+                              })} • Slot {tweet.time_slot})
+                            </span>
+                          )}
                         </div>
                       )}
                       {tweet.posted_at && (
@@ -742,7 +726,7 @@ export default function DashboardPage() {
                           Edit
                         </button>
                       )}
-                      {(tweet.status === 'scheduled' || tweet.status === 'draft') && (
+                      {(tweet.status === 'scheduled' || tweet.status === 'queued' || tweet.status === 'draft') && (
                         <button
                           onClick={() => postTweetNow(tweet.id, tweet.tweet_content)}
                           className="text-green-600 hover:text-green-800 font-medium px-2 py-1 rounded hover:bg-green-50"
@@ -750,12 +734,16 @@ export default function DashboardPage() {
                           🚀 Post Now
                         </button>
                       )}
-                      {tweet.status === 'scheduled' && (
+                      {(tweet.status === 'scheduled' || tweet.status === 'queued') && (
                         <button
                           onClick={() => cancelScheduledTweet(tweet.id)}
-                          className="text-yellow-600 hover:text-yellow-800 font-medium px-2 py-1 rounded hover:bg-yellow-50"
+                          className={`font-medium px-2 py-1 rounded ${
+                            tweet.status === 'queued' 
+                              ? 'text-blue-600 hover:text-blue-800 hover:bg-blue-50' 
+                              : 'text-yellow-600 hover:text-yellow-800 hover:bg-yellow-50'
+                          }`}
                         >
-                          Cancel
+                          {tweet.status === 'queued' ? 'Remove from Queue' : 'Cancel'}
                         </button>
                       )}
                       <button
