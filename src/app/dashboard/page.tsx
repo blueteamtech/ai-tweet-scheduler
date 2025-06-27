@@ -77,17 +77,8 @@ export default function DashboardPage() {
 
   const checkWritingSamples = async (userId: string) => {
     try {
-      // Get actual samples to count them properly
-      const { data: samples, error } = await supabase
-        .from('user_writing_samples')
-        .select('id')
-        .eq('user_id', userId)
-
-      if (error) throw error
-
-      const actualCount = samples ? samples.length : 0
-
-      // PersonalityAI state removed - writing samples check no longer needed
+      // Writing samples check simplified - no longer needed for personalityAI state
+      console.log('Writing samples check - functionality moved to WritingAnalysisInput component')
     } catch (error) {
       console.error('Error checking writing samples:', error)
     }
