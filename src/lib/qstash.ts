@@ -136,34 +136,38 @@ export async function scheduleMessage(
 }
 
 /**
- * Bulk operations support (2025 feature)
- * @param messages - Array of messages to schedule
+ * Bulk schedule multiple messages (for v2.0 features)
  */
 export async function bulkScheduleMessages(
   messages: Array<{
     url: string;
-    body: any;
-    delay: number | `${bigint}s` | `${bigint}m` | `${bigint}h` | `${bigint}d`;
+    body: Record<string, unknown>;
+    delay: number;
   }>
-) {
+): Promise<Array<{ messageId: string }>> {
   try {
-    // Note: Bulk operations have performance optimizations in 2025
     const results = await Promise.all(
       messages.map(msg => 
-        scheduleMessage(msg.url, msg.body, msg.delay, {
-          flowControl: {
-            key: "tweet-scheduler",
-            parallelism: 3,
-            rate: 10, // requests per second
-          }
+        qstash.publishJSON({
+          url: msg.url,
+          body: msg.body,
+          delay: msg.delay,
+          headers: {
+            'Content-Type': 'application/json',
+            'Upstash-Header-Forward': 'true',
+          },
+          retries: 3,
         })
       )
     )
     
-    console.log(`Bulk scheduled ${results.length} messages`)
-    return results
+    return results.map(result => ({ 
+      messageId: typeof result === 'object' && result && 'messageId' in result 
+        ? String(result.messageId) 
+        : 'unknown' 
+    }))
   } catch (error) {
-    console.error('QStash bulk scheduling error:', error)
+    console.error('Bulk schedule error:', error)
     throw error
   }
 }
