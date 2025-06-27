@@ -1,9 +1,14 @@
 import { NextResponse } from 'next/server';
 import { calculatePostingTime, getDefaultQueueSettings } from '@/lib/timing-algorithm';
+import { fromZonedTime } from 'date-fns-tz';
 
 export async function GET() {
   try {
     const settings = getDefaultQueueSettings();
+    
+    // Simple test: Create 8:00 AM Eastern Time on June 27, 2025
+    const testEasternTime = '2025-06-27T08:00:00';
+    const testUTC = fromZonedTime(testEasternTime, 'America/New_York');
     
     // Test calculations for the next few days
     const today = new Date();
@@ -27,8 +32,8 @@ export async function GET() {
             slot,
             minuteOffset,
             scheduledTimeUTC: scheduledTime.toISOString(),
-            scheduledTimeLocal: scheduledTime.toLocaleString('en-US', {
-              timeZone: settings.timezone,
+            scheduledTimeLocal: scheduledTime.toLocaleString('en-US', { 
+              timeZone: 'America/New_York',
               year: 'numeric',
               month: '2-digit',
               day: '2-digit',
@@ -51,11 +56,11 @@ export async function GET() {
     
     return NextResponse.json({
       success: true,
-      settings,
-      currentTime: {
-        utc: new Date().toISOString(),
-        local: new Date().toLocaleString('en-US', {
-          timeZone: settings.timezone,
+      simpleTest: {
+        input: testEasternTime + ' (Eastern Time)',
+        outputUTC: testUTC.toISOString(),
+        outputLocal: testUTC.toLocaleString('en-US', { 
+          timeZone: 'America/New_York',
           year: 'numeric',
           month: '2-digit',
           day: '2-digit',
@@ -65,9 +70,13 @@ export async function GET() {
           hour12: true
         })
       },
+      settings,
+      currentTime: {
+        utc: new Date().toISOString(),
+        local: new Date().toLocaleString('en-US', { timeZone: 'America/New_York' })
+      },
       tests
     });
-    
   } catch (error) {
     console.error('Timezone test error:', error);
     return NextResponse.json(

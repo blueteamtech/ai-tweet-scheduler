@@ -53,12 +53,16 @@ export async function getUserQueueSettings(userId: string): Promise<QueueSetting
     return defaultSettings;
   }
 
-  return {
+  const existingSettings = {
     postsPerDay: data.posts_per_day,
     startTime: data.start_time,
     endTime: data.end_time,
-    timezone: data.timezone
+    timezone: data.timezone || 'America/New_York'
   };
+
+  console.debug('[getUserQueueSettings] Using settings from DB:', existingSettings);
+
+  return existingSettings;
 }
 
 // Find next available queue slot
@@ -103,9 +107,17 @@ export async function findNextAvailableSlot(userId: string): Promise<{ date: Dat
           settings
         );
         
-        // Only return this slot if the scheduled time is in the future
-        // Add 5 minute buffer to avoid edge cases
+        // Debug: log the calculated time and validation
         const bufferTime = new Date(now.getTime() + 5 * 60 * 1000);
+        console.debug('[findNextAvailableSlot] Checking slot:', {
+          date: dateStr,
+          slot,
+          scheduledTimeUTC: scheduledTime.toISOString(),
+          scheduledTimeLocal: scheduledTime.toLocaleString('en-US', { timeZone: 'America/New_York' }),
+          nowUTC: now.toISOString(),
+          bufferTimeUTC: bufferTime.toISOString(),
+          isInFuture: scheduledTime > bufferTime
+        });
         
         if (scheduledTime > bufferTime) {
           return { date: currentCheckDate, slot };

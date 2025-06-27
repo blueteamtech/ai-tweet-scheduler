@@ -45,7 +45,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Add tweet to queue
+    console.log('[queue-tweet] About to call addTweetToQueue for user:', user.id);
     const result = await addTweetToQueue(user.id, content);
+    console.log('[queue-tweet] addTweetToQueue result:', {
+      tweetId: result.tweet.id,
+      scheduledAt: result.tweet.scheduled_at,
+      queueDate: result.queueSlot.date.toISOString().split('T')[0],
+      slot: result.queueSlot.slot
+    });
 
     return NextResponse.json({
       success: true,
