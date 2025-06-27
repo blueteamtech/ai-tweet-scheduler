@@ -75,7 +75,7 @@ export default function DashboardPage() {
     }
   }
 
-  const checkWritingSamples = async (userId: string) => {
+  const checkWritingSamples = async (_userId: string) => {
     try {
       // Writing samples check simplified - no longer needed for personalityAI state
       console.log('Writing samples check - functionality moved to WritingAnalysisInput component')
