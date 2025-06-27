@@ -433,7 +433,18 @@ export default function DashboardPage() {
 
   const formatScheduledDate = (dateString: string) => {
     const date = new Date(dateString)
-    return date.toLocaleDateString() + ' at ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    // Display in Eastern Time (the user's configured timezone) instead of browser's local timezone
+    return date.toLocaleDateString('en-US', { 
+      timeZone: 'America/New_York',
+      year: 'numeric',
+      month: 'numeric', 
+      day: 'numeric'
+    }) + ' at ' + date.toLocaleTimeString('en-US', { 
+      timeZone: 'America/New_York',
+      hour: '2-digit', 
+      minute: '2-digit',
+      hour12: true
+    })
   }
 
   return (
@@ -658,8 +669,6 @@ export default function DashboardPage() {
           {activeTab === 'writing' && (
             <WritingSampleInput />
           )}
-
-
 
           {(activeTab === 'drafts' || activeTab === 'scheduled' || activeTab === 'all') && (
             <div>
