@@ -90,7 +90,7 @@ export function calculatePostingTime(
 }
 
 // Helper function to convert time to user's timezone (placeholder for future enhancement)
-export function convertToUserTimezone(date: Date, timezone: string): Date {
+export function convertToUserTimezone(date: Date, _timezone: string): Date {
   // For now, just return the date as-is
   // In production, you'd use a library like date-fns-tz or luxon
   // to properly handle timezone conversion

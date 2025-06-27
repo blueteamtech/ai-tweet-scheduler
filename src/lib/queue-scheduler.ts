@@ -67,7 +67,7 @@ export async function findNextAvailableSlot(userId: string): Promise<{ date: Dat
   const now = new Date();
   
   // Start from today
-  let checkDate = new Date(now);
+  const checkDate = new Date(now);
   checkDate.setHours(0, 0, 0, 0); // Start of day
 
   // Check up to 30 days ahead
