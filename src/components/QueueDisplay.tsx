@@ -24,6 +24,9 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
   const [queueDays, setQueueDays] = useState<QueueDay[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
+  const [editingTweet, setEditingTweet] = useState<string | null>(null)
+  const [editContent, setEditContent] = useState('')
+  const [saving, setSaving] = useState(false)
 
   useEffect(() => {
     loadQueueStatus()
@@ -140,6 +143,71 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
     }
   }
 
+  const startEditing = (tweet: Tweet) => {
+    setEditingTweet(tweet.id)
+    setEditContent(tweet.tweet_content)
+    setError('')
+  }
+
+  const cancelEditing = () => {
+    setEditingTweet(null)
+    setEditContent('')
+  }
+
+  const saveEdit = async (tweetId: string) => {
+    if (!editContent.trim()) {
+      setError('Tweet content cannot be empty')
+      return
+    }
+
+    if (editContent.length > 280) {
+      setError('Tweet is too long (280 characters max)')
+      return
+    }
+
+    try {
+      setSaving(true)
+      setError('')
+
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        setError('You must be logged in to edit tweets')
+        return
+      }
+
+      const response = await fetch('/api/edit-tweet', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ 
+          tweetId, 
+          content: editContent.trim() 
+        })
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || 'Failed to update tweet')
+      }
+
+      // Reset editing state
+      setEditingTweet(null)
+      setEditContent('')
+
+      // Refresh the queue display
+      await loadQueueStatus()
+      onRefresh?.()
+    } catch (error) {
+      console.error('Error updating tweet:', error)
+      setError(error instanceof Error ? error.message : 'Failed to update tweet')
+    } finally {
+      setSaving(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
@@ -190,6 +258,13 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
         <p className="text-gray-600 text-sm mt-1">
           Next 7 days • 5 tweets per day • 8 AM - 9 PM Eastern
         </p>
+        
+        {/* Error Message */}
+        {error && (
+          <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg">
+            <p className="text-red-600 text-sm">{error}</p>
+          </div>
+        )}
       </div>
 
       {/* Queue Days */}
@@ -260,21 +335,66 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
                             {tweet.status}
                           </span>
                         </div>
-                        <p className="text-gray-900 text-sm leading-relaxed">
-                          {tweet.tweet_content.length > 100 
-                            ? `${tweet.tweet_content.substring(0, 100)}...` 
-                            : tweet.tweet_content
-                          }
-                        </p>
+                        {editingTweet === tweet.id ? (
+                          <div className="space-y-3">
+                            <textarea
+                              value={editContent}
+                              onChange={(e) => setEditContent(e.target.value)}
+                              className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                              rows={3}
+                              placeholder="Edit your tweet..."
+                            />
+                            <div className="flex justify-between items-center">
+                              <span className={`text-xs ${
+                                editContent.length > 280 ? 'text-red-600' : 'text-gray-500'
+                              }`}>
+                                {editContent.length}/280 characters
+                              </span>
+                              <div className="flex space-x-2">
+                                <button
+                                  onClick={cancelEditing}
+                                  className="text-gray-600 hover:text-gray-800 text-sm font-medium px-3 py-1 rounded hover:bg-gray-100"
+                                  disabled={saving}
+                                >
+                                  Cancel
+                                </button>
+                                <button
+                                  onClick={() => saveEdit(tweet.id)}
+                                  disabled={saving || !editContent.trim() || editContent.length > 280}
+                                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-sm font-medium px-3 py-1 rounded"
+                                >
+                                  {saving ? 'Saving...' : 'Save'}
+                                </button>
+                              </div>
+                            </div>
+                          </div>
+                        ) : (
+                          <p className="text-gray-900 text-sm leading-relaxed">
+                            {tweet.tweet_content.length > 100 
+                              ? `${tweet.tweet_content.substring(0, 100)}...` 
+                              : tweet.tweet_content
+                            }
+                          </p>
+                        )}
                       </div>
                       <div className="flex space-x-2">
                         {(tweet.status === 'queued' || tweet.status === 'scheduled') && (
-                          <button
-                            onClick={() => removeFromQueue(tweet.id)}
-                            className="text-red-600 hover:text-red-800 text-sm font-medium px-2 py-1 rounded hover:bg-red-50"
-                          >
-                            Remove
-                          </button>
+                          <>
+                            {editingTweet === tweet.id ? null : (
+                              <button
+                                onClick={() => startEditing(tweet)}
+                                className="text-blue-600 hover:text-blue-800 text-sm font-medium px-2 py-1 rounded hover:bg-blue-50"
+                              >
+                                Edit
+                              </button>
+                            )}
+                            <button
+                              onClick={() => removeFromQueue(tweet.id)}
+                              className="text-red-600 hover:text-red-800 text-sm font-medium px-2 py-1 rounded hover:bg-red-50"
+                            >
+                              Remove
+                            </button>
+                          </>
                         )}
                       </div>
                     </div>
