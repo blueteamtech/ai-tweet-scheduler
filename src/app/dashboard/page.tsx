@@ -17,7 +17,7 @@ export default function DashboardPage() {
   const [isSaving, setIsSaving] = useState(false)
   // Manual scheduling removed - only auto-queue scheduling now
   const [tweets, setTweets] = useState<Tweet[]>([])
-  const [activeTab, setActiveTab] = useState<'queue' | 'writing' | 'drafts' | 'all'>('queue')
+  const [activeTab, setActiveTab] = useState<'queue' | 'writing' | 'drafts'>('queue')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   // Removed personalityAI state - no longer used in simplified interface
@@ -220,6 +220,9 @@ export default function DashboardPage() {
 
   const deleteTweet = async (tweetId: string) => {
     try {
+      setError('')
+      setSuccess('')
+
       const { error } = await supabase
         .from('tweets')
         .delete()
@@ -228,6 +231,10 @@ export default function DashboardPage() {
       if (error) throw error
 
       await loadTweets(user!.id)
+      setSuccess('Tweet deleted successfully')
+      
+      // Clear success message after 3 seconds
+      setTimeout(() => setSuccess(''), 3000)
     } catch (error) {
       setError('Failed to delete tweet')
       console.error('Error deleting tweet:', error)
@@ -346,10 +353,10 @@ export default function DashboardPage() {
   const characterCount = tweetContent.length
   const isOverLimit = characterCount > 280
 
-  // Filter tweets based on active tab
+  // Filter tweets for drafts tab only
   const filteredTweets = tweets.filter((tweet: Tweet) => {
     if (activeTab === 'drafts') return tweet.status === 'draft'
-    return true // 'all' tab
+    return false // No other tabs show tweet lists
   })
 
   const formatScheduledDate = (dateString: string) => {
@@ -433,16 +440,7 @@ export default function DashboardPage() {
             >
               📝 Drafts ({tweets.filter((t: Tweet) => t.status === 'draft').length})
             </button>
-            <button
-              onClick={() => setActiveTab('all')}
-              className={`px-4 py-2 rounded-md font-medium ${
-                activeTab === 'all'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              📊 All Tweets ({tweets.length})
-            </button>
+            {/* All Tweets tab removed - redundant */}
           </div>
 
           {/* Tab Content */}
@@ -577,14 +575,13 @@ export default function DashboardPage() {
             </>
           )}
 
-          {(activeTab === 'drafts' || activeTab === 'all') && (
+          {activeTab === 'drafts' && (
             <div>
               {/* Tweet List */}
           {filteredTweets.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">
                 {activeTab === 'drafts' && 'No drafts yet. Create your first tweet above!'}
-                {activeTab === 'all' && 'No tweets yet. Create your first tweet above!'}
               </p>
             </div>
           ) : (
