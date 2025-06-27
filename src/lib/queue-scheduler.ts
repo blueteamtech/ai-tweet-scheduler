@@ -248,7 +248,7 @@ export async function removeTweetFromQueue(userId: string, tweetId: string): Pro
     .delete()
     .eq('id', tweetId)
     .eq('user_id', userId)
-    .eq('status', 'queued');
+    .in('status', ['queued', 'scheduled']);
 
   if (error) {
     throw new Error(`Failed to remove tweet from queue: ${error.message}`);
