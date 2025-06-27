@@ -1,4 +1,4 @@
-import { NextRequest, NextResponse } from 'next/server'
+import { NextResponse } from 'next/server'
 import { qstash } from '@/lib/qstash'
 import { createClient } from '@supabase/supabase-js'
 import { getQStashLogs } from '@/lib/qstash'
