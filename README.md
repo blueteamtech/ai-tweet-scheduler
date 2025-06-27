@@ -2,7 +2,7 @@
 
 An AI-powered tweet scheduler that generates and posts tweets automatically based on your personality.
 
-## ✨ Feature Set
+## ✨ Feature Sets
 
 - **AI Tweet Generation** - Generate tweets using OpenAI based on your style
 - **Twitter Integration** - Connect your Twitter account securely with OAuth
