@@ -679,21 +679,6 @@ export default function DashboardPage() {
           )}
         </div>
 
-        {/* Debug Info - TEMPORARY */}
-        {user && (
-          <div className="mb-4 p-3 bg-yellow-50 border border-yellow-200 rounded-lg text-xs text-yellow-800">
-            <strong>🔧 DEBUG INFO:</strong> User ID: {user.id} | 
-            HasWritingSamples: {personalityAI?.hasWritingSamples ? 'Yes' : 'No'} |
-            <a 
-              href={`/api/debug/writing-samples?user_id=${user.id}`} 
-              target="_blank" 
-              className="ml-2 underline text-yellow-600"
-            >
-              Check Writing Samples
-            </a>
-          </div>
-        )}
-
         {/* Success/Error Messages */}
         {success && (
           <div className="bg-green-50 border border-green-200 text-green-800 px-4 py-3 rounded-lg">

@@ -36,14 +36,24 @@ interface WritingSampleStats {
   }>;
 }
 
+interface WritingSample {
+  id: string;
+  content: string;
+  content_type: string;
+  created_at: string;
+}
+
 export default function WritingSampleInput() {
   const [content, setContent] = useState('');
-  const [contentType, setContentType] = useState<'tweet' | 'text' | 'post' | 'message'>('tweet');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [stats, setStats] = useState<WritingSampleStats | null>(null);
   const [showStats, setShowStats] = useState(false);
+  const [samples, setSamples] = useState<WritingSample[]>([]);
+  const [showSamples, setShowSamples] = useState(false);
+  const [editingSample, setEditingSample] = useState<WritingSample | null>(null);
+  const [editContent, setEditContent] = useState('');
 
   // Load user stats
   const loadStats = async () => {
@@ -88,7 +98,7 @@ export default function WritingSampleInput() {
         },
         body: JSON.stringify({
           content: content.trim(),
-          content_type: contentType,
+          content_type: 'tweet',
         }),
       });
 
@@ -123,6 +133,111 @@ export default function WritingSampleInput() {
     setShowStats(!showStats);
   };
 
+  // Load all writing samples
+  const loadSamples = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/analyze-writing/samples', {
+        headers: session ? { 'Authorization': `Bearer ${session.access_token}` } : undefined,
+      });
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setSamples(data.samples);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load samples:', error);
+    }
+  };
+
+  // Toggle samples display
+  const toggleSamples = () => {
+    if (!showSamples && samples.length === 0) {
+      loadSamples();
+    }
+    setShowSamples(!showSamples);
+  };
+
+  // Start editing a sample
+  const startEditingSample = (sample: WritingSample) => {
+    setEditingSample(sample);
+    setEditContent(sample.content);
+  };
+
+  // Cancel editing
+  const cancelEditing = () => {
+    setEditingSample(null);
+    setEditContent('');
+  };
+
+  // Save edited sample
+  const saveEditedSample = async () => {
+    if (!editingSample || !editContent.trim()) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/analyze-writing/samples', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session && { 'Authorization': `Bearer ${session.access_token}` }),
+        },
+        body: JSON.stringify({
+          id: editingSample.id,
+          content: editContent.trim(),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setSamples(samples.map(s => 
+            s.id === editingSample.id ? { ...s, content: editContent.trim() } : s
+          ));
+          setEditingSample(null);
+          setEditContent('');
+          loadStats(); // Refresh stats
+        } else {
+          setError(data.error || 'Failed to update sample');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to update sample:', error);
+      setError('Failed to update writing sample');
+    }
+  };
+
+  // Delete a sample
+  const deleteSample = async (sampleId: string) => {
+    if (!confirm('Are you sure you want to delete this writing sample?')) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      const response = await fetch('/api/analyze-writing/samples', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session && { 'Authorization': `Bearer ${session.access_token}` }),
+        },
+        body: JSON.stringify({ id: sampleId }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        if (data.success) {
+          setSamples(samples.filter(s => s.id !== sampleId));
+          loadStats(); // Refresh stats
+        } else {
+          setError(data.error || 'Failed to delete sample');
+        }
+      }
+    } catch (error) {
+      console.error('Failed to delete sample:', error);
+      setError('Failed to delete writing sample');
+    }
+  };
+
   // Calculate word count
   const wordCount = content.trim().split(/\s+/).filter(word => word.length > 0).length;
 
@@ -134,17 +249,23 @@ export default function WritingSampleInput() {
           ✨ Writing Sample Analysis
         </h2>
         <p className="text-gray-600">
-          Upload your writing samples to train AI that matches your unique voice and personality.
+          Upload your writing samples to train AI that matches your unique voice and personality for tweet generation.
         </p>
       </div>
 
       {/* Stats Toggle */}
-      <div className="mb-4">
+      <div className="mb-4 flex gap-4">
         <button
           onClick={toggleStats}
           className="text-blue-600 hover:text-blue-800 text-sm font-medium"
         >
-          {showStats ? 'Hide' : 'Show'} My Writing Samples ({stats?.total_samples || 0})
+          {showStats ? 'Hide' : 'Show'} Stats ({stats?.total_samples || 0})
+        </button>
+        <button
+          onClick={toggleSamples}
+          className="text-green-600 hover:text-green-800 text-sm font-medium"
+        >
+          {showSamples ? 'Hide' : 'Show'} All Samples ({samples.length})
         </button>
       </div>
 
@@ -191,26 +312,74 @@ export default function WritingSampleInput() {
         </div>
       )}
 
+      {/* Writing Samples List */}
+      {showSamples && (
+        <div className="mb-6 p-4 bg-green-50 rounded-lg">
+          <h3 className="text-lg font-semibold text-green-900 mb-3">Your Writing Samples</h3>
+          {samples.length === 0 ? (
+            <p className="text-green-700 text-sm">No writing samples yet. Add some above!</p>
+          ) : (
+            <div className="space-y-4">
+              {samples.map((sample) => (
+                <div key={sample.id} className="bg-white p-4 rounded-lg border border-green-200">
+                  <div className="flex justify-between items-start mb-2">
+                    <span className="text-xs text-green-600 font-medium">
+                      {new Date(sample.created_at).toLocaleDateString()} • {sample.content_type}
+                    </span>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => startEditingSample(sample)}
+                        className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        onClick={() => deleteSample(sample.id)}
+                        className="text-red-600 hover:text-red-800 text-sm font-medium"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+                  
+                  {editingSample?.id === sample.id ? (
+                    <div className="space-y-3">
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 resize-vertical text-gray-900 bg-white"
+                        rows={4}
+                      />
+                      <div className="flex gap-2">
+                        <button
+                          onClick={saveEditedSample}
+                          disabled={!editContent.trim()}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white px-3 py-1 rounded text-sm font-medium"
+                        >
+                          Save
+                        </button>
+                        <button
+                          onClick={cancelEditing}
+                          className="bg-gray-300 hover:bg-gray-400 text-gray-700 px-3 py-1 rounded text-sm font-medium"
+                        >
+                          Cancel
+                        </button>
+                      </div>
+                    </div>
+                  ) : (
+                    <p className="text-gray-700 text-sm leading-relaxed">
+                      {sample.content}
+                    </p>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Input Form */}
       <form onSubmit={handleAnalyze} className="space-y-4">
-        {/* Content Type Selector */}
-        <div>
-          <label htmlFor="content-type" className="block text-sm font-medium text-gray-700 mb-2">
-            Content Type
-          </label>
-          <select
-            id="content-type"
-            value={contentType}
-            onChange={(e) => setContentType(e.target.value as typeof contentType)}
-            className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 text-gray-900 bg-white"
-          >
-            <option value="tweet">Tweet</option>
-            <option value="text">General Text</option>
-            <option value="post">Social Media Post</option>
-            <option value="message">Message/Email</option>
-          </select>
-        </div>
-
         {/* Writing Sample Input */}
         <div>
           <label htmlFor="writing-content" className="block text-sm font-medium text-gray-700 mb-2">
@@ -223,7 +392,7 @@ export default function WritingSampleInput() {
             id="writing-content"
             value={content}
             onChange={(e) => setContent(e.target.value)}
-            placeholder="Paste your writing here... (tweets, emails, posts, messages, etc.)
+            placeholder="Paste your writing here... (tweets, social media posts, casual messages, etc.)
 
 Example:
 &quot;Just finished debugging the most frustrating issue - turns out it was a missing semicolon. Sometimes the simplest things trip you up! 🤦‍♂️ Always double-check the basics before diving deep into complex solutions.&quot;"
@@ -344,10 +513,10 @@ Example:
         </p>
         <ul className="list-disc list-inside space-y-1 text-xs">
           <li>Include 3-5 different writing samples for best results</li>
-          <li>Mix different content types (tweets, emails, posts)</li>
           <li>Use your natural writing voice, not formal/corporate tone</li>
           <li>Include samples with different emotions/topics</li>
-          <li>Longer samples (100+ words) provide better personality insights</li>
+          <li>Both short tweets and longer posts work well</li>
+          <li>Mix casual and professional content for versatility</li>
         </ul>
       </div>
     </div>

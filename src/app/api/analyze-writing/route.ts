@@ -23,7 +23,7 @@ const supabase = createClient(
 // Types
 interface AnalyzeWritingRequest {
   content: string;
-  content_type?: 'tweet' | 'text' | 'post' | 'message';
+  content_type?: string; // Always 'tweet' now, but keeping for backward compatibility
 }
 
 interface PersonalityAnalysis {
@@ -107,7 +107,8 @@ export async function POST(request: NextRequest) {
   try {
     // Parse request body
     const body: AnalyzeWritingRequest = await request.json();
-    const { content, content_type = 'tweet' } = body;
+    const { content } = body;
+    const content_type = 'tweet'; // Always tweet now
 
     // Validate input
     if (!content || content.trim().length === 0) {

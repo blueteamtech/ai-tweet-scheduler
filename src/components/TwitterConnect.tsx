@@ -153,18 +153,6 @@ export default function TwitterConnect({ userId }: TwitterConnectProps) {
           <p className="text-gray-600">
             Connect your X (Twitter) account to automatically post your scheduled tweets.
           </p>
-          
-          <div className="bg-yellow-50 border border-yellow-200 rounded-md p-4">
-            <p className="text-yellow-800 text-sm">
-              <strong>📋 Next Steps:</strong>
-              <br />
-              1. Apply for X Developer API access at developer.x.com
-              <br />
-              2. Get your Client ID and Client Secret
-              <br />
-              3. Configure OAuth settings with your app&apos;s callback URL
-            </p>
-          </div>
 
           <button
             onClick={connectToTwitter}
