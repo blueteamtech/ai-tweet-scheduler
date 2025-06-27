@@ -36,14 +36,15 @@ export async function POST(request: NextRequest) {
     )
 
     // Get the current user from session
-    let { data: { user }, error: authError } = await supabase.auth.getUser()
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    let currentUser = user
 
-    if (authError || !user) {
+    if (authError || !currentUser) {
       // Fallback: try Authorization header (Bearer token)
       const headerAuth = await createAuthenticatedClient(request)
       if (!headerAuth.error && headerAuth.user && headerAuth.client) {
         supabase = headerAuth.client
-        user = headerAuth.user
+        currentUser = headerAuth.user
       } else {
         console.error('Authentication failed:', authError)
         return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
@@ -54,7 +55,7 @@ export async function POST(request: NextRequest) {
     const { data: tweet, error: insertError } = await supabase
       .from('tweets')
       .insert({
-        user_id: user.id,
+        user_id: currentUser.id,
         tweet_content: tweetContent,
         status: 'scheduled',
         scheduled_at: scheduledAt,
@@ -71,7 +72,7 @@ export async function POST(request: NextRequest) {
     const scheduledDate = new Date(scheduledAt)
     const result = await scheduleTweet(
       tweet.id,
-      user.id,
+      currentUser.id,
       tweetContent,
       scheduledDate
     )
