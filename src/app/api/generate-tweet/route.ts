@@ -1,8 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import OpenAI from 'openai'
 import { getUserFromRequest, promptSchema, checkRateLimit, sanitizeError } from '@/lib/auth'
-import { generateEmbedding } from '@/lib/embeddings'
-import { findSimilarWritingSamples, formatPersonalityContext } from '@/lib/similarity'
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -58,78 +56,14 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    console.log('🔑 OpenAI API key configured, proceeding to personality AI check...');
+    console.log('🔑 OpenAI API key configured, proceeding to tweet generation...');
 
-    // 5. PERSONALITY AI ENHANCEMENT: Check for writing samples
-    let personalityContext = ''
-    let usedPersonalityAI = false
+    // 5. PERSONALITY AI: Temporarily disabled (embeddings functionality removed)
+    const usedPersonalityAI = false
     const personalityInfo = { samplesUsed: 0, hasWritingSamples: false }
 
-    try {
-      // Generate embedding for the prompt to find similar writing samples
-      console.log('🧠 Generating embedding for prompt:', prompt)
-      const embeddingResult = await generateEmbedding(prompt)
-      
-      if ('embedding' in embeddingResult) {
-        console.log('✅ Embedding generated successfully')
-        // Search for similar writing samples
-        const similarityResult = await findSimilarWritingSamples(
-          user.id, 
-          embeddingResult.embedding,
-          3, // Top 3 most similar samples
-          0.1 // Much lower threshold for better matching - was 0.3
-        )
-
-        console.log('🔍 Similarity search result:', {
-          hasWritingSamples: similarityResult.hasWritingSamples,
-          samplesFound: similarityResult.samples.length,
-          samples: similarityResult.samples.map(s => ({
-            similarity: s.similarity,
-            content: s.content.substring(0, 50) + '...'
-          }))
-        })
-
-        personalityInfo.hasWritingSamples = similarityResult.hasWritingSamples
-
-        if (similarityResult.samples.length > 0) {
-          personalityContext = formatPersonalityContext(similarityResult.samples)
-          usedPersonalityAI = true
-          personalityInfo.samplesUsed = similarityResult.samples.length
-          
-          console.log(`🎯 Using ${similarityResult.samples.length} writing samples for personality context`)
-          console.log('📝 Personality context:', personalityContext.substring(0, 200) + '...')
-        } else {
-          console.log('❌ No similar writing samples found')
-        }
-      } else {
-        console.log('❌ Embedding generation failed:', embeddingResult.error)
-      }
-    } catch (embeddingError) {
-      // If personality AI fails, continue with regular generation
-      console.warn('💥 Personality AI enhancement failed, using regular generation:', embeddingError)
-    }
-
-    // 6. Create the AI prompt for tweet generation (with or without personality)
-    let systemPrompt = ''
-    
-    if (usedPersonalityAI) {
-      systemPrompt = `You are a social media expert who creates tweets that match the user's unique writing style and personality.
-
-${personalityContext}
-
-Now, create a tweet based on this request: "${prompt}"
-
-The tweet should be:
-- Under 280 characters
-- Match the user's writing style, tone, and personality from the examples
-- Sound authentic to how this person naturally writes
-- NO hashtags - focus on pure text content
-- No quotes around the tweet text
-- Avoid emojis unless they're very common in the user's writing samples
-
-Generate the tweet:`
-    } else {
-      systemPrompt = `You are a social media expert who creates engaging, authentic tweets. 
+    // 6. Create the AI prompt for tweet generation
+    const systemPrompt = `You are a social media expert who creates engaging, authentic tweets. 
 Generate a single tweet based on the user's input. The tweet should be:
 - Under 280 characters
 - Engaging and authentic
@@ -139,7 +73,6 @@ Generate a single tweet based on the user's input. The tweet should be:
 - Avoid emojis - focus on text-based content
 
 User's request: ${prompt}`
-    }
 
     // 7. Call OpenAI API with error handling (upgraded to GPT-4o for better personality matching)
     const completion = await openai.chat.completions.create({
@@ -180,12 +113,12 @@ User's request: ${prompt}`
         samplesUsed: personalityInfo.samplesUsed,
         hasWritingSamples: personalityInfo.hasWritingSamples
       },
-      // TEMPORARY DEBUG INFO
+      // DEBUG INFO
       debug: {
         userId: user.id,
-        personalityAttempted: true,
-        personalityContext: personalityContext ? personalityContext.substring(0, 100) + '...' : 'none',
-        embeddingGenerated: 'will be set in personality section'
+        personalityAttempted: false,
+        personalityContext: 'disabled',
+        embeddingGenerated: 'disabled'
       }
     })
 
