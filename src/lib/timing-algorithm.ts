@@ -78,10 +78,23 @@ export function calculatePostingTime(
   
   const [baseHour, baseMinute] = baseTime.split(':').map(Number);
   
+  // Create the scheduled time in local timezone
   const scheduledTime = new Date(date);
   scheduledTime.setHours(baseHour, baseMinute + minuteOffset, 0, 0);
   
+  // Note: For now, we're treating all times as local time
+  // In a full implementation, you'd want to handle timezone conversion properly
+  // based on the user's actual timezone setting
+  
   return { scheduledTime, minuteOffset };
+}
+
+// Helper function to convert time to user's timezone (placeholder for future enhancement)
+export function convertToUserTimezone(date: Date, timezone: string): Date {
+  // For now, just return the date as-is
+  // In production, you'd use a library like date-fns-tz or luxon
+  // to properly handle timezone conversion
+  return date;
 }
 
 // Get default queue settings

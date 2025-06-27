@@ -53,6 +53,12 @@ export async function POST(request: NextRequest) {
       queueSlot: {
         date: result.queueSlot.date.toISOString().split('T')[0],
         slot: result.queueSlot.slot
+      },
+      // Add debug info to help understand timing
+      debug: {
+        scheduledFor: result.tweet.scheduled_at,
+        currentTime: new Date().toISOString(),
+        isInFuture: new Date(result.tweet.scheduled_at!) > new Date()
       }
     });
 
@@ -61,7 +67,11 @@ export async function POST(request: NextRequest) {
     
     return NextResponse.json(
       { 
-        error: error instanceof Error ? error.message : 'Failed to add tweet to queue' 
+        error: error instanceof Error ? error.message : 'Failed to add tweet to queue',
+        // Add current time for debugging
+        debug: {
+          currentTime: new Date().toISOString()
+        }
       },
       { status: 500 }
     );

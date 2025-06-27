@@ -64,15 +64,18 @@ export async function getUserQueueSettings(userId: string): Promise<QueueSetting
 // Find next available queue slot
 export async function findNextAvailableSlot(userId: string): Promise<{ date: Date; slot: number }> {
   const settings = await getUserQueueSettings(userId);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0); // Start of day
+  const now = new Date();
+  
+  // Start from today
+  let checkDate = new Date(now);
+  checkDate.setHours(0, 0, 0, 0); // Start of day
 
   // Check up to 30 days ahead
   for (let dayOffset = 0; dayOffset < 30; dayOffset++) {
-    const checkDate = new Date(today);
-    checkDate.setDate(today.getDate() + dayOffset);
+    const currentCheckDate = new Date(checkDate);
+    currentCheckDate.setDate(checkDate.getDate() + dayOffset);
     
-    const dateStr = checkDate.toISOString().split('T')[0];
+    const dateStr = currentCheckDate.toISOString().split('T')[0];
 
     // Get existing tweets for this date
     const { data: existingTweets, error } = await supabase
@@ -90,10 +93,23 @@ export async function findNextAvailableSlot(userId: string): Promise<{ date: Dat
 
     const usedSlots = new Set(existingTweets.map(t => t.time_slot));
     
-    // Find first available slot
+    // Find first available slot, but validate the time hasn't passed
     for (let slot = 1; slot <= settings.postsPerDay; slot++) {
       if (!usedSlots.has(slot)) {
-        return { date: checkDate, slot };
+        // Calculate what the scheduled time would be
+        const { scheduledTime } = calculatePostingTime(
+          currentCheckDate,
+          slot,
+          settings
+        );
+        
+        // Only return this slot if the scheduled time is in the future
+        // Add 5 minute buffer to avoid edge cases
+        const bufferTime = new Date(now.getTime() + 5 * 60 * 1000);
+        
+        if (scheduledTime > bufferTime) {
+          return { date: currentCheckDate, slot };
+        }
       }
     }
   }
