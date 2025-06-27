@@ -5,9 +5,7 @@ import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import type { Tweet } from '@/types'
-import TweetScheduler from '@/components/TweetScheduler'
 import TwitterConnect from '@/components/TwitterConnect'
-// WritingSampleInput removed - no longer exists
 import QueueDisplay from '@/components/QueueDisplay'
 import WritingAnalysisInput from '@/components/WritingAnalysisInput'
 
@@ -17,10 +15,9 @@ export default function DashboardPage() {
   const [tweetContent, setTweetContent] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [isScheduling, setIsScheduling] = useState(false)
-  const [showScheduler, setShowScheduler] = useState(false)
+  // Manual scheduling removed - only auto-queue scheduling now
   const [tweets, setTweets] = useState<Tweet[]>([])
-  const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'queue' | 'drafts' | 'all'>('queue')
+  const [activeTab, setActiveTab] = useState<'queue' | 'writing' | 'drafts' | 'all'>('queue')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   // Removed personalityAI state - no longer used in simplified interface
@@ -219,72 +216,7 @@ export default function DashboardPage() {
     }
   }
 
-  const scheduleTweet = async (scheduledDate: Date) => {
-    if (!user || !tweetContent.trim()) {
-      setError('Please enter some content before scheduling')
-      return
-    }
-
-    setIsScheduling(true)
-    setError('')
-    setSuccess('')
-
-    try {
-      // First, save the tweet to database
-      const { data: tweetData, error: dbError } = await supabase
-        .from('tweets')
-        .insert([
-          {
-            user_id: user.id,
-            tweet_content: tweetContent.trim(),
-            status: 'scheduled',
-            scheduled_at: scheduledDate.toISOString()
-          }
-        ])
-        .select()
-        .single()
-
-      if (dbError) throw dbError
-
-      // Then schedule it with QStash
-      const {
-        data: { session },
-      } = await supabase.auth.getSession()
-
-      const response = await fetch('/api/schedule-tweet', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` }),
-        },
-        body: JSON.stringify({
-          tweetId: tweetData.id,
-          userId: user.id,
-          tweetContent: tweetContent.trim(),
-          scheduledAt: scheduledDate.toISOString()
-        }),
-      })
-
-      const result = await response.json()
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to schedule tweet')
-      }
-
-      setSuccess('Tweet scheduled successfully with QStash!')
-      setTweetContent('')
-      setShowScheduler(false)
-      await loadTweets(user.id)
-      
-      // Clear success message after 3 seconds
-      setTimeout(() => setSuccess(''), 3000)
-    } catch (error) {
-      setError('Failed to schedule tweet. Please try again.')
-      console.error('Error scheduling tweet:', error)
-    } finally {
-      setIsScheduling(false)
-    }
-  }
+  // Manual scheduleTweet function removed - only auto-queue scheduling now
 
   const deleteTweet = async (tweetId: string) => {
     try {
@@ -759,14 +691,7 @@ export default function DashboardPage() {
         )}
       </main>
 
-      {/* Tweet Scheduler Modal */}
-      {showScheduler && (
-        <TweetScheduler
-          onSchedule={scheduleTweet}
-          onCancel={() => setShowScheduler(false)}
-          isScheduling={isScheduling}
-        />
-      )}
+      {/* Manual scheduling modal removed - only auto-queue now */}
     </div>
   )
 } 

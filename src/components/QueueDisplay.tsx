@@ -246,7 +246,7 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
       <div className="p-6 border-b border-gray-200">
         <div className="flex justify-between items-center">
           <h3 className="text-xl font-bold text-gray-900">
-            Tweet Queue ({totalQueued} tweets scheduled)
+            Upcoming Tweets ({totalQueued} scheduled)
           </h3>
           <button
             onClick={loadQueueStatus}
@@ -256,7 +256,7 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
           </button>
         </div>
         <p className="text-gray-600 text-sm mt-1">
-          Next 7 days • 5 tweets per day • 8 AM - 9 PM Eastern
+          Auto-scheduled • 5 tweets per day • 8 AM - 9 PM Eastern
         </p>
         
         {/* Error Message */}
@@ -426,7 +426,7 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
             </div>
             <div className="flex items-center space-x-1">
               <div className="w-3 h-3 rounded-full bg-blue-500"></div>
-              <span>Queued</span>
+              <span>Scheduled</span>
             </div>
             <div className="flex items-center space-x-1">
               <div className="w-3 h-3 rounded-full bg-green-500"></div>
@@ -434,7 +434,7 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
             </div>
           </div>
           <div>
-            Auto-scheduling: <span className="font-medium">8 AM - 9 PM ET</span>
+            Fully automated: <span className="font-medium">8 AM - 9 PM ET</span>
           </div>
         </div>
       </div>
