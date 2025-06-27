@@ -26,16 +26,6 @@ interface AnalysisResult {
   };
 }
 
-interface WritingSampleStats {
-  total_samples: number;
-  by_type: Record<string, number>;
-  latest_samples: Array<{
-    id: string;
-    content_type: string;
-    created_at: string;
-  }>;
-}
-
 interface WritingSample {
   id: string;
   content: string;
@@ -48,31 +38,12 @@ export default function WritingSampleInput() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [analysisResult, setAnalysisResult] = useState<AnalysisResult | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [stats, setStats] = useState<WritingSampleStats | null>(null);
-  const [showStats, setShowStats] = useState(false);
   const [samples, setSamples] = useState<WritingSample[]>([]);
   const [showSamples, setShowSamples] = useState(false);
   const [editingSample, setEditingSample] = useState<WritingSample | null>(null);
   const [editContent, setEditContent] = useState('');
 
-  // Load user stats
-  const loadStats = async () => {
-    try {
-      // Include user auth token in headers
-      const { data: { session } } = await supabase.auth.getSession();
-      const response = await fetch('/api/analyze-writing', {
-        headers: session ? { 'Authorization': `Bearer ${session.access_token}` } : undefined,
-      });
-      if (response.ok) {
-        const data = await response.json();
-        if (data.success) {
-          setStats(data.stats);
-        }
-      }
-    } catch (error) {
-      console.error('Failed to load stats:', error);
-    }
-  };
+
 
   // Handle form submission
   const handleAnalyze = async (e: React.FormEvent) => {
@@ -112,8 +83,6 @@ export default function WritingSampleInput() {
         });
         // Clear the input after successful analysis
         setContent('');
-        // Refresh stats
-        loadStats();
       } else {
         setError(data.error || 'Analysis failed');
       }
@@ -125,13 +94,7 @@ export default function WritingSampleInput() {
     }
   };
 
-  // Toggle stats display
-  const toggleStats = () => {
-    if (!showStats && !stats) {
-      loadStats();
-    }
-    setShowStats(!showStats);
-  };
+
 
   // Load all writing samples
   const loadSamples = async () => {
@@ -197,7 +160,6 @@ export default function WritingSampleInput() {
           ));
           setEditingSample(null);
           setEditContent('');
-          loadStats(); // Refresh stats
         } else {
           setError(data.error || 'Failed to update sample');
         }
@@ -227,7 +189,6 @@ export default function WritingSampleInput() {
         const data = await response.json();
         if (data.success) {
           setSamples(samples.filter(s => s.id !== sampleId));
-          loadStats(); // Refresh stats
         } else {
           setError(data.error || 'Failed to delete sample');
         }
@@ -253,64 +214,17 @@ export default function WritingSampleInput() {
         </p>
       </div>
 
-      {/* Stats Toggle */}
-      <div className="mb-4 flex gap-4">
-        <button
-          onClick={toggleStats}
-          className="text-blue-600 hover:text-blue-800 text-sm font-medium"
-        >
-          {showStats ? 'Hide' : 'Show'} Stats ({stats?.total_samples || 0})
-        </button>
+      {/* Samples Toggle */}
+      <div className="mb-4">
         <button
           onClick={toggleSamples}
           className="text-green-600 hover:text-green-800 text-sm font-medium"
         >
-          {showSamples ? 'Hide' : 'Show'} All Samples ({samples.length})
+          {showSamples ? 'Hide' : 'Show'} My Writing Samples ({samples.length})
         </button>
       </div>
 
-      {/* Stats Display */}
-      {showStats && stats && (
-        <div className="mb-6 p-4 bg-blue-50 rounded-lg">
-          <h3 className="text-lg font-semibold text-blue-900 mb-3">Your Writing Portfolio</h3>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-700">{stats.total_samples}</div>
-              <div className="text-sm text-blue-600">Total Samples</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-700">
-                {Object.keys(stats.by_type).length}
-              </div>
-              <div className="text-sm text-blue-600">Content Types</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-700">
-                {stats.total_samples > 0 ? '✅' : '⏳'}
-              </div>
-              <div className="text-sm text-blue-600">
-                {stats.total_samples > 0 ? 'AI Ready' : 'Getting Started'}
-              </div>
-            </div>
-          </div>
-          
-          {Object.keys(stats.by_type).length > 0 && (
-            <div className="mt-4">
-              <div className="text-sm font-medium text-blue-800 mb-2">By Type:</div>
-              <div className="flex flex-wrap gap-2">
-                {Object.entries(stats.by_type).map(([type, count]) => (
-                  <span
-                    key={type}
-                    className="px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
-                  >
-                    {type}: {count}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+
 
       {/* Writing Samples List */}
       {showSamples && (

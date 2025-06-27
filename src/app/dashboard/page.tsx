@@ -513,21 +513,14 @@ export default function DashboardPage() {
                           Personality AI used {personalityAI.samplesUsed} writing sample{personalityAI.samplesUsed > 1 ? 's' : ''} to match your style
                         </span>
                       </div>
-                    ) : personalityAI.hasWritingSamples ? (
-                      <div className="flex items-center gap-2 p-3 bg-orange-50 border border-orange-200 rounded-lg">
-                        <span className="text-orange-600 text-sm">💡</span>
-                        <span className="text-orange-700 text-sm">
-                          You have writing samples, but none were similar enough to this prompt. Try a different topic.
-                        </span>
-                      </div>
-                    ) : (
+                    ) : !personalityAI.hasWritingSamples ? (
                       <div className="flex items-center gap-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                         <span className="text-blue-600 text-sm">📝</span>
                         <span className="text-blue-700 text-sm">
                           Add writing samples in the &quot;Writing Analysis&quot; tab to enable Personality AI
                         </span>
                       </div>
-                    )}
+                    ) : null}
                   </div>
                 )}
 
