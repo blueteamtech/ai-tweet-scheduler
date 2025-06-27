@@ -54,20 +54,64 @@ export async function POST(request: NextRequest) {
       slot: result.queueSlot.slot
     });
 
-    return NextResponse.json({
-      success: true,
-      tweet: result.tweet,
-      queueSlot: {
-        date: result.queueSlot.date.toISOString().split('T')[0],
-        slot: result.queueSlot.slot
-      },
-      // Add debug info to help understand timing
-      debug: {
-        scheduledFor: result.tweet.scheduled_at,
-        currentTime: new Date().toISOString(),
-        isInFuture: new Date(result.tweet.scheduled_at!) > new Date()
-      }
-    });
+    // Automatically schedule with QStash (no manual processing needed)
+    try {
+      console.log(`[queue-tweet] Auto-scheduling tweet ${result.tweet.id} with QStash`);
+      
+      const { scheduleTweet } = await import('@/lib/qstash');
+      const qstashResult = await scheduleTweet(
+        result.tweet.id,
+        user.id,
+        content,
+        new Date(result.tweet.scheduled_at!)
+      );
+
+      // Update tweet status and add QStash message ID
+      await supabase
+        .from('tweets')
+        .update({ 
+          status: 'scheduled',
+          qstash_message_id: qstashResult.messageId 
+        })
+        .eq('id', result.tweet.id);
+
+      console.log(`[queue-tweet] Tweet ${result.tweet.id} auto-scheduled with QStash message ${qstashResult.messageId}`);
+
+      return NextResponse.json({
+        success: true,
+        tweet: {
+          ...result.tweet,
+          status: 'scheduled',
+          qstash_message_id: qstashResult.messageId
+        },
+        queueSlot: {
+          date: result.queueSlot.date.toISOString().split('T')[0],
+          slot: result.queueSlot.slot
+        },
+        autoScheduled: true,
+        message: `Tweet scheduled for ${new Date(result.tweet.scheduled_at!).toLocaleDateString('en-US', {
+          weekday: 'short', month: 'short', day: 'numeric', timeZone: 'America/New_York'
+        })} at ${new Date(result.tweet.scheduled_at!).toLocaleTimeString('en-US', {
+          hour: 'numeric', minute: '2-digit', hour12: true, timeZone: 'America/New_York'
+        })} ET`
+      });
+
+    } catch (qstashError) {
+      // If QStash scheduling fails, tweet remains in queue for manual processing
+      console.error(`[queue-tweet] QStash scheduling failed for tweet ${result.tweet.id}:`, qstashError);
+      
+      return NextResponse.json({
+        success: true,
+        tweet: result.tweet,
+        queueSlot: {
+          date: result.queueSlot.date.toISOString().split('T')[0],
+          slot: result.queueSlot.slot
+        },
+        autoScheduled: false,
+        warning: 'Tweet added to queue but automatic scheduling failed. You can manually process it later.',
+        qstashError: qstashError instanceof Error ? qstashError.message : 'Unknown QStash error'
+      });
+    }
 
   } catch (error) {
     console.error('Error adding tweet to queue:', error);
