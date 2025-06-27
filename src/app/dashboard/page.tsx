@@ -23,11 +23,7 @@ export default function DashboardPage() {
   const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'queue' | 'drafts' | 'all'>('queue')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
-  const [personalityAI, setPersonalityAI] = useState<{
-    used: boolean;
-    samplesUsed: number;
-    hasWritingSamples: boolean;
-  } | null>(null)
+  // Removed personalityAI state - no longer used in simplified interface
   const router = useRouter()
 
   useEffect(() => {
@@ -91,12 +87,7 @@ export default function DashboardPage() {
 
       const actualCount = samples ? samples.length : 0
 
-      // Initialize personality AI state with actual count
-      setPersonalityAI({
-        used: false,
-        samplesUsed: 0,
-        hasWritingSamples: actualCount > 0
-      })
+      // PersonalityAI state removed - writing samples check no longer needed
     } catch (error) {
       console.error('Error checking writing samples:', error)
     }
@@ -129,7 +120,7 @@ export default function DashboardPage() {
 
       const data = await response.json()
       setTweetContent(data.tweet)
-      setPersonalityAI(data.personalityAI || null)
+      // PersonalityAI state removed - data.personalityAI ignored
     } catch (error) {
       setError('Failed to generate tweet. Please try again.')
       console.error('Error generating tweet:', error)

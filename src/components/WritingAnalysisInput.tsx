@@ -8,7 +8,12 @@ export default function WritingAnalysisInput() {
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [samples, setSamples] = useState<any[]>([]);
+  const [samples, setSamples] = useState<Array<{
+    id?: string;
+    content?: string;
+    content_type?: string;
+    created_at?: string;
+  }>>([]);
   const [loading, setLoading] = useState(false);
 
   const characterCount = content.length;
