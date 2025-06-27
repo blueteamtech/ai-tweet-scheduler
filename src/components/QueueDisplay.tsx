@@ -27,6 +27,7 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
   const [editingTweet, setEditingTweet] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [saving, setSaving] = useState(false)
+  const [removingTweet, setRemovingTweet] = useState<string | null>(null)
 
   useEffect(() => {
     loadQueueStatus()
@@ -114,6 +115,8 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
 
   const removeFromQueue = async (tweetId: string) => {
     try {
+      setRemovingTweet(tweetId)
+      setError('') // Clear any previous errors
       const { data: { session } } = await supabase.auth.getSession()
       
       if (!session) {
@@ -131,7 +134,8 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
       })
 
       if (!response.ok) {
-        throw new Error('Failed to remove tweet from queue')
+        const errorData = await response.json().catch(() => ({}))
+        throw new Error(errorData.error || `Failed to remove tweet from queue (${response.status})`)
       }
 
       // Refresh the queue display
@@ -139,7 +143,9 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
       onRefresh?.()
     } catch (error) {
       console.error('Error removing tweet:', error)
-      setError('Failed to remove tweet from queue')
+      setError(error instanceof Error ? error.message : 'Failed to remove tweet from queue')
+    } finally {
+      setRemovingTweet(null)
     }
   }
 
@@ -256,7 +262,7 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
           </button>
         </div>
         <p className="text-gray-600 text-sm mt-1">
-          Auto-scheduled • 5 tweets per day • 8 AM - 9 PM Eastern
+          5 tweets per day • 8 AM - 9 PM Eastern
         </p>
         
         {/* Error Message */}
@@ -390,9 +396,10 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
                             )}
                             <button
                               onClick={() => removeFromQueue(tweet.id)}
-                              className="text-red-600 hover:text-red-800 text-sm font-medium px-2 py-1 rounded hover:bg-red-50"
+                              disabled={removingTweet === tweet.id}
+                              className="text-red-600 hover:text-red-800 disabled:text-red-400 text-sm font-medium px-2 py-1 rounded hover:bg-red-50 disabled:hover:bg-transparent"
                             >
-                              Remove
+                              {removingTweet === tweet.id ? 'Removing...' : 'Remove'}
                             </button>
                           </>
                         )}
@@ -434,7 +441,7 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
             </div>
           </div>
           <div>
-            Fully automated: <span className="font-medium">8 AM - 9 PM ET</span>
+            <span className="font-medium">8 AM - 9 PM ET</span>
           </div>
         </div>
       </div>

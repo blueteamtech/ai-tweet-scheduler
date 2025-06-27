@@ -455,14 +455,12 @@ export default function DashboardPage() {
           {activeTab === 'queue' && user && (
             <>
               {/* Tweet Scheduler - All-in-one interface */}
-              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Left Column: Compose & Add Tweets */}
-                <div className="space-y-6">
-                  {/* Tweet Composer */}
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h2 className="text-xl font-bold text-gray-900 mb-4">
-                      ✨ Create & Schedule Tweet
-                    </h2>
+              <div className="space-y-6">
+                {/* Tweet Composer */}
+                <div className="bg-white rounded-lg shadow p-6">
+                  <h2 className="text-xl font-bold text-gray-900 mb-4">
+                    ✨ Create Tweet
+                  </h2>
                     
                     {/* Error/Success Messages */}
                     {error && (
@@ -535,42 +533,13 @@ export default function DashboardPage() {
                         disabled={!tweetContent.trim() || isOverLimit || isSaving}
                         className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white px-4 py-2 rounded-lg font-medium text-sm flex-1"
                       >
-                        {isSaving ? 'Adding to Queue...' : '🚀 Add to Queue & Schedule'}
+                        {isSaving ? 'Adding...' : '🚀 Add to Queue'}
                       </button>
                     </div>
-
-                    {/* Twitter Connection Status */}
-                    <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-                      <p className="text-blue-700 text-sm">
-                        ℹ️ Tweets are automatically scheduled with QStash and will post to Twitter at optimal times
-                      </p>
-                    </div>
                   </div>
 
-                  {/* Simple Status Display */}
-                  <div className="bg-white rounded-lg shadow p-6">
-                    <h3 className="text-lg font-semibold text-gray-900 mb-4">Queue Status</h3>
-                    <div className="grid grid-cols-3 gap-4">
-                      <div className="text-center p-3 bg-blue-50 rounded-lg">
-                        <div className="text-2xl font-bold text-blue-600">{tweets.filter((t: Tweet) => t.status === 'queued').length}</div>
-                        <div className="text-sm text-blue-800">Queued</div>
-                      </div>
-                      <div className="text-center p-3 bg-yellow-50 rounded-lg">
-                        <div className="text-2xl font-bold text-yellow-600">{tweets.filter((t: Tweet) => t.status === 'scheduled').length}</div>
-                        <div className="text-sm text-yellow-800">Scheduled</div>
-                      </div>
-                      <div className="text-center p-3 bg-green-50 rounded-lg">
-                        <div className="text-2xl font-bold text-green-600">{tweets.filter((t: Tweet) => t.status === 'posted').length}</div>
-                        <div className="text-sm text-green-800">Posted</div>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-                
-                {/* Right Column: Queue Display */}
-                <div className="space-y-6">
+                  {/* Queue Display - moved below composer */}
                   <QueueDisplay userId={user.id} onRefresh={() => loadTweets(user.id)} />
-                </div>
               </div>
             </>
           )}
