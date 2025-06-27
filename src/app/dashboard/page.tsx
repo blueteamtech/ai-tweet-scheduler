@@ -7,8 +7,10 @@ import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import type { Tweet } from '@/types'
 import TweetScheduler from '@/components/TweetScheduler'
 import TwitterConnect from '@/components/TwitterConnect'
-import WritingSampleInput from '@/components/WritingSampleInput'
+// WritingSampleInput removed - no longer exists
 import QueueDisplay from '@/components/QueueDisplay'
+import QueueProcessingPanel from '@/components/QueueProcessingPanel'
+import TweetInputForm from '@/components/TweetInputForm'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -19,7 +21,7 @@ export default function DashboardPage() {
   const [isScheduling, setIsScheduling] = useState(false)
   const [showScheduler, setShowScheduler] = useState(false)
   const [tweets, setTweets] = useState<Tweet[]>([])
-  const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'queue' | 'drafts' | 'all'>('compose')
+  const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'queue' | 'drafts' | 'all'>('queue')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [personalityAI, setPersonalityAI] = useState<{
@@ -483,6 +485,16 @@ export default function DashboardPage() {
           {/* Tab Navigation */}
           <div className="flex flex-wrap space-x-1 mb-6">
             <button
+              onClick={() => setActiveTab('queue')}
+              className={`px-4 py-2 rounded-md font-medium ${
+                activeTab === 'queue'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              🚀 Queue Scheduler ({tweets.filter((t: Tweet) => t.status === 'queued').length})
+            </button>
+            <button
               onClick={() => setActiveTab('compose')}
               className={`px-4 py-2 rounded-md font-medium ${
                 activeTab === 'compose'
@@ -502,16 +514,7 @@ export default function DashboardPage() {
             >
               ✨ Writing Analysis
             </button>
-            <button
-              onClick={() => setActiveTab('queue')}
-              className={`px-4 py-2 rounded-md font-medium ${
-                activeTab === 'queue'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              🔄 Queue ({tweets.filter((t: Tweet) => t.status === 'queued').length})
-            </button>
+
             <button
               onClick={() => setActiveTab('drafts')}
               className={`px-4 py-2 rounded-md font-medium ${
@@ -667,15 +670,32 @@ export default function DashboardPage() {
             </div>
           )}
 
-          {activeTab === 'writing' && (
-            <WritingSampleInput />
+          {activeTab === 'writing' && user && (
+            <>
+              <TwitterConnect userId={user.id} />
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">Writing Analysis</h3>
+                <p className="text-gray-600">Writing sample functionality is being redesigned. Use the queue scheduler for now!</p>
+              </div>
+            </>
           )}
 
           {activeTab === 'queue' && user && (
-            <QueueDisplay 
-              userId={user.id} 
-              onRefresh={() => loadTweets(user.id)}
-            />
+            <>
+              {/* Queue Tab - Main functionality */}
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column: Add Tweets & Processing */}
+                <div className="space-y-6">
+                  <TweetInputForm onTweetAdded={() => loadTweets(user.id)} />
+                  <QueueProcessingPanel onProcessingComplete={() => loadTweets(user.id)} />
+                </div>
+                
+                {/* Right Column: Queue Display */}
+                <div className="space-y-6">
+                  <QueueDisplay userId={user.id} onRefresh={() => loadTweets(user.id)} />
+                </div>
+              </div>
+            </>
           )}
 
           {(activeTab === 'drafts' || activeTab === 'all') && (
