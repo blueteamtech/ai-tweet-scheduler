@@ -11,7 +11,7 @@ export interface Tweet {
   id: string
   user_id: string
   tweet_content: string
-  status: 'draft' | 'scheduled' | 'posted' | 'failed'
+  status: 'draft' | 'queued' | 'scheduled' | 'posted' | 'failed'
   scheduled_at: string | null
   posted_at: string | null
   twitter_tweet_id: string | null
@@ -19,6 +19,10 @@ export interface Tweet {
   error_message: string | null
   created_at: string
   updated_at: string
+  // Queue-specific fields
+  queue_date?: string | null
+  time_slot?: number | null
+  minute_offset?: number | null
 }
 
 // Twitter Account types

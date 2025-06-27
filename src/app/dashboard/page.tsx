@@ -8,6 +8,7 @@ import type { Tweet } from '@/types'
 import TweetScheduler from '@/components/TweetScheduler'
 import TwitterConnect from '@/components/TwitterConnect'
 import WritingSampleInput from '@/components/WritingSampleInput'
+import TweetInputForm from '@/components/TweetInputForm'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -18,7 +19,7 @@ export default function DashboardPage() {
   const [isScheduling, setIsScheduling] = useState(false)
   const [showScheduler, setShowScheduler] = useState(false)
   const [tweets, setTweets] = useState<Tweet[]>([])
-  const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'drafts' | 'scheduled' | 'all'>('compose')
+  const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'drafts' | 'scheduled' | 'all' | 'queue'>('compose')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [personalityAI, setPersonalityAI] = useState<{
@@ -465,6 +466,16 @@ export default function DashboardPage() {
             >
               All ({tweets.length})
             </button>
+            <button
+              onClick={() => setActiveTab('queue')}
+              className={`px-4 py-2 rounded-md font-medium ${
+                activeTab === 'queue'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              Queue ({tweets.filter((t: Tweet) => t.status === 'queued').length})
+            </button>
           </div>
 
           {/* Tab Content */}
@@ -593,6 +604,87 @@ export default function DashboardPage() {
 
           {activeTab === 'writing' && (
             <WritingSampleInput />
+          )}
+
+          {activeTab === 'queue' && (
+            <div className="space-y-6">
+              <div className="bg-white rounded-lg shadow p-6">
+                <h2 className="text-2xl font-bold text-gray-900 mb-6">
+                  Tweet Queue
+                </h2>
+                <p className="text-gray-600 mb-6">
+                  Add tweets to your queue and they&apos;ll be automatically scheduled for 5 posts per day with natural timing.
+                </p>
+                <TweetInputForm 
+                  onTweetAdded={async () => {
+                    // Refresh tweets when a new one is added
+                    if (user) {
+                      await loadTweets(user.id);
+                    }
+                  }}
+                />
+              </div>
+              
+              <div className="bg-white rounded-lg shadow p-6">
+                <h3 className="text-xl font-semibold text-gray-900 mb-4">
+                  Queued Tweets
+                </h3>
+                {tweets.filter((t: Tweet) => t.status === 'queued').length === 0 ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">No tweets in queue yet. Add your first tweet above!</p>
+                  </div>
+                ) : (
+                  <div className="space-y-4">
+                    {tweets
+                      .filter((t: Tweet) => t.status === 'queued')
+                      .sort((a, b) => {
+                        // Sort by queue_date first, then by time_slot
+                        if (a.queue_date && b.queue_date) {
+                          const dateCompare = a.queue_date.localeCompare(b.queue_date);
+                          if (dateCompare !== 0) return dateCompare;
+                          return (a.time_slot || 0) - (b.time_slot || 0);
+                        }
+                        return 0;
+                      })
+                      .map((tweet: Tweet) => (
+                        <div key={tweet.id} className="border border-gray-200 rounded-lg p-4 hover:shadow-sm transition-shadow">
+                          <div className="flex justify-between items-start mb-3">
+                            <p className="text-gray-900 flex-1 pr-4">{tweet.tweet_content}</p>
+                            <span className="px-2 py-1 bg-blue-100 text-blue-800 text-xs font-medium rounded-full whitespace-nowrap">
+                              Queued
+                            </span>
+                          </div>
+                          
+                          <div className="flex justify-between items-center text-sm text-gray-600">
+                            <div>
+                              {tweet.queue_date && (
+                                <div className="font-medium">
+                                  📅 {new Date(tweet.queue_date + 'T00:00:00').toLocaleDateString('en-US', {
+                                    weekday: 'short',
+                                    month: 'short',
+                                    day: 'numeric'
+                                  })} • Slot {tweet.time_slot}
+                                </div>
+                              )}
+                              {tweet.scheduled_at && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  ⏰ {formatScheduledDate(tweet.scheduled_at)}
+                                </div>
+                              )}
+                            </div>
+                            <button
+                              onClick={() => deleteTweet(tweet.id)}
+                              className="text-red-600 hover:text-red-800 font-medium px-2 py-1 rounded hover:bg-red-50"
+                            >
+                              Remove
+                            </button>
+                          </div>
+                        </div>
+                      ))}
+                  </div>
+                )}
+              </div>
+            </div>
           )}
 
           {(activeTab === 'drafts' || activeTab === 'scheduled' || activeTab === 'all') && (
