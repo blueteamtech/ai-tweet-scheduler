@@ -91,7 +91,7 @@ Run the provided SQL files in your Supabase SQL editor to set up the schema.
 
 ## 🎯 Current Status
 
-**✅ Completed Features:**
+**✅ Completed Feature:**
 - User authentication (Supabase Auth)
 - AI tweet generation (OpenAI)
 - Twitter OAuth integration
