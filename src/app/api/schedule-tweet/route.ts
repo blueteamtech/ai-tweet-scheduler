@@ -1,20 +1,46 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createAuthenticatedClient, sanitizeError } from '@/lib/auth'
+import { sanitizeError } from '@/lib/auth'
 import { scheduleTweet } from '@/lib/qstash'
+import { createServerClient } from '@supabase/ssr'
+import { cookies } from 'next/headers'
 
 export async function POST(request: NextRequest) {
   try {
-    const authResult = await createAuthenticatedClient(request)
     const body = await request.json()
     const { tweetContent, scheduledAt } = body
 
-    // Check authentication
-    if (authResult.error || !authResult.client || !authResult.user) {
+    // Create Supabase server client with proper cookie handling
+    const cookieStore = await cookies()
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return cookieStore.getAll()
+          },
+          setAll(cookiesToSet: Array<{ name: string; value: string; options?: any }>) {
+            try {
+              cookiesToSet.forEach(({ name, value, options }) =>
+                cookieStore.set(name, value, options)
+              )
+            } catch {
+              // The `setAll` method was called from a Server Component.
+              // This can be ignored if you have middleware refreshing
+              // user sessions.
+            }
+          },
+        },
+      }
+    )
+
+    // Get the current user from session
+    const { data: { user }, error: authError } = await supabase.auth.getUser()
+
+    if (authError || !user) {
+      console.error('Authentication failed:', authError)
       return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
     }
-
-    const supabase = authResult.client
-    const user = authResult.user
 
     // Insert the tweet into the database
     const { data: tweet, error: insertError } = await supabase
