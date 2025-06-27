@@ -19,7 +19,7 @@ export default function DashboardPage() {
   const [isScheduling, setIsScheduling] = useState(false)
   const [showScheduler, setShowScheduler] = useState(false)
   const [tweets, setTweets] = useState<Tweet[]>([])
-  const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'queue' | 'drafts' | 'scheduled' | 'all'>('compose')
+  const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'queue' | 'drafts' | 'all'>('compose')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [personalityAI, setPersonalityAI] = useState<{
@@ -428,7 +428,6 @@ export default function DashboardPage() {
   // Filter tweets based on active tab
   const filteredTweets = tweets.filter((tweet: Tweet) => {
     if (activeTab === 'drafts') return tweet.status === 'draft'
-    if (activeTab === 'scheduled') return tweet.status === 'scheduled' || tweet.status === 'queued'
     return true // 'all' tab
   })
 
@@ -523,16 +522,7 @@ export default function DashboardPage() {
             >
               Drafts ({tweets.filter((t: Tweet) => t.status === 'draft').length})
             </button>
-            <button
-              onClick={() => setActiveTab('scheduled')}
-              className={`px-4 py-2 rounded-md font-medium ${
-                activeTab === 'scheduled'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              Scheduled ({tweets.filter((t: Tweet) => t.status === 'scheduled' || t.status === 'queued').length})
-            </button>
+
             <button
               onClick={() => setActiveTab('all')}
               className={`px-4 py-2 rounded-md font-medium ${
@@ -688,14 +678,13 @@ export default function DashboardPage() {
             />
           )}
 
-          {(activeTab === 'drafts' || activeTab === 'scheduled' || activeTab === 'all') && (
+          {(activeTab === 'drafts' || activeTab === 'all') && (
             <div>
               {/* Tweet List */}
           {filteredTweets.length === 0 ? (
             <div className="text-center py-12">
               <p className="text-gray-500 text-lg">
                 {activeTab === 'drafts' && 'No drafts yet. Create your first tweet above!'}
-                {activeTab === 'scheduled' && 'No scheduled or queued tweets yet. Use "Schedule Tweet" or "Add to Queue" above!'}
                 {activeTab === 'all' && 'No tweets yet. Create your first tweet above!'}
               </p>
             </div>
