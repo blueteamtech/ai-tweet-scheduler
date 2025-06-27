@@ -42,7 +42,7 @@ export default function DashboardPage() {
       // Load user's tweets and check writing samples
       await Promise.all([
         loadTweets(user.id),
-        checkWritingSamples(user.id)
+        checkWritingSamples()
       ])
     }
 
@@ -75,7 +75,7 @@ export default function DashboardPage() {
     }
   }
 
-  const checkWritingSamples = async (_userId: string) => {
+  const checkWritingSamples = async () => {
     try {
       // Writing samples check simplified - no longer needed for personalityAI state
       console.log('Writing samples check - functionality moved to WritingAnalysisInput component')
