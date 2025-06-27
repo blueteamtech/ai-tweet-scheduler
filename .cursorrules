@@ -1,15 +1,14 @@
-# AI Tweet Scheduler v2.0 - Cursor Rules
+# Simple Tweet Queue Scheduler - Cursor Rules
 
 ## Project Context
-**MVP COMPLETE** - Building v2.0 Personality AI Enhancement
+**MVP COMPLETE** - Building Simple Queue Scheduler
 - v1.0: Basic AI tweet scheduler with Twitter integration ✅
-- v2.0: Personality-driven content generation with bulk scheduling
-- Reference: `v2-personality-ai-plan.md` for development roadmap
+- v2.0: Simple automated queue with 5 tweets/day scheduling
+- Reference: `simple-tweet-queue-plan.md` for development roadmap
 
-## Tech Stack (v2.0)
+## Tech Stack
 - Frontend: Next.js 14 with TypeScript
-- Database: Supabase + pgvector (vector embeddings) - **MCP Integrated**
-- AI: OpenAI GPT-4o + text-embedding-3-small
+- Database: Supabase - **MCP Integrated**
 - Scheduling: QStash by Upstash
 - Styling: Tailwind CSS
 - Deployment: Vercel
@@ -52,7 +51,6 @@
 **MANDATORY:** Before ANY API work, check what's already integrated
 ```
 1. EXISTING APIs (Keys Already Set):
-   ✅ OpenAI API (OPENAI_API_KEY) - GPT-4o + text-embedding-3-small
    ✅ Supabase (NEXT_PUBLIC_SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, etc.)
    ✅ QStash (QSTASH_TOKEN) - Scheduling service
    ✅ Twitter API (TWITTER_API_KEY, TWITTER_API_SECRET) - OAuth + posting
@@ -148,32 +146,26 @@ const config = { apiKey: '...', timeout: 5000 }
 
 ---
 
-## 🔧 V2.0 SPECIFIC RULES
+## 🔧 QUEUE SCHEDULER SPECIFIC RULES
 
-### OpenAI Embeddings (v2.0)
-- **Model:** `text-embedding-3-small` (check current pricing)
-- **Dimensions:** 1536 (verify current default)
-- **Rate Limits:** Check current limits before bulk operations
-- **Cost Management:** Estimate costs for embedding user writing samples
+### Queue Management
+- **Daily Slots:** 5 tweets per day with natural timing variation
+- **Time Window:** 8 AM - 9 PM with automatic spacing
+- **Auto-Advance:** Automatically move to next day when current day is full
+- **Natural Timing:** Minutes vary daily to appear more human
 
-### Supabase pgvector (v2.0)
-- **Extension:** MCP handles pgvector extension management
-- **Vector Storage:** `embedding vector(1536)` (verify dimensions)
-- **Similarity Search:** Use cosine similarity for semantic matching
-- **Performance:** MCP manages indexes for user_id + similarity queries
-
-### Bulk Processing (v2.0)
-- **Rate Limiting:** Implement delays between API calls
-- **Error Handling:** Graceful failure for bulk operations
-- **Progress Tracking:** Show progress for long-running operations
-- **Cancellation:** Allow users to cancel bulk operations
+### Scheduling Logic
+- **Base Times:** Calculate evenly spaced times in 13-hour window
+- **Minute Variation:** ±10 minutes random offset per day
+- **Queue Display:** Show which day each tweet will be posted
+- **Status Tracking:** Clear indication of tweet status (queued, scheduled, posted)
 
 ---
 
-## 📋 V2.0 DEVELOPMENT WORKFLOW
+## 📋 DEVELOPMENT WORKFLOW
 
 ### Before Starting ANY Phase:
-1. ✅ Check `v2-personality-ai-plan.md` checklist
+1. ✅ Check `simple-tweet-queue-plan.md` checklist
 2. ✅ Check current API documentation (web_search)
 3. ✅ Use MCP Supabase for database schema inspection
 4. ✅ Test database operations through MCP before implementation
@@ -194,59 +186,53 @@ const config = { apiKey: '...', timeout: 5000 }
 
 ---
 
-## 🗂️ FILE ORGANIZATION (v2.0)
+## 🗂️ FILE ORGANIZATION
 
 ```
 AI-Personality-Tweets-to-Scheduler/
-├── v2-personality-ai-plan.md          # Development roadmap
+├── simple-tweet-queue-plan.md         # Development roadmap
 └── src/
     ├── components/
-    │   ├── WritingSampleInput.tsx  # v2.0: Writing analysis
-    │   ├── BulkTweetInput.tsx      # v2.0: Bulk generation
-    │   └── TweetQueue.tsx          # v2.0: Queue management
+    │   ├── TweetQueueManager.tsx   # Main queue interface
+    │   ├── QueueDisplay.tsx        # Visual queue with dates
+    │   └── TweetInputForm.tsx      # Simple tweet input
     ├── lib/
-    │   ├── embeddings.ts           # v2.0: OpenAI embeddings
-    │   ├── similarity.ts           # v2.0: Vector similarity
-    │   └── bulk-scheduler.ts       # v2.0: Smart scheduling
+    │   ├── queue-scheduler.ts      # Core scheduling logic
+    │   ├── timing-algorithm.ts     # Natural timing calculation
+    │   └── auto-advance.ts         # Day advancement logic
     └── app/api/
-        ├── analyze-writing/        # v2.0: Writing analysis
-        ├── bulk-generate-tweets/   # v2.0: Bulk generation
-        └── bulk-schedule-tweets/   # v2.0: Bulk scheduling
+        ├── queue-tweet/            # Add tweet to queue
+        ├── process-queue/          # Process and schedule
+        └── queue-status/           # Get queue state
 ```
 
 ---
 
-## ⚠️ COMMON V2.0 PITFALLS TO AVOID
+## ⚠️ COMMON QUEUE SCHEDULER PITFALLS TO AVOID
 
-### OpenAI API Issues:
-- **Embeddings Model:** Verify `text-embedding-3-small` is still current
-- **Rate Limits:** Different limits for chat vs embeddings APIs
-- **Batch Processing:** Don't overwhelm API with concurrent requests
-- **Error Codes:** Handle 429 (rate limit) and 400 (content policy) properly
+### Queue Management Issues:
+- **Day Overflow:** Ensure queue properly advances to next day when full
+- **Time Calculation:** Verify even spacing between posts (2.6 hour intervals)
+- **Minute Variation:** Don't make timing too random - keep it natural
+- **Queue Status:** Always show clear feedback on which day tweets will post
 
-### Vector Database Issues:
-- **pgvector Extension:** MCP manages extension automatically
-- **Dimension Mismatch:** Embedding dimensions must match vector column
-- **Index Performance:** MCP handles proper indexes for similarity searches
-- **Storage Costs:** Vector storage is expensive, optimize storage
-
-### Bulk Operations Issues:
-- **Memory Usage:** Don't load all data into memory at once
-- **User Experience:** Show progress for long operations
-- **Error Recovery:** Allow retry of failed bulk operations
-- **Rate Limiting:** Respect API limits during bulk processing
+### Scheduling Issues:
+- **Timezone Handling:** All times must be in user's timezone
+- **QStash Integration:** Verify webhook URLs point to production domain
+- **Error Recovery:** Handle failed scheduling gracefully
+- **Status Tracking:** Keep tweet status updated throughout process
 
 ---
 
 ## 🎯 DEVELOPMENT PRIORITIES
 
 1. **Database Inspection:** Use MCP to understand current schema
-2. **API Research:** Verify current documentation for all APIs
-3. **Simple Implementation:** Start with basic functionality
-4. **Error Handling:** Robust error handling for all operations
-5. **User Experience:** Progress indicators and feedback
-6. **Performance:** Optimize for bulk operations
-7. **Testing:** Test edge cases and failure scenarios
+2. **Queue Logic:** Build core queue management and auto-advance
+3. **Natural Timing:** Implement minute variation algorithm
+4. **Visual Interface:** Create clear queue display
+5. **Error Handling:** Robust error handling for scheduling
+6. **User Experience:** One-click tweet adding with clear feedback
+7. **Testing:** Test queue overflow and day advancement
 
 ---
 
@@ -262,7 +248,7 @@ If working on the same problem for more than 3 attempts based on user feedback:
    - **Logic**: What are we trying to fix and why?
    - **API Verification**: Are we using current API methods/parameters?
    - **Environment**: Remember this is Vercel production, not localhost
-   - **Impact**: How does this affect the overall v2.0 plan?
+   - **Impact**: How does this affect the overall queue scheduler plan?
    - **Strategy**: Clear step-by-step plan to resolve the issue
 4. **Present the analysis** to user for agreement
 5. **Continue with 3 more attempts** after plan approval
@@ -288,7 +274,7 @@ If working on the same problem for more than 3 attempts based on user feedback:
 - Step 3: [specific action]
 
 **Overall Impact:**
-- How this affects v2.0 development
+- How this affects queue scheduler development
 - Which phases might be delayed
 - Dependencies that are blocked
 
@@ -305,7 +291,7 @@ If working on the same problem for more than 3 attempts based on user feedback:
 Before any major work:
 - [ ] Current API docs checked (web_search)
 - [ ] Database schema inspected via MCP Supabase
-- [ ] `v2-personality-ai-plan.md` phase identified
+- [ ] `simple-tweet-queue-plan.md` phase identified
 - [ ] Not stuck on same problem for 3+ attempts
 
 **Before ANY commit:**
@@ -320,4 +306,4 @@ Before any major work:
 - ✅ Automatic pgvector extension management
 - ✅ Simplified database development workflow
 
-Remember: v2.0 introduces complex AI and vector operations. Use MCP Supabase for efficient database management and take time to research APIs to avoid costly mistakes. 
+Remember: The queue scheduler introduces automated timing and queue management. Use MCP Supabase for efficient database management and take time to research APIs to avoid costly mistakes. 
