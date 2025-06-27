@@ -1,6 +1,7 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { qstash } from '@/lib/qstash'
 import { createClient } from '@supabase/supabase-js'
+import { getQStashLogs } from '@/lib/qstash'
 
 interface QStashStatus {
   tweet_id: string
@@ -21,7 +22,28 @@ interface QStashStatus {
   error?: string
 }
 
-export async function GET() {
+export async function GET(request: NextRequest) {
+  try {
+    console.log('Fetching QStash logs...')
+    
+    const logs = await getQStashLogs()
+    
+    return NextResponse.json({
+      success: true,
+      logs: logs,
+      timestamp: new Date().toISOString(),
+    })
+  } catch (error) {
+    console.error('QStash status check error:', error)
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
+      timestamp: new Date().toISOString(),
+    }, { status: 500 })
+  }
+}
+
+export async function GET_old() {
   try {
     // Get Supabase admin client
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!

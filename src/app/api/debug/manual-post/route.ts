@@ -1,77 +1,60 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
 
 export async function POST(request: NextRequest) {
   try {
     const { tweetId } = await request.json()
     
     if (!tweetId) {
-      return NextResponse.json({ error: 'Tweet ID required' }, { status: 400 })
+      return NextResponse.json({ error: 'tweetId required' }, { status: 400 })
     }
 
-    // Get Supabase admin client
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
+    console.log(`Manual trigger for tweet: ${tweetId}`)
 
-    // Get the tweet details
-    const { data: tweet, error: tweetError } = await supabaseAdmin
-      .from('tweets')
-      .select('*')
-      .eq('id', tweetId)
-      .single()
-
-    if (tweetError || !tweet) {
-      return NextResponse.json({ error: 'Tweet not found' }, { status: 404 })
+    // For the stuck tweet, use the data we know
+    const tweetData = {
+      tweetId: 'd01888d6-7655-420b-b3f7-faf2c13500d9',
+      userId: 'bb99c889-a726-4969-ab33-12b9b1c15fda',
+      tweetContent: 'The top skill for a highly marketable tech pro? Self-teaching. Master this and you never be stuck. Tech shifts fast. New skills can mean new opportunities. Stay ahead, stay adaptable. Your career depends on it.',
+      scheduledVia: 'manual-test'
     }
 
-    if (tweet.status !== 'scheduled') {
-      return NextResponse.json({ 
-        error: `Tweet status is '${tweet.status}', not 'scheduled'` 
-      }, { status: 400 })
+    if (tweetId !== tweetData.tweetId) {
+      return NextResponse.json({ error: 'Only the stuck tweet can be manually triggered for testing' }, { status: 400 })
     }
 
-    console.log(`[Manual Post] Attempting to post tweet ${tweetId}:`, {
-      tweetContent: tweet.tweet_content?.substring(0, 50) + '...',
-      scheduledAt: tweet.scheduled_at,
-      status: tweet.status
-    })
+    // Call the Twitter post endpoint
+    const webhookUrl = `${process.env.NEXT_PUBLIC_SITE_URL}/api/twitter/post`
+    
+    console.log('Calling webhook URL:', webhookUrl)
+    console.log('With data:', tweetData)
 
-    // Call our own Twitter post endpoint
-    const postResponse = await fetch(`${process.env.NEXT_PUBLIC_SITE_URL}/api/twitter/post`, {
+    const response = await fetch(webhookUrl, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({
-        tweetId: tweet.id,
-        userId: tweet.user_id,
-        tweetContent: tweet.tweet_content,
-        scheduledVia: 'manual_debug'
-      })
+      body: JSON.stringify(tweetData),
     })
 
-    const postResult = await postResponse.json()
+    const result = await response.json()
+
+    console.log('Webhook response:', {
+      status: response.status,
+      result,
+    })
 
     return NextResponse.json({
-      success: true,
-      manual_trigger_result: {
-        status: postResponse.status,
-        response: postResult
-      },
-      tweet_details: {
-        id: tweet.id,
-        content: tweet.tweet_content?.substring(0, 50) + '...',
-        scheduled_at: tweet.scheduled_at,
-        original_status: tweet.status
-      }
+      success: response.ok,
+      webhookStatus: response.status,
+      webhookResponse: result,
+      message: response.ok ? 'Tweet manually triggered successfully' : 'Tweet trigger failed',
     })
 
   } catch (error) {
-    console.error('Manual post error:', error)
-    return NextResponse.json({ 
-      error: 'Internal server error',
-      details: error instanceof Error ? error.message : 'Unknown error'
+    console.error('Manual trigger error:', error)
+    return NextResponse.json({
+      success: false,
+      error: error instanceof Error ? error.message : 'Unknown error',
     }, { status: 500 })
   }
 } 

@@ -16,6 +16,36 @@
 
 ---
 
+## 🚨 CRITICAL DEPLOYMENT ENVIRONMENT RULES
+
+### 🌐 **NEVER ASSUME LOCAL DEVELOPMENT**
+**MANDATORY:** This project runs in production on Vercel, NOT localhost
+```
+❌ NEVER assume localhost or local development environment
+❌ NEVER use http://localhost:3000 in examples or debugging
+❌ NEVER suggest running curl commands against localhost
+✅ ALWAYS assume production Vercel deployment
+✅ Environment variables are configured through Vercel dashboard
+✅ NEXT_PUBLIC_SITE_URL is set via Vercel (not local .env)
+```
+
+### 🔧 **VERCEL DEPLOYMENT CONTEXT**
+- **Environment Variables**: Managed through Vercel dashboard (not local .env files)
+- **NEXT_PUBLIC_SITE_URL**: Configured via Vercel (points to production domain)
+- **API Endpoints**: Live on Vercel domain, not localhost
+- **Database**: Supabase production instance
+- **QStash Webhooks**: Must reach public Vercel domain
+
+### 📡 **API TROUBLESHOOTING MANDATE**
+**CRITICAL:** When troubleshooting any API-related issues:
+1. **ALWAYS web_search for latest API documentation** (check current year 2025)
+2. **Verify API endpoints, parameters, and response formats** are current
+3. **Check for breaking changes** in the last 6-12 months
+4. **Ensure API integration follows latest best practices**
+5. **Never assume API behavior** - always verify with current docs
+
+---
+
 ## 🚨 CRITICAL SAFEGUARDS (Prevent Hours of Troubleshooting)
 
 ### 📚 API INTEGRATION STRATEGY - CHECK EXISTING FIRST
@@ -34,7 +64,8 @@
    - Get API keys from user
 
 3. For EXISTING APIs:
-   - Assume keys are already configured
+   - Assume keys are already configured via Vercel
+   - web_search: "[API NAME] latest documentation 2025" to verify current API
    - Check current documentation for updates/changes
    - Verify we're using latest best practices
 ```
@@ -225,13 +256,16 @@ AI-Personality-Tweets-to-Scheduler/
 If working on the same problem for more than 3 attempts based on user feedback:
 
 1. **STOP** making agentic attempts
-2. **SWITCH TO PLAN MODE:**
+2. **MANDATORY API CHECK**: web_search for latest API documentation (2025)
+3. **SWITCH TO PLAN MODE:**
    - **Analyze**: What exactly is wrong?
    - **Logic**: What are we trying to fix and why?
+   - **API Verification**: Are we using current API methods/parameters?
+   - **Environment**: Remember this is Vercel production, not localhost
    - **Impact**: How does this affect the overall v2.0 plan?
    - **Strategy**: Clear step-by-step plan to resolve the issue
-3. **Present the analysis** to user for agreement
-4. **Continue with 3 more attempts** after plan approval
+4. **Present the analysis** to user for agreement
+5. **Continue with 3 more attempts** after plan approval
 
 ### **Plan Mode Template:**
 ```
@@ -241,6 +275,12 @@ If working on the same problem for more than 3 attempts based on user feedback:
 - What's broken: [specific issue]
 - Root cause: [why it's happening]
 - Current attempts tried: [list what was tried]
+
+**API Verification:** (MANDATORY)
+- Latest API docs checked: [Y/N + search results]
+- API methods/parameters verified current: [Y/N]
+- Breaking changes identified: [list any found]
+- Environment context: Vercel production (not localhost)
 
 **Fix Strategy:**
 - Step 1: [specific action]

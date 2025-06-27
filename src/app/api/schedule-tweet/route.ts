@@ -1,50 +1,72 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createClient } from '@supabase/supabase-js'
+import { createAuthenticatedClient, sanitizeError } from '@/lib/auth'
 import { scheduleTweet } from '@/lib/qstash'
 
 export async function POST(request: NextRequest) {
   try {
-    const { tweetId, userId, tweetContent, scheduledAt } = await request.json()
-    
-    if (!tweetId || !userId || !tweetContent || !scheduledAt) {
-      return NextResponse.json({ error: 'Missing required parameters' }, { status: 400 })
+    const authResult = await createAuthenticatedClient(request)
+    const body = await request.json()
+    const { tweetContent, scheduledAt } = body
+
+    // Check authentication
+    if (authResult.error || !authResult.client || !authResult.user) {
+      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
     }
 
-    // Schedule the tweet with QStash
-    const qstashResult = await scheduleTweet(
-      tweetId,
-      userId,
+    const supabase = authResult.client
+    const user = authResult.user
+
+    // Insert the tweet into the database
+    const { data: tweet, error: insertError } = await supabase
+      .from('tweets')
+      .insert({
+        user_id: user.id,
+        tweet_content: tweetContent,
+        status: 'scheduled',
+        scheduled_at: scheduledAt,
+      })
+      .select()
+      .single()
+
+    if (insertError) {
+      console.error('Database insert error:', insertError)
+      return NextResponse.json({ error: 'Failed to save tweet' }, { status: 500 })
+    }
+
+    // Schedule with QStash
+    const scheduledDate = new Date(scheduledAt)
+    const result = await scheduleTweet(
+      tweet.id,
+      user.id,
       tweetContent,
-      new Date(scheduledAt)
+      scheduledDate
     )
 
     // Update the tweet with the QStash message ID
-    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-    const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
-    const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey)
-
-    const { error: updateError } = await supabaseAdmin
+    const { error: updateError } = await supabase
       .from('tweets')
-      .update({
-        qstash_message_id: qstashResult.messageId
-      })
-      .eq('id', tweetId)
+      .update({ qstash_message_id: result.messageId })
+      .eq('id', tweet.id)
 
     if (updateError) {
-      console.error('Failed to update tweet with QStash message ID:', updateError)
-      // Don't fail the request, just log the error
+      console.error('Failed to update tweet with message ID:', updateError)
+      // Still return success since the tweet was scheduled
     }
+
+    console.log(`Tweet ${tweet.id} scheduled successfully with QStash message ID: ${result.messageId}`)
 
     return NextResponse.json({
       success: true,
-      messageId: qstashResult.messageId,
-      scheduledAt: scheduledAt
+      tweetId: tweet.id,
+      messageId: result.messageId,
+      scheduledFor: scheduledAt,
     })
 
   } catch (error) {
-    console.error('Failed to schedule tweet:', error)
-    return NextResponse.json({ 
-      error: error instanceof Error ? error.message : 'Failed to schedule tweet'
-    }, { status: 500 })
+    console.error('Schedule tweet error:', error)
+    return NextResponse.json(
+      { error: sanitizeError(error) },
+      { status: 500 }
+    )
   }
 } 
