@@ -6,11 +6,11 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUserFromRequest } from '@/lib/auth';
 
-// Types
-interface AnalyzeWritingRequest {
-  content: string;
-  content_type?: string;
-}
+// Types (temporarily unused but kept for future restoration)
+// interface AnalyzeWritingRequest {
+//   content: string;
+//   content_type?: string;
+// }
 
 interface AnalyzeWritingResponse {
   success: boolean;

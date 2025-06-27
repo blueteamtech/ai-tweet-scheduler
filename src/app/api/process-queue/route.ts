@@ -7,7 +7,7 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-export async function POST(request: NextRequest) {
+export async function POST(_request: NextRequest) {
   try {
     console.log('[process-queue] Starting queue processing...');
 
@@ -34,7 +34,7 @@ export async function POST(request: NextRequest) {
     console.log(`[process-queue] Found ${queuedTweets.length} queued tweets to process`);
 
     let processedCount = 0;
-    let errors: string[] = [];
+    const errors: string[] = [];
 
     // Process each queued tweet
     for (const tweet of queuedTweets) {

@@ -164,7 +164,7 @@ export default function QueueProcessingPanel({ onProcessingComplete }: QueueProc
                   {status.queued} tweets ready to schedule
                 </p>
                 <p className="text-xs text-yellow-600">
-                  Click "Process Queue" to schedule them with QStash
+                                     Click &quot;Process Queue&quot; to schedule them with QStash
                 </p>
               </div>
               <button
