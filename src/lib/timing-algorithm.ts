@@ -1,3 +1,5 @@
+import { zonedTimeToUtc } from 'date-fns-tz';
+
 export interface TimeSlot {
   slot: number; // 1-5
   baseTime: string; // HH:MM format
@@ -78,14 +80,36 @@ export function calculatePostingTime(
   
   const [baseHour, baseMinute] = baseTime.split(':').map(Number);
   
-  // Create the scheduled time in local timezone
-  const scheduledTime = new Date(date);
-  scheduledTime.setHours(baseHour, baseMinute + minuteOffset, 0, 0);
-  
-  // Note: For now, we're treating all times as local time
-  // In a full implementation, you'd want to handle timezone conversion properly
-  // based on the user's actual timezone setting
-  
+  // Build a date-time string representing the desired posting moment **in the user's
+  // configured timezone**. We then convert that moment to an equivalent UTC `Date`
+  // object using `zonedTimeToUtc` so that downstream systems (database, QStash)
+  // store the absolute instant correctly.
+
+  // Calculate the final hour/minute after applying the minute offset
+  const totalMinutes = baseHour * 60 + baseMinute + minuteOffset;
+  const finalHour = Math.floor(totalMinutes / 60);
+  const finalMinute = ((totalMinutes % 60) + 60) % 60; // handle negative modulo safely
+
+  // Recreate the date portion in YYYY-MM-DD format
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+
+  const localDateTimeStr = `${year}-${month}-${day}T${String(finalHour).padStart(2, '0')}:${String(finalMinute).padStart(2, '0')}:00`;
+
+  const scheduledTime = zonedTimeToUtc(localDateTimeStr, settings.timezone);
+
+  // Debug logs – helpful when inspecting scheduling issues in production logs
+  console.debug('[calculatePostingTime]', {
+    queueDate: date.toISOString().split('T')[0],
+    slot,
+    baseTime,
+    minuteOffset,
+    localDateTimeStr,
+    userTimezone: settings.timezone,
+    scheduledTimeUTC: scheduledTime.toISOString(),
+  });
+
   return { scheduledTime, minuteOffset };
 }
 
@@ -104,6 +128,10 @@ export function getDefaultQueueSettings(): QueueSettings {
     postsPerDay: 5,
     startTime: '08:00',
     endTime: '21:00',
-    timezone: 'UTC'
+    // Use a sensible default (Eastern Time) if the user hasn't configured a
+    // specific timezone yet. This avoids the common pitfall where the server
+    // runs in UTC and all scheduled times appear several hours earlier for
+    // most North-American users.
+    timezone: 'America/New_York'
   };
 } 

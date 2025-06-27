@@ -133,6 +133,17 @@ export async function addTweetToQueue(
     settings
   );
 
+  // Debug log with the details of the slot chosen and the computed time
+  console.debug('[addTweetToQueue]', {
+    userId,
+    queueSlot: {
+      date: queueSlot.date.toISOString().split('T')[0],
+      slot: queueSlot.slot,
+    },
+    minuteOffset,
+    scheduledTimeUTC: scheduledTime.toISOString(),
+  });
+
   const dateStr = queueSlot.date.toISOString().split('T')[0];
 
   // Insert tweet into database
