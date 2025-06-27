@@ -3,6 +3,7 @@ import { sanitizeError } from '@/lib/auth'
 import { scheduleTweet } from '@/lib/qstash'
 import { createServerClient } from '@supabase/ssr'
 import { cookies } from 'next/headers'
+import { createAuthenticatedClient } from '@/lib/auth'
 
 export async function POST(request: NextRequest) {
   try {
@@ -11,7 +12,7 @@ export async function POST(request: NextRequest) {
 
     // Create Supabase server client with proper cookie handling
     const cookieStore = await cookies()
-    const supabase = createServerClient(
+    let supabase = createServerClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL!,
       process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
       {
@@ -35,11 +36,18 @@ export async function POST(request: NextRequest) {
     )
 
     // Get the current user from session
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
+    let { data: { user }, error: authError } = await supabase.auth.getUser()
 
     if (authError || !user) {
-      console.error('Authentication failed:', authError)
-      return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      // Fallback: try Authorization header (Bearer token)
+      const headerAuth = await createAuthenticatedClient(request)
+      if (!headerAuth.error && headerAuth.user && headerAuth.client) {
+        supabase = headerAuth.client
+        user = headerAuth.user
+      } else {
+        console.error('Authentication failed:', authError)
+        return NextResponse.json({ error: 'User not authenticated' }, { status: 401 })
+      }
     }
 
     // Insert the tweet into the database

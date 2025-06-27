@@ -201,10 +201,15 @@ export default function DashboardPage() {
       if (dbError) throw dbError
 
       // Then schedule it with QStash
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+
       const response = await fetch('/api/schedule-tweet', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` }),
         },
         body: JSON.stringify({
           tweetId: tweetData.id,
@@ -313,10 +318,15 @@ export default function DashboardPage() {
     setSuccess('')
 
     try {
+      const {
+        data: { session: postSession },
+      } = await supabase.auth.getSession()
+
       const response = await fetch('/api/twitter/post', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
+          ...(postSession?.access_token && { 'Authorization': `Bearer ${postSession.access_token}` }),
         },
         body: JSON.stringify({
           tweetId,
