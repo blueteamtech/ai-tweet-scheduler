@@ -8,6 +8,7 @@ import type { Tweet } from '@/types'
 import TweetScheduler from '@/components/TweetScheduler'
 import TwitterConnect from '@/components/TwitterConnect'
 import WritingSampleInput from '@/components/WritingSampleInput'
+import QueueDisplay from '@/components/QueueDisplay'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -18,7 +19,7 @@ export default function DashboardPage() {
   const [isScheduling, setIsScheduling] = useState(false)
   const [showScheduler, setShowScheduler] = useState(false)
   const [tweets, setTweets] = useState<Tweet[]>([])
-  const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'drafts' | 'scheduled' | 'all'>('compose')
+  const [activeTab, setActiveTab] = useState<'compose' | 'writing' | 'queue' | 'drafts' | 'scheduled' | 'all'>('compose')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const [personalityAI, setPersonalityAI] = useState<{
@@ -503,6 +504,16 @@ export default function DashboardPage() {
               ✨ Writing Analysis
             </button>
             <button
+              onClick={() => setActiveTab('queue')}
+              className={`px-4 py-2 rounded-md font-medium ${
+                activeTab === 'queue'
+                  ? 'bg-blue-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              🔄 Queue ({tweets.filter((t: Tweet) => t.status === 'queued').length})
+            </button>
+            <button
               onClick={() => setActiveTab('drafts')}
               className={`px-4 py-2 rounded-md font-medium ${
                 activeTab === 'drafts'
@@ -668,6 +679,13 @@ export default function DashboardPage() {
 
           {activeTab === 'writing' && (
             <WritingSampleInput />
+          )}
+
+          {activeTab === 'queue' && user && (
+            <QueueDisplay 
+              userId={user.id} 
+              onRefresh={() => loadTweets(user.id)}
+            />
           )}
 
           {(activeTab === 'drafts' || activeTab === 'scheduled' || activeTab === 'all') && (
