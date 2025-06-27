@@ -97,7 +97,7 @@ export function calculatePostingTime(
 
   const localDateTimeStr = `${year}-${month}-${day}T${String(finalHour).padStart(2, '0')}:${String(finalMinute).padStart(2, '0')}:00`;
 
-  const scheduledTime = fromZonedTime(localDateTimeStr, settings.timezone);
+  const scheduledTime = fromZonedTime(new Date(localDateTimeStr), settings.timezone);
 
   // Debug logs – helpful when inspecting scheduling issues in production logs
   console.debug('[calculatePostingTime]', {
