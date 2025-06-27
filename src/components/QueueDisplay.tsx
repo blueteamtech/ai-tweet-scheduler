@@ -59,7 +59,12 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
       const today = new Date()
       today.setHours(0, 0, 0, 0)
 
-      const transformedDays: QueueDay[] = data.queueStatus.map((dayData: any) => {
+      const transformedDays: QueueDay[] = data.queueStatus.map((dayData: {
+        date: string;
+        slotsUsed: number;
+        totalSlots: number;
+        tweets: Tweet[];
+      }) => {
         const dayDate = new Date(dayData.date + 'T00:00:00')
         const isToday = dayDate.getTime() === today.getTime()
         const isPast = dayDate < today
