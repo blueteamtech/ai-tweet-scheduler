@@ -399,3 +399,15 @@ export const POSTING_WINDOW = {
 // ------------------------------------------
 // Duplicate legacy type definitions removed.
 // ------------------------------------------ 
+
+export interface TwitterAccount {
+  id: string
+  user_id: string
+  twitter_user_id: string
+  twitter_username: string
+  access_token: string | null
+  refresh_token: string | null
+  connected_at: string
+  created_at?: string
+  updated_at?: string
+} 
