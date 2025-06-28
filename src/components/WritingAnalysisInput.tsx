@@ -3,18 +3,27 @@
 import React, { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 
+interface WritingSample {
+  id: string;
+  content: string;
+  content_type: string;
+  created_at: string;
+}
+
 export default function WritingAnalysisInput() {
   const [content, setContent] = useState('');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
-  const [samples, setSamples] = useState<Array<{
-    id?: string;
-    content?: string;
-    content_type?: string;
-    created_at?: string;
-  }>>([]);
+  const [samples, setSamples] = useState<WritingSample[]>([]);
   const [loading, setLoading] = useState(false);
+  
+  // Edit/Delete states
+  const [editingSample, setEditingSample] = useState<string | null>(null);
+  const [editContent, setEditContent] = useState('');
+  const [editContentType, setEditContentType] = useState('');
+  const [saving, setSaving] = useState(false);
+  const [deleting, setDeleting] = useState<string | null>(null);
 
   const characterCount = content.length;
   const isValid = content.trim().length >= 50;
@@ -95,6 +104,124 @@ export default function WritingAnalysisInput() {
       console.error('Error loading samples:', err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const startEditing = (sample: WritingSample) => {
+    setEditingSample(sample.id);
+    setEditContent(sample.content);
+    setEditContentType(sample.content_type);
+    setError(null);
+    setSuccess(null);
+  };
+
+  const cancelEditing = () => {
+    setEditingSample(null);
+    setEditContent('');
+    setEditContentType('');
+    setError(null);
+    setSuccess(null);
+  };
+
+  const saveEdit = async (sampleId: string) => {
+    if (!editContent.trim() || editContent.trim().length < 50) {
+      setError('Content must be at least 50 characters');
+      return;
+    }
+
+    setSaving(true);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setError('You must be logged in to edit writing samples');
+        return;
+      }
+
+      const response = await fetch('/api/analyze-writing/samples', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({
+          id: sampleId,
+          content: editContent.trim(),
+          content_type: editContentType
+        })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to update writing sample');
+      }
+
+      if (result.success) {
+        setSuccess('Writing sample updated successfully!');
+        setEditingSample(null);
+        setEditContent('');
+        setEditContentType('');
+        loadSamples(); // Refresh the samples list
+      } else {
+        setError(result.error || 'Failed to update writing sample');
+      }
+
+    } catch (err) {
+      console.error('Error updating writing sample:', err);
+      setError(err instanceof Error ? err.message : 'Failed to update writing sample');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const deleteSample = async (sampleId: string) => {
+    if (!confirm('Are you sure you want to delete this writing sample? This action cannot be undone.')) {
+      return;
+    }
+
+    setDeleting(sampleId);
+    setError(null);
+    setSuccess(null);
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setError('You must be logged in to delete writing samples');
+        return;
+      }
+
+      const response = await fetch('/api/analyze-writing/samples', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ id: sampleId })
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to delete writing sample');
+      }
+
+      if (result.success) {
+        setSuccess('Writing sample deleted successfully!');
+        loadSamples(); // Refresh the samples list
+      } else {
+        setError(result.error || 'Failed to delete writing sample');
+      }
+
+    } catch (err) {
+      console.error('Error deleting writing sample:', err);
+      setError(err instanceof Error ? err.message : 'Failed to delete writing sample');
+    } finally {
+      setDeleting(null);
     }
   };
 
@@ -186,20 +313,105 @@ export default function WritingAnalysisInput() {
             <p className="text-gray-400 text-sm mt-1">Add your first sample above to get started!</p>
           </div>
         ) : (
-          <div className="space-y-3">
-            {samples.map((sample, index) => (
-              <div key={sample.id || index} className="p-4 bg-gray-50 rounded-lg">
-                <p className="text-sm text-gray-700 line-clamp-3">
-                  {sample.content ? sample.content.substring(0, 150) + '...' : 'Sample content'}
-                </p>
-                <div className="flex justify-between items-center mt-2">
-                  <span className="text-xs text-gray-500">
-                    {sample.created_at ? new Date(sample.created_at).toLocaleDateString() : 'Recently added'}
-                  </span>
-                  <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
-                    {sample.content_type || 'sample'}
-                  </span>
-                </div>
+          <div className="space-y-4">
+            {samples.map((sample) => (
+              <div key={sample.id} className="p-4 bg-gray-50 rounded-lg border">
+                {editingSample === sample.id ? (
+                  // Edit Mode
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Content Type
+                      </label>
+                      <select
+                        value={editContentType}
+                        onChange={(e) => setEditContentType(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        disabled={saving}
+                      >
+                        <option value="sample">Sample</option>
+                        <option value="email">Email</option>
+                        <option value="article">Article</option>
+                        <option value="blog">Blog Post</option>
+                        <option value="social">Social Media</option>
+                        <option value="other">Other</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                        Content
+                      </label>
+                      <textarea
+                        value={editContent}
+                        onChange={(e) => setEditContent(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        rows={6}
+                        placeholder="Edit your writing sample..."
+                        disabled={saving}
+                      />
+                      <div className={`text-xs mt-1 ${
+                        editContent.length < 50 ? 'text-red-600' : 'text-gray-500'
+                      }`}>
+                        {editContent.length} characters (minimum 50)
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2">
+                      <button
+                        onClick={cancelEditing}
+                        className="px-3 py-1 text-gray-600 hover:text-gray-800 text-sm font-medium rounded hover:bg-gray-100"
+                        disabled={saving}
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        onClick={() => saveEdit(sample.id)}
+                        disabled={saving || !editContent.trim() || editContent.length < 50}
+                        className="px-4 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded"
+                      >
+                        {saving ? 'Saving...' : 'Save Changes'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  // View Mode
+                  <>
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-xs bg-blue-100 text-blue-800 px-2 py-1 rounded-full">
+                        {sample.content_type || 'sample'}
+                      </span>
+                      <div className="flex space-x-2">
+                        <button
+                          onClick={() => startEditing(sample)}
+                          className="text-blue-600 hover:text-blue-800 text-sm font-medium px-2 py-1 rounded hover:bg-blue-50"
+                          disabled={editingSample !== null || deleting !== null}
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => deleteSample(sample.id)}
+                          className="text-red-600 hover:text-red-800 text-sm font-medium px-2 py-1 rounded hover:bg-red-50"
+                          disabled={editingSample !== null || deleting === sample.id}
+                        >
+                          {deleting === sample.id ? '🗑️ Deleting...' : '🗑️ Delete'}
+                        </button>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-700 mb-2 leading-relaxed">
+                      {sample.content.length > 300 
+                        ? sample.content.substring(0, 300) + '...' 
+                        : sample.content
+                      }
+                    </p>
+                    <div className="flex justify-between items-center text-xs text-gray-500">
+                      <span>
+                        Added: {new Date(sample.created_at).toLocaleDateString()}
+                      </span>
+                      <span>
+                        {sample.content.length} characters
+                      </span>
+                    </div>
+                  </>
+                )}
               </div>
             ))}
           </div>
