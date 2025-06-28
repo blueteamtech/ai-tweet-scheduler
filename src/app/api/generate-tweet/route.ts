@@ -65,7 +65,48 @@ export async function POST(request: NextRequest) {
 
     console.log('🔑 OpenAI API key configured, proceeding to tweet generation...');
 
-    // 5. PERSONALITY AI: Get user's writing samples for personality matching
+    // 5. TWEET TEMPLATE SELECTION: Smart cycling through proven copywriting frameworks
+    let selectedTemplate = null;
+    let templateContext = '';
+    
+    try {
+      // Get least recently used template for smart cycling
+      const { data: template, error: templateError } = await supabase
+        .from('tweet_templates')
+        .select('*')
+        .order('usage_count', { ascending: true })
+        .order('last_used_at', { ascending: true, nullsFirst: true })
+        .limit(1)
+        .single();
+
+      if (!templateError && template) {
+        selectedTemplate = template;
+        
+        // Update usage tracking
+        await supabase
+          .from('tweet_templates')
+          .update({ 
+            usage_count: (template.usage_count || 0) + 1,
+            last_used_at: new Date().toISOString()
+          })
+          .eq('id', template.id);
+
+        templateContext = `\n\nUSE THIS PROVEN COPYWRITING FRAMEWORK:
+Template Category: ${template.category}
+Structure: ${template.template_structure}
+Target Word Count: ${template.word_count_min}-${template.word_count_max} words
+Example: "${template.example_tweet}"
+
+IMPORTANT: Follow this exact structure and word count range, but fill it with content related to the user's topic while maintaining their personality and voice.`;
+        
+        console.log(`🎯 Template selected: ${template.category} - ${template.template_structure}`);
+      }
+    } catch (error) {
+      console.error('Error selecting tweet template:', error);
+      // Continue without template if there's an error
+    }
+
+    // 6. PERSONALITY AI: Get user's writing samples for personality matching
     let usedPersonalityAI = false
     let personalityInfo = { samplesUsed: 0, hasWritingSamples: false }
     let personalityContext = ''
@@ -98,7 +139,7 @@ export async function POST(request: NextRequest) {
       // Continue without personality context if there's an error
     }
 
-    // 6. Create the AI prompt for tweet generation
+    // 7. Create the AI prompt for tweet generation
     const systemPrompt = `You are a social media expert who creates engaging, authentic tweets that match the user's unique writing style and personality.
 
 Generate a single tweet based on the user's input. The tweet should be:
@@ -110,9 +151,9 @@ Generate a single tweet based on the user's input. The tweet should be:
 - Avoid emojis - focus on text-based content
 ${usedPersonalityAI ? '- Match the user\'s specific writing style, tone, and personality shown in the examples below' : ''}
 
-User's request: ${prompt}${personalityContext}`
+User's request: ${prompt}${personalityContext}${templateContext}`
 
-    // 7. Call OpenAI API with error handling (using GPT-4o for better personality matching)
+    // 8. Call OpenAI API with error handling (using GPT-4o for better personality matching)
     const completion = await openai.chat.completions.create({
       model: "gpt-4o", // GPT-4o for better personality matching
       messages: [
@@ -121,7 +162,7 @@ User's request: ${prompt}${personalityContext}`
           content: systemPrompt
         }
       ],
-      max_tokens: 150,
+      max_tokens: 200, // Increased for template-based generation
       temperature: usedPersonalityAI ? 0.7 : 0.8, // Lower temperature for personality consistency
       user: user.id, // For OpenAI usage tracking
     })
@@ -135,13 +176,13 @@ User's request: ${prompt}${personalityContext}`
       )
     }
 
-    // 8. Ensure tweet is under 280 characters
+    // 9. Ensure tweet is under 280 characters
     const finalTweet = generatedTweet.length > 280 
       ? generatedTweet.substring(0, 277) + '...'
       : generatedTweet
 
-    // 9. Log successful generation (without sensitive data)
-    console.log(`Tweet generated for user ${user.id}: ${finalTweet.length} characters, Personality AI: ${usedPersonalityAI}`)
+    // 10. Log successful generation (without sensitive data)
+    console.log(`Tweet generated for user ${user.id}: ${finalTweet.length} characters, Personality AI: ${usedPersonalityAI}, Template: ${selectedTemplate?.category || 'none'}`)
 
     return NextResponse.json({
       tweet: finalTweet,
@@ -151,12 +192,18 @@ User's request: ${prompt}${personalityContext}`
         samplesUsed: personalityInfo.samplesUsed,
         hasWritingSamples: personalityInfo.hasWritingSamples
       },
+      template: {
+        used: !!selectedTemplate,
+        category: selectedTemplate?.category || null,
+        structure: selectedTemplate?.template_structure || null,
+        wordCountTarget: selectedTemplate ? `${selectedTemplate.word_count_min}-${selectedTemplate.word_count_max}` : null
+      },
       // DEBUG INFO
       debug: {
         userId: user.id,
         personalityAttempted: true,
         personalityContext: usedPersonalityAI ? 'loaded' : 'no_samples',
-        embeddingGenerated: 'not_needed'
+        templateUsed: selectedTemplate?.category || 'none'
       }
     })
 
@@ -184,4 +231,4 @@ User's request: ${prompt}${personalityContext}`
       { status: 500 }
     )
   }
-} 
+}
