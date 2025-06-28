@@ -56,7 +56,7 @@ export interface TweetTemplate {
 // API TYPES
 // ==========================================
 
-export interface ApiResponse<T = any> {
+export interface ApiResponse<T = unknown> {
   success: boolean
   data?: T
   error?: string
@@ -237,7 +237,7 @@ export interface AppError {
   type: 'validation' | 'authentication' | 'authorization' | 'rate_limit' | 'server' | 'external_service'
   message: string
   code?: string
-  details?: Record<string, any>
+  details?: Record<string, unknown>
 }
 
 export interface ValidationError {
@@ -329,8 +329,8 @@ export interface DebugInfo {
   endpoint: string
   userId?: string
   timestamp: string
-  request?: any
-  response?: any
+  request?: Record<string, unknown>
+  response?: Record<string, unknown>
   error?: string
   performance?: {
     startTime: number
@@ -343,12 +343,17 @@ export interface DebugInfo {
 // TYPE GUARDS
 // ==========================================
 
-export function isTweet(obj: any): obj is Tweet {
-  return obj && 
-    typeof obj.id === 'string' &&
-    typeof obj.user_id === 'string' &&
-    typeof obj.tweet_content === 'string' &&
-    ['draft', 'queued', 'scheduled', 'posted', 'failed'].includes(obj.status)
+export function isTweet(obj: unknown): obj is Tweet {
+  return !!(obj && 
+    typeof obj === 'object' &&
+    'id' in obj &&
+    'user_id' in obj &&
+    'tweet_content' in obj &&
+    'status' in obj &&
+    typeof (obj as Record<string, unknown>).id === 'string' &&
+    typeof (obj as Record<string, unknown>).user_id === 'string' &&
+    typeof (obj as Record<string, unknown>).tweet_content === 'string' &&
+    ['draft', 'queued', 'scheduled', 'posted', 'failed'].includes((obj as Record<string, unknown>).status as string))
 }
 
 export function isValidTweetStatus(status: string): status is TweetStatus {

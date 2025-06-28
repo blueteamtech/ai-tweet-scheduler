@@ -235,7 +235,7 @@ export function validateEnvVars(): { valid: boolean; missing: string[]; insecure
 }
 
 // Security: Input sanitization for API responses
-export function sanitizeApiResponse(data: any): any {
+export function sanitizeApiResponse(data: unknown): unknown {
   if (typeof data === 'string') {
     // Remove null bytes and other potentially dangerous characters
     return data.replace(/\x00/g, '').replace(/[\x01-\x08\x0B-\x0C\x0E-\x1F\x7F]/g, '')
@@ -246,7 +246,7 @@ export function sanitizeApiResponse(data: any): any {
   }
   
   if (data && typeof data === 'object') {
-    const sanitized: any = {}
+    const sanitized: Record<string, unknown> = {}
     for (const [key, value] of Object.entries(data)) {
       sanitized[key] = sanitizeApiResponse(value)
     }
