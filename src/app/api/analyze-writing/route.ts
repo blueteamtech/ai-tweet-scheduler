@@ -51,13 +51,6 @@ export async function POST(request: NextRequest) {
       } as AnalyzeWritingResponse, { status: 400 });
     }
 
-    if (content.length > 5000) {
-      return NextResponse.json({
-        success: false,
-        error: 'Content must be no more than 5000 characters'
-      } as AnalyzeWritingResponse, { status: 400 });
-    }
-
     // Store writing sample in database
     const { data: sample, error: insertError } = await supabase
       .from('user_writing_samples')

@@ -83,10 +83,10 @@ export async function PUT(request: NextRequest) {
     }
 
     // Validate content length
-    if (content.trim().length < 50 || content.length > 5000) {
+    if (content.trim().length < 50) {
       return NextResponse.json({
         success: false,
-        error: 'Content must be between 50 and 5000 characters'
+        error: 'Content must be at least 50 characters'
       }, { status: 400 });
     }
 

@@ -17,13 +17,13 @@ export default function WritingAnalysisInput() {
   const [loading, setLoading] = useState(false);
 
   const characterCount = content.length;
-  const isValid = content.trim().length >= 50 && characterCount <= 5000;
+  const isValid = content.trim().length >= 50;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isValid) {
-      setError('Please enter at least 50 characters and no more than 5000 characters');
+      setError('Please enter at least 50 characters');
       return;
     }
 
@@ -112,6 +112,7 @@ export default function WritingAnalysisInput() {
         </h3>
         <p className="text-gray-600 mb-6">
           Add samples of your writing to train the AI to match your unique style and personality. 
+          Longer, more substantial samples (articles, blog posts, emails) provide better personality analysis. 
           The more samples you provide, the better the AI becomes at generating tweets that sound like you.
         </p>
 
@@ -124,7 +125,7 @@ export default function WritingAnalysisInput() {
               id="writing-content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Paste a sample of your writing here (emails, articles, previous tweets, etc.). The more natural and representative of your style, the better!"
+              placeholder="Paste a sample of your writing here (emails, articles, blog posts, previous tweets, etc.). Longer samples provide better personality analysis - don't hesitate to paste substantial content!"
               className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               rows={6}
               disabled={isAnalyzing}
@@ -132,12 +133,9 @@ export default function WritingAnalysisInput() {
             
             <div className="flex justify-between items-center mt-2">
               <div className={`text-sm ${
-                characterCount < 50 ? 'text-red-500' : 
-                characterCount > 5000 ? 'text-red-500' :
-                characterCount > 4500 ? 'text-yellow-500' : 
-                'text-gray-500'
+                characterCount < 50 ? 'text-red-500' : 'text-gray-500'
               }`}>
-                {characterCount}/5000 characters
+                {characterCount} characters
                 {characterCount < 50 && (
                   <span className="block text-xs">Minimum 50 characters needed</span>
                 )}
