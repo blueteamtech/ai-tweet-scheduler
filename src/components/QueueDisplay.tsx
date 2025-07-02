@@ -447,13 +447,13 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
 
             {/* Tweets for this day */}
             {day.tweets.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-3 max-w-full overflow-hidden">
                 {day.tweets
                   .sort((a, b) => (a.time_slot || 0) - (b.time_slot || 0))
                   .map((tweet) => (
-                  <div key={tweet.id} className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-5 transition-all duration-200 hover:shadow-md">
+                  <div key={tweet.id} className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-5 transition-all duration-200 hover:shadow-md max-w-full overflow-hidden">
                     <div className="flex justify-between items-start">
-                      <div className="flex-1 pr-5">
+                      <div className="flex-1 pr-5 min-w-0">
                         <div className="flex items-center space-x-3 mb-3">
                           <div className="flex items-center space-x-2">
                             <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
@@ -548,15 +548,15 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
                             </div>
                           </div>
                         ) : (
-                          <div className="text-gray-900 text-base leading-relaxed font-medium">
-                            <p className="break-words overflow-hidden max-w-full">
+                          <div className="text-gray-900 text-base leading-relaxed font-medium max-w-full overflow-hidden">
+                            <p className="break-words overflow-wrap-anywhere whitespace-pre-wrap hyphens-auto">
                               {tweet.tweet_content.length > 150 
                                 ? `${tweet.tweet_content.substring(0, 150)}...` 
                                 : tweet.tweet_content
                               }
                             </p>
                             {tweet.tweet_content.length > 150 && (
-                              <div className="mt-2 flex items-center space-x-2">
+                              <div className="mt-2 flex items-center space-x-2 flex-wrap gap-2">
                                 <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
                                   {tweet.tweet_content.length} characters
                                 </span>
