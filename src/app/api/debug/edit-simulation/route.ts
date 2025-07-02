@@ -74,7 +74,7 @@ export async function GET() {
     
     // Simulate refresh after edit
     const refreshStart = Date.now()
-    const { data: _, error: refreshError } = await supabase
+    const { error: _refreshError } = await supabase
       .from('tweets')
       .select('tweet_content')
       .limit(1)

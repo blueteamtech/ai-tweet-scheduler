@@ -147,7 +147,7 @@ export async function GET() {
       
       if (test.name in threadTest.smart_breaking) {
         let preservesStructure = false
-        let readable = true
+        const readable = true
 
         if (test.testType === 'paragraphs') {
           preservesStructure = parts.some(part => part.content.includes('\n\n'))
@@ -267,7 +267,7 @@ export async function GET() {
             parts_created: parts.length
           }
         }
-      } catch (error) {
+      } catch (_error) {
         if (test.name in threadTest.edge_cases) {
           threadTest.edge_cases[test.name as keyof typeof threadTest.edge_cases] = {
             input: test.input.substring(0, 50) + '...',

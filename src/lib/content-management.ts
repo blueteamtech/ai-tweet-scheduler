@@ -287,7 +287,7 @@ export function getAccurateCharacterCount(content: string): {
   const hashtags = (content.match(/#\w+/g) || []).length
   
   // URLs are counted as 23 characters regardless of actual length
-  let adjustedContent = content.replace(/https?:\/\/\S+/g, 'x'.repeat(23))
+  const adjustedContent = content.replace(/https?:\/\/\S+/g, 'x'.repeat(23))
   
   return {
     displayCount: adjustedContent.length,

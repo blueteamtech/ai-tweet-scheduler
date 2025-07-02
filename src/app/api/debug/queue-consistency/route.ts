@@ -79,7 +79,7 @@ export async function GET() {
       checkDate.setDate(today.getDate() + i)
       const dateStr = checkDate.toISOString().split('T')[0]
       
-      const { data: tweets, error: _ } = await supabase
+      const { data: tweets } = await supabase
         .from('tweets')
         .select('time_slot, status')
         .eq('queue_date', dateStr)
@@ -109,7 +109,7 @@ export async function GET() {
     }
 
     // 2. Test Time Slot Validation
-    const { data: allQueuedTweets, error: _queueError } = await supabase
+    const { data: allQueuedTweets } = await supabase
       .from('tweets')
       .select('time_slot, queue_date, scheduled_at, status')
       .in('status', ['queued', 'scheduled', 'posted'])
@@ -131,7 +131,7 @@ export async function GET() {
       })
 
       // Check for duplicates and sequential allocation
-      slotsByDate.forEach((slots, date) => {
+      slotsByDate.forEach((slots) => {
         const uniqueSlots = new Set(slots)
         if (uniqueSlots.size !== slots.length) {
           timeConflicts += slots.length - uniqueSlots.size
@@ -169,7 +169,7 @@ export async function GET() {
     }
 
     // 3. Test Status Consistency
-    const { data: statusData, error: _statusError } = await supabase
+    const { data: statusData } = await supabase
       .from('tweets')
       .select('status, created_at, scheduled_at, posted_at')
 
@@ -225,7 +225,7 @@ export async function GET() {
     }
 
     // 4. Test Database Integrity
-    const { data: integrityData, error: _integrityError } = await supabase
+    const { data: integrityData } = await supabase
       .from('tweets')
       .select('id, user_id, tweet_content, queue_date, time_slot, scheduled_at')
       .not('user_id', 'is', null)

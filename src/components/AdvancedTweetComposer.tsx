@@ -315,7 +315,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
             ].map(style => (
               <button
                 key={style.value}
-                onClick={() => setFormatOptions(prev => ({ ...prev, threadingStyle: style.value as any }))}
+                onClick={() => setFormatOptions(prev => ({ ...prev, threadingStyle: style.value as 'numbered' | 'emoji' | 'clean' }))}
                 className={`px-3 py-1 rounded text-xs font-medium transition-colors ${
                   formatOptions.threadingStyle === style.value
                     ? 'bg-blue-100 text-blue-800'

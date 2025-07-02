@@ -112,7 +112,19 @@ export async function GET() {
     for (const testPrompt of testPrompts) {
       console.log(`Testing prompt: ${testPrompt.prompt.substring(0, 50)}...`)
       
-      const providerResponses: Record<string, any> = {}
+      const providerResponses: Record<string, {
+        response: string
+        character_count: number
+        response_time: number
+        style_analysis: {
+          tone: string
+          engagement_level: string
+          personality: string
+          technical_accuracy: string
+        }
+        quality_score: number
+        error?: string
+      }> = {}
       
       for (const provider of availableProviders) {
         try {
@@ -121,7 +133,7 @@ export async function GET() {
           const response = await aiProviderManager.generateTweet({
             prompt: testPrompt.prompt,
             contentType: 'single'
-          }, provider as any, false) // Don't use fallback for fair comparison
+          }, provider as 'openai' | 'claude' | 'grok', false) // Don't use fallback for fair comparison
 
           const responseTime = Date.now() - startTime
           const characterCount = response.content.length
@@ -161,7 +173,7 @@ export async function GET() {
       let winner = ''
       let highestScore = 0
       
-      Object.entries(providerResponses).forEach(([provider, response]: [string, any]) => {
+      Object.entries(providerResponses).forEach(([provider, response]) => {
         if (response.quality_score > highestScore) {
           highestScore = response.quality_score
           winner = provider
@@ -348,7 +360,19 @@ function calculateQualityScore(content: string, expectedStyle: string): number {
   return Math.max(0, Math.min(1, score))
 }
 
-function analyzeComparison(providerResponses: Record<string, any>, category: string): string {
+function analyzeComparison(providerResponses: Record<string, {
+  response: string
+  character_count: number
+  response_time: number
+  style_analysis: {
+    tone: string
+    engagement_level: string
+    personality: string
+    technical_accuracy: string
+  }
+  quality_score: number
+  error?: string
+}>, category: string): string {
   const providers = Object.keys(providerResponses)
   const responseTimes = providers.map(p => providerResponses[p].response_time).filter(t => t > 0)
   const qualityScores = providers.map(p => providerResponses[p].quality_score)
@@ -450,7 +474,14 @@ function determineBestUseCases(responses: {
   return useCases.length > 0 ? useCases : ['general_purpose']
 }
 
-function findProviderWithStrength(summary: Record<string, any>, strength: string): string | null {
+function findProviderWithStrength(summary: Record<string, {
+  average_response_time: number
+  average_quality_score: number
+  style_consistency: number
+  strengths: string[]
+  weaknesses: string[]
+  best_use_cases: string[]
+}>, strength: string): string | null {
   for (const [provider, stats] of Object.entries(summary)) {
     if (stats.strengths.includes(strength)) {
       return provider

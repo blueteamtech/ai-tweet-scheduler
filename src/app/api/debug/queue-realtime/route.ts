@@ -62,7 +62,7 @@ export async function GET() {
     const initialLoadStart = Date.now()
     
     // Simulate initial queue load
-    const { data: _queueData, error: queueError } = await supabase
+    const { error: queueError } = await supabase
       .from('tweets')
       .select('*')
       .limit(10)
@@ -71,7 +71,7 @@ export async function GET() {
     
     const refreshStart = Date.now()
     // Simulate refresh after adding tweet
-    const { data: _refreshData, error: refreshError } = await supabase
+    const { error: refreshError } = await supabase
       .from('tweets')
       .select('count')
       .limit(1)
