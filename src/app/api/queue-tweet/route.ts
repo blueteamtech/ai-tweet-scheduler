@@ -10,7 +10,7 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { content, contentType, formatOptions } = await request.json();
+    const { content, contentType } = await request.json();
 
     if (!content) {
       return NextResponse.json(
