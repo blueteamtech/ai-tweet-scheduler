@@ -115,4 +115,4 @@ Always test new features thoroughly before moving past this stable release. If y
 ---
 
 *Last Updated: Development in progress*  
-*Next Stable Release: MVP 3.0 (See MVP-3.0-MASTER-PLAN.md for complete build guide)* 
+*Next: Features and bug brainstorming for next MVP version* 

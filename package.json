@@ -6,7 +6,11 @@
     "dev": "next dev --turbopack",
     "build": "next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "test:debug": "node test-runner.js",
+    "test:debug:verbose": "node test-runner.js --verbose",
+    "test:health": "node test-runner.js --endpoint=system-health",
+    "test:queue": "node test-runner.js --endpoint=queue-validation"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",

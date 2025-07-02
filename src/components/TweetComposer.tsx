@@ -146,51 +146,76 @@ export default function TweetComposer({ user, onTweetAdded, onError, onSuccess }
   const isOverLimit = characterCount > 280
 
   return (
-    <div className="bg-white rounded-lg shadow p-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-4">
-        ✨ Create Tweet
-      </h2>
+    <div className="bg-white rounded-xl shadow-lg border border-gray-100 p-8">
+      <div className="flex items-center space-x-3 mb-6">
+        <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-blue-600 rounded-xl flex items-center justify-center">
+          <span className="text-white text-xl">✨</span>
+        </div>
+        <h2 className="text-2xl font-bold text-gray-900">
+          Create Tweet
+        </h2>
+      </div>
       
       {/* Tweet Textarea */}
-      <div className="mb-4">
+      <div className="mb-6">
         <textarea
           value={tweetContent}
           onChange={(e) => setTweetContent(e.target.value)}
           placeholder="What's happening? Write your tweet or click 'Generate with AI' for inspiration..."
-          className="w-full p-4 border-2 border-gray-200 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900 text-base leading-relaxed"
-          rows={4}
+          className="w-full p-5 border-2 border-gray-300 rounded-xl resize-none focus:ring-3 focus:ring-blue-500/30 focus:border-blue-500 text-gray-900 text-lg leading-relaxed font-medium placeholder-gray-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
+          rows={5}
         />
-        <div className="flex justify-between items-center mt-2">
-          <span className={`text-sm font-medium ${
-            characterCount > 280 ? 'text-red-600' : 
-            characterCount > 260 ? 'text-yellow-500' : 
-            'text-gray-600'
-          }`}>
-            {characterCount}/280 characters
-          </span>
+        <div className="flex justify-between items-center mt-3 px-1">
+          <div className="flex items-center space-x-3">
+            <span className={`text-sm font-semibold ${
+              characterCount > 280 ? 'text-red-600' : 
+              characterCount > 260 ? 'text-amber-600' : 
+              characterCount > 200 ? 'text-blue-600' :
+              'text-gray-700'
+            }`}>
+              {characterCount}/280
+            </span>
+            <div className={`h-2 w-20 rounded-full overflow-hidden ${
+              characterCount > 280 ? 'bg-red-100' : 
+              characterCount > 260 ? 'bg-amber-100' :
+              characterCount > 200 ? 'bg-blue-100' :
+              'bg-gray-100'
+            }`}>
+              <div 
+                className={`h-full transition-all duration-300 ${
+                  characterCount > 280 ? 'bg-red-500' : 
+                  characterCount > 260 ? 'bg-amber-500' :
+                  characterCount > 200 ? 'bg-blue-500' :
+                  'bg-gray-400'
+                }`}
+                style={{ width: `${Math.min((characterCount / 280) * 100, 100)}%` }}
+              />
+            </div>
+          </div>
           {isOverLimit && (
-            <span className="text-red-600 text-sm font-medium bg-red-50 px-2 py-1 rounded">
-              Tweet is too long!
+            <span className="text-red-700 text-sm font-semibold bg-red-100 px-3 py-1 rounded-full border border-red-200">
+              Tweet too long!
             </span>
           )}
         </div>
       </div>
 
       {/* Action Buttons */}
-      <div className="flex flex-wrap gap-3">
+      <div className="flex flex-wrap gap-4">
         <button
           onClick={generateTweet}
           disabled={isGenerating}
-          className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-4 py-2 rounded-md font-medium flex items-center space-x-2"
+          className="bg-gradient-to-r from-purple-600 to-purple-700 hover:from-purple-700 hover:to-purple-800 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-semibold text-base flex items-center space-x-2 shadow-lg transition-all duration-200 hover:shadow-xl transform hover:-translate-y-0.5"
         >
           {isGenerating ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
               <span>Generating...</span>
             </>
           ) : (
             <>
-              <span>✨ Generate AI Tweet</span>
+              <span className="text-lg">✨</span>
+              <span>Generate AI Tweet</span>
             </>
           )}
         </button>
@@ -198,16 +223,17 @@ export default function TweetComposer({ user, onTweetAdded, onError, onSuccess }
         <button
           onClick={addToQueue}
           disabled={isSaving || !tweetContent.trim() || isOverLimit}
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-4 py-2 rounded-md font-medium flex items-center space-x-2"
+          className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-semibold text-base flex items-center space-x-2 shadow-lg transition-all duration-200 hover:shadow-xl transform hover:-translate-y-0.5"
         >
           {isSaving ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
               <span>Adding...</span>
             </>
           ) : (
             <>
-              <span>🚀 Add to Queue</span>
+              <span className="text-lg">🚀</span>
+              <span>Add to Queue</span>
             </>
           )}
         </button>
@@ -215,16 +241,17 @@ export default function TweetComposer({ user, onTweetAdded, onError, onSuccess }
         <button
           onClick={saveDraft}
           disabled={isSaving || !tweetContent.trim() || isOverLimit}
-          className="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white px-4 py-2 rounded-md font-medium flex items-center space-x-2"
+          className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-semibold text-base flex items-center space-x-2 shadow-lg transition-all duration-200 hover:shadow-xl transform hover:-translate-y-0.5"
         >
           {isSaving ? (
             <>
-              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
               <span>Saving...</span>
             </>
           ) : (
             <>
-              <span>💾 Save Draft</span>
+              <span className="text-lg">💾</span>
+              <span>Save Draft</span>
             </>
           )}
         </button>

@@ -322,44 +322,70 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
                 {day.tweets
                   .sort((a, b) => (a.time_slot || 0) - (b.time_slot || 0))
                   .map((tweet) => (
-                  <div key={tweet.id} className="bg-gray-50 rounded-lg p-4">
+                  <div key={tweet.id} className="bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 rounded-xl p-5 transition-all duration-200 hover:shadow-md">
                     <div className="flex justify-between items-start">
-                      <div className="flex-1 pr-4">
-                        <div className="flex items-center space-x-2 mb-2">
-                          <span className="text-xs font-medium text-gray-500">
-                            Slot {tweet.time_slot}
-                          </span>
-                          <span className="text-sm font-medium text-gray-700">
+                      <div className="flex-1 pr-5">
+                        <div className="flex items-center space-x-3 mb-3">
+                          <div className="flex items-center space-x-2">
+                            <div className="w-6 h-6 bg-blue-500 text-white rounded-full flex items-center justify-center text-xs font-bold">
+                              {tweet.time_slot}
+                            </div>
+                            <span className="text-sm font-semibold text-gray-600">
+                              Slot {tweet.time_slot}
+                            </span>
+                          </div>
+                          <span className="text-base font-bold text-gray-800">
                             {formatTime(tweet.scheduled_at!)}
                           </span>
-                          <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                            tweet.status === 'queued' ? 'bg-blue-100 text-blue-800' :
-                            tweet.status === 'scheduled' ? 'bg-yellow-100 text-yellow-800' :
-                            tweet.status === 'posted' ? 'bg-green-100 text-green-800' :
-                            'bg-gray-100 text-gray-800'
+                          <span className={`px-3 py-1 rounded-full text-sm font-semibold ${
+                            tweet.status === 'queued' ? 'bg-blue-100 text-blue-800 border border-blue-200' :
+                            tweet.status === 'scheduled' ? 'bg-amber-100 text-amber-800 border border-amber-200' :
+                            tweet.status === 'posted' ? 'bg-green-100 text-green-800 border border-green-200' :
+                            'bg-gray-100 text-gray-800 border border-gray-200'
                           }`}>
                             {tweet.status}
                           </span>
                         </div>
                         {editingTweet === tweet.id ? (
-                          <div className="space-y-3">
+                          <div className="space-y-4 bg-blue-50 border-2 border-blue-200 rounded-xl p-4">
+                            <div className="flex items-center space-x-2 mb-2">
+                              <span className="text-blue-600 font-semibold text-sm">✏️ Editing Tweet</span>
+                            </div>
                             <textarea
                               value={editContent}
                               onChange={(e) => setEditContent(e.target.value)}
-                              className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                              rows={3}
+                              className="w-full p-4 border-2 border-blue-300 rounded-xl resize-none focus:ring-3 focus:ring-blue-500/30 focus:border-blue-500 text-gray-900 text-base leading-relaxed font-medium placeholder-gray-500 bg-white shadow-sm transition-all duration-200"
+                              rows={4}
                               placeholder="Edit your tweet..."
                             />
                             <div className="flex justify-between items-center">
-                              <span className={`text-xs ${
-                                editContent.length > 280 ? 'text-red-600' : 'text-gray-500'
-                              }`}>
-                                {editContent.length}/280 characters
-                              </span>
-                              <div className="flex space-x-2">
+                              <div className="flex items-center space-x-3">
+                                <span className={`text-sm font-semibold ${
+                                  editContent.length > 280 ? 'text-red-600' : 
+                                  editContent.length > 260 ? 'text-amber-600' : 
+                                  'text-blue-600'
+                                }`}>
+                                  {editContent.length}/280
+                                </span>
+                                <div className={`h-2 w-16 rounded-full overflow-hidden ${
+                                  editContent.length > 280 ? 'bg-red-100' : 
+                                  editContent.length > 260 ? 'bg-amber-100' :
+                                  'bg-blue-100'
+                                }`}>
+                                  <div 
+                                    className={`h-full transition-all duration-300 ${
+                                      editContent.length > 280 ? 'bg-red-500' : 
+                                      editContent.length > 260 ? 'bg-amber-500' :
+                                      'bg-blue-500'
+                                    }`}
+                                    style={{ width: `${Math.min((editContent.length / 280) * 100, 100)}%` }}
+                                  />
+                                </div>
+                              </div>
+                              <div className="flex space-x-3">
                                 <button
                                   onClick={cancelEditing}
-                                  className="text-gray-600 hover:text-gray-800 text-sm font-medium px-3 py-1 rounded hover:bg-gray-100"
+                                  className="text-gray-700 hover:text-gray-900 bg-gray-100 hover:bg-gray-200 text-sm font-semibold px-4 py-2 rounded-lg transition-colors duration-200"
                                   disabled={saving}
                                 >
                                   Cancel
@@ -367,39 +393,39 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
                                 <button
                                   onClick={() => saveEdit(tweet.id)}
                                   disabled={saving || !editContent.trim() || editContent.length > 280}
-                                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 text-white text-sm font-medium px-3 py-1 rounded"
+                                  className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors duration-200 shadow-sm"
                                 >
-                                  {saving ? 'Saving...' : 'Save'}
+                                  {saving ? '⏳ Saving...' : '💾 Save'}
                                 </button>
                               </div>
                             </div>
                           </div>
                         ) : (
-                          <p className="text-gray-900 text-sm leading-relaxed">
-                            {tweet.tweet_content.length > 100 
-                              ? `${tweet.tweet_content.substring(0, 100)}...` 
+                          <p className="text-gray-900 text-base leading-relaxed font-medium">
+                            {tweet.tweet_content.length > 120 
+                              ? `${tweet.tweet_content.substring(0, 120)}...` 
                               : tweet.tweet_content
                             }
                           </p>
                         )}
                       </div>
-                      <div className="flex space-x-2">
+                      <div className="flex space-x-3">
                         {(tweet.status === 'queued' || tweet.status === 'scheduled') && (
                           <>
                             {editingTweet === tweet.id ? null : (
                               <button
                                 onClick={() => startEditing(tweet)}
-                                className="text-blue-600 hover:text-blue-800 text-sm font-medium px-2 py-1 rounded hover:bg-blue-50"
+                                className="bg-blue-100 hover:bg-blue-200 text-blue-700 hover:text-blue-800 text-sm font-semibold px-4 py-2 rounded-lg border border-blue-200 transition-all duration-200 hover:shadow-sm"
                               >
-                                Edit
+                                ✏️ Edit
                               </button>
                             )}
                             <button
                               onClick={() => removeFromQueue(tweet.id)}
                               disabled={removingTweet === tweet.id}
-                              className="text-red-600 hover:text-red-800 disabled:text-red-400 text-sm font-medium px-2 py-1 rounded hover:bg-red-50 disabled:hover:bg-transparent"
+                              className="bg-red-100 hover:bg-red-200 disabled:bg-gray-100 text-red-700 hover:text-red-800 disabled:text-gray-400 text-sm font-semibold px-4 py-2 rounded-lg border border-red-200 disabled:border-gray-200 transition-all duration-200 hover:shadow-sm disabled:cursor-not-allowed"
                             >
-                              {removingTweet === tweet.id ? 'Removing...' : 'Remove'}
+                              {removingTweet === tweet.id ? '⏳ Removing...' : '🗑️ Remove'}
                             </button>
                           </>
                         )}
