@@ -17,17 +17,27 @@ const http = require('http')
 // Configuration
 const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://your-app.vercel.app'
 const DEBUG_ENDPOINTS = [
+  // Phase 1: Foundation & Cleanup
   'system-health',
   'queue-validation', 
   'ui-components',
+  
+  // Phase 2: Queue Management Enhancement  
   'scheduled-tweets',
   'queue-times',
   'queue-realtime',
   'edit-simulation',
   'queue-consistency',
+  
+  // Phase 3: Advanced Content Management
   'character-counting',
   'thread-splitting',
-  'content-formatting'
+  'content-formatting',
+  
+  // Phase 4: AI Integration Expansion
+  'ai-providers',
+  'ai-fallback',
+  'ai-style-comparison'
 ]
 
 // Parse command line arguments

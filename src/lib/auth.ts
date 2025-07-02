@@ -92,6 +92,8 @@ export const promptSchema = z.object({
     .max(500, 'Prompt too long')
     .refine((prompt: string) => prompt.trim().length > 0, 'Prompt cannot be empty')
     .refine((prompt: string) => !prompt.includes('\x00'), 'Invalid characters detected'),
+  aiProvider: z.enum(['openai', 'claude', 'grok', 'auto']).optional().default('auto'),
+  contentType: z.enum(['single', 'thread', 'long-form', 'auto']).optional().default('auto'),
 })
 
 export const tweetIdSchema = z.object({

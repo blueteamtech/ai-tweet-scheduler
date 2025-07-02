@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
-import OpenAI from 'openai'
 import { getUserFromRequest, promptSchema, checkRateLimit, sanitizeError } from '@/lib/auth'
 import { createClient } from '@supabase/supabase-js'
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-})
+import { aiProviderManager, AIProvider } from '@/lib/ai-providers'
 
 // Initialize Supabase client for writing samples
 const supabase = createClient(
@@ -30,7 +25,8 @@ export async function POST(request: NextRequest) {
     }
 
     // 2. Rate limiting (10 requests per minute per user)
-    if (!checkRateLimit(user.id, 10, 60000)) {
+    const rateLimitResult = checkRateLimit(user.id, 10, 60000)
+    if (!rateLimitResult.allowed) {
       return NextResponse.json(
         { error: 'Rate limit exceeded. Please try again later.' },
         { status: 429 }
@@ -52,18 +48,19 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { prompt } = validation.data
+    const { prompt, aiProvider, contentType } = validation.data
 
-    // 4. Check if OpenAI API key is configured
-    if (!process.env.OPENAI_API_KEY) {
-      console.error('OpenAI API key not configured')
+    // 4. Check if AI providers are available
+    const availableProviders = aiProviderManager.getAvailableProviders()
+    if (availableProviders.length === 0) {
+      console.error('No AI providers configured')
       return NextResponse.json(
-        { error: 'Service temporarily unavailable' },
+        { error: 'Service temporarily unavailable - no AI providers configured' },
         { status: 503 }
       )
     }
 
-    console.log('🔑 OpenAI API key configured, proceeding to tweet generation...');
+    console.log('🔑 Available AI providers:', availableProviders.join(', '));
 
     // 5. TWEET TEMPLATE SELECTION: Smart cycling through proven copywriting frameworks
     let selectedTemplate = null;
@@ -139,54 +136,46 @@ IMPORTANT: Follow this exact structure and word count range, but fill it with co
       // Continue without personality context if there's an error
     }
 
-    // 7. Create the AI prompt for tweet generation
-    const systemPrompt = `You are a social media expert who creates engaging, authentic tweets that match the user's unique writing style and personality.
+    // 7. Generate tweet using AI Provider Manager
+    const selectedProvider = aiProvider === 'auto' ? undefined : aiProvider as AIProvider
+    
+    const aiRequest = {
+      prompt,
+      contentType: contentType === 'auto' ? 'single' : contentType,
+      personalityContext: usedPersonalityAI ? personalityContext : undefined,
+      templateContext: templateContext || undefined
+    }
 
-Generate a single tweet based on the user's input. The tweet should be:
-- Under 280 characters
-- Engaging and authentic
-- Professional but conversational  
-- NO hashtags - focus on pure text content
-- No quotes around the tweet text
-- Avoid emojis - focus on text-based content
-${usedPersonalityAI ? '- Match the user\'s specific writing style, tone, and personality shown in the examples below' : ''}
+    console.log(`🤖 Generating tweet with provider: ${selectedProvider || 'auto-selection'}, content type: ${aiRequest.contentType}`)
 
-User's request: ${prompt}${personalityContext}${templateContext}`
+    // 8. Call AI Provider Manager with fallback
+    const aiResponse = await aiProviderManager.generateTweet(aiRequest, selectedProvider, true)
 
-    // 8. Call OpenAI API with error handling (using GPT-4o for better personality matching)
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o", // GPT-4o for better personality matching
-      messages: [
-        {
-          role: "system",
-          content: systemPrompt
-        }
-      ],
-      max_tokens: 200, // Increased for template-based generation
-      temperature: usedPersonalityAI ? 0.7 : 0.8, // Lower temperature for personality consistency
-      user: user.id, // For OpenAI usage tracking
-    })
-
-    const generatedTweet = completion.choices[0]?.message?.content?.trim()
-
-    if (!generatedTweet) {
+    if (!aiResponse.content) {
       return NextResponse.json(
         { error: 'Failed to generate tweet. Please try again.' },
         { status: 500 }
       )
     }
 
-    // 9. Ensure tweet is under 280 characters
-    const finalTweet = generatedTweet.length > 280 
-      ? generatedTweet.substring(0, 277) + '...'
-      : generatedTweet
+    // 9. Ensure tweet is under appropriate character limit
+    const maxLength = aiRequest.contentType === 'long-form' ? 4000 : 280
+    const finalTweet = aiResponse.content.length > maxLength 
+      ? aiResponse.content.substring(0, maxLength - 3) + '...'
+      : aiResponse.content
 
     // 10. Log successful generation (without sensitive data)
-    console.log(`Tweet generated for user ${user.id}: ${finalTweet.length} characters, Personality AI: ${usedPersonalityAI}, Template: ${selectedTemplate?.category || 'none'}`)
+    console.log(`Tweet generated for user ${user.id}: ${finalTweet.length} characters, Provider: ${aiResponse.provider}, Model: ${aiResponse.model}, Personality AI: ${usedPersonalityAI}, Template: ${selectedTemplate?.category || 'none'}`)
 
     return NextResponse.json({
       tweet: finalTweet,
       characterCount: finalTweet.length,
+      aiProvider: {
+        used: aiResponse.provider,
+        model: aiResponse.model,
+        responseTime: aiResponse.responseTime,
+        fallbackUsed: selectedProvider !== aiResponse.provider
+      },
       personalityAI: {
         used: usedPersonalityAI,
         samplesUsed: personalityInfo.samplesUsed,
@@ -198,12 +187,15 @@ User's request: ${prompt}${personalityContext}${templateContext}`
         structure: selectedTemplate?.template_structure || null,
         wordCountTarget: selectedTemplate ? `${selectedTemplate.word_count_min}-${selectedTemplate.word_count_max}` : null
       },
+      contentType: aiRequest.contentType,
+      usage: aiResponse.usage,
       // DEBUG INFO
       debug: {
         userId: user.id,
         personalityAttempted: true,
         personalityContext: usedPersonalityAI ? 'loaded' : 'no_samples',
-        templateUsed: selectedTemplate?.category || 'none'
+        templateUsed: selectedTemplate?.category || 'none',
+        providerMetrics: aiProviderManager.getProviderMetrics()
       }
     })
 

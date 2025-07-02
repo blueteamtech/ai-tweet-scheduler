@@ -17,8 +17,12 @@
     "test:character": "node test-runner.js --endpoint=character-counting",
     "test:thread": "node test-runner.js --endpoint=thread-splitting",
     "test:format": "node test-runner.js --endpoint=content-formatting",
+    "test:ai-providers": "node test-runner.js --endpoint=ai-providers",
+    "test:ai-fallback": "node test-runner.js --endpoint=ai-fallback",
+    "test:ai-style": "node test-runner.js --endpoint=ai-style-comparison",
     "test:phase2": "node test-runner.js --endpoints=queue-realtime,edit-simulation,queue-consistency",
-    "test:phase3": "node test-runner.js --endpoints=character-counting,thread-splitting,content-formatting"
+    "test:phase3": "node test-runner.js --endpoints=character-counting,thread-splitting,content-formatting",
+    "test:phase4": "node test-runner.js --endpoints=ai-providers,ai-fallback,ai-style-comparison"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
