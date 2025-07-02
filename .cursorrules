@@ -149,7 +149,7 @@ const config = { apiKey: '...', timeout: 5000 }
 ```
 
 ### **Build Validation Process:**
-1. **Local Testing:** Run `npm run build` locally before pushing
+1. **Direct Deployment Testing:** Commit and push to test on Vercel production
 2. **Type Check:** Ensure all TypeScript types are properly defined
 3. **ESLint Clean:** No warnings or errors in ESLint output
 4. **Import Check:** All imports are used and paths are correct
@@ -232,27 +232,18 @@ AI-Personality-Tweets-to-Scheduler/
 
 ---
 
-## 🎯 CURRENT DEVELOPMENT PRIORITIES (MVP 3.0)
+## 🎯 CURRENT DEVELOPMENT PRIORITIES
 
 **Reference Documents:**
-- **MVP-3.0-MASTER-PLAN.md** - Development tasks, technical implementation, and build phases
-- **MVP-3.0-BUSINESS-PLAN.md** - Pricing, marketing, competitive strategy (business context only)
+- **MVP-NEXT-BRAINSTORM.md** - Features and bugs to consider for next version (brainstorming only)
 
-**Current Focus:** Making AI tweets sound more human and viral
-1. **AI-Powered Template Matching:** Use AI to select best template for content type
-2. **10 Relevant Writing Samples:** AI-matched voice samples for each tweet idea  
-3. **Grok Integration:** Add Grok AI for witty, natural Twitter personality
-4. **Thread & Long-Form Options:** Smart output format selection
+**Current Focus:** Improving user experience and AI quality
+1. **Bug Fixes:** Address high-priority user experience issues
+2. **AI Output Quality:** Make tweets sound more human and natural
+3. **Enhanced Voice Matching:** Better writing sample utilization
+4. **User Experience:** Improve queue management and interface
 5. **Database Safety:** Always backup before schema changes
 6. **Production-Only Approach:** Use feature flags, no test environment needed
-
-**MVP-3.0-MASTER-PLAN.md Usage:**
-- **PRIMARY PURPOSE:** Development reference and technical implementation guide
-- **CHECKBOX UPDATES ONLY:** Only update checkboxes in the "Reference: Checklist Updates Only" section
-- **ABSOLUTE RULE:** Never edit plan content, phases, or implementation details unless explicitly requested by user
-- **WHAT TO UPDATE:** Only check/uncheck boxes as tasks are completed
-- **WHAT NOT TO TOUCH:** All content above the "Reference: Checklist Updates Only" section
-- **FOCUS:** Use for understanding phases, technical decisions, and implementation steps
 
 ---
 
@@ -316,8 +307,8 @@ Before any major work:
 **Before ANY commit:**
 - [ ] Code Quality: No `any` types, proper interfaces defined
 - [ ] ESLint Clean: No unescaped JSX entities, proper const/let usage
-- [ ] Build Test: `npm run build` passes locally (recommended)
 - [ ] Type Safety: All imports typed correctly
+- [ ] Testing: Commit and push to validate on Vercel production
 
 **MCP Supabase Integration Benefits:**
 - ✅ Real-time database schema inspection
