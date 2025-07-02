@@ -8,7 +8,7 @@ import type { Tweet } from '@/types'
 import TwitterConnect from '@/components/TwitterConnect'
 import QueueDisplay, { type QueueDisplayRef } from '@/components/QueueDisplay'
 import WritingAnalysisInput from '@/components/WritingAnalysisInput'
-import TweetComposer from '@/components/TweetComposer'
+import AdvancedTweetComposer from '@/components/AdvancedTweetComposer'
 import TweetManager from '@/components/TweetManager'
 
 export default function DashboardPage() {
@@ -189,8 +189,8 @@ export default function DashboardPage() {
 
               {/* Tweet Scheduler - Refactored into components */}
               <div className="space-y-6">
-                {/* Tweet Composer Component */}
-                <TweetComposer
+                {/* Advanced Tweet Composer Component */}
+                <AdvancedTweetComposer
                   user={user}
                   onTweetAdded={handleTweetAdded}
                   onError={setError}

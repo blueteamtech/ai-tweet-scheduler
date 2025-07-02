@@ -259,8 +259,9 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
       return
     }
 
-    if (editContent.length > 280) {
-      setError('Tweet is too long (280 characters max)')
+    // Allow longer content - will be validated by API based on content type
+    if (editContent.length > 10000) {
+      setError('Content is too long (10,000 characters max)')
       return
     }
 
@@ -275,6 +276,12 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
         return
       }
 
+      // Auto-detect content type based on length
+      let contentType = 'single'
+      if (editContent.length > 280) {
+        contentType = editContent.length > 1000 ? 'long-form' : 'thread'
+      }
+
       const response = await fetch('/api/edit-tweet', {
         method: 'PUT',
         headers: {
@@ -283,7 +290,8 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
         },
         body: JSON.stringify({ 
           tweetId, 
-          content: editContent.trim() 
+          content: editContent.trim(),
+          contentType: contentType
         })
       })
 
@@ -474,33 +482,51 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
                             <textarea
                               value={editContent}
                               onChange={(e) => setEditContent(e.target.value)}
-                              className="w-full p-4 border-2 border-blue-300 rounded-xl resize-none focus:ring-3 focus:ring-blue-500/30 focus:border-blue-500 text-gray-900 text-base leading-relaxed font-medium placeholder-gray-500 bg-white shadow-sm transition-all duration-200"
-                              rows={4}
-                              placeholder="Edit your tweet..."
+                              className="w-full p-4 border-2 border-blue-300 rounded-xl resize-y focus:ring-3 focus:ring-blue-500/30 focus:border-blue-500 text-gray-900 text-base leading-relaxed font-medium placeholder-gray-500 bg-white shadow-sm transition-all duration-200"
+                              rows={editContent.length > 280 ? 8 : 4}
+                              placeholder="Edit your tweet... Supports single tweets, threads, and long-form content!"
                             />
                             <div className="flex justify-between items-center">
                               <div className="flex items-center space-x-3">
-                                <span className={`text-sm font-semibold ${
-                                  editContent.length > 280 ? 'text-red-600' : 
-                                  editContent.length > 260 ? 'text-amber-600' : 
-                                  'text-blue-600'
-                                }`}>
-                                  {editContent.length}/280
-                                </span>
-                                <div className={`h-2 w-16 rounded-full overflow-hidden ${
-                                  editContent.length > 280 ? 'bg-red-100' : 
-                                  editContent.length > 260 ? 'bg-amber-100' :
-                                  'bg-blue-100'
-                                }`}>
-                                  <div 
-                                    className={`h-full transition-all duration-300 ${
-                                      editContent.length > 280 ? 'bg-red-500' : 
-                                      editContent.length > 260 ? 'bg-amber-500' :
-                                      'bg-blue-500'
-                                    }`}
-                                    style={{ width: `${Math.min((editContent.length / 280) * 100, 100)}%` }}
-                                  />
-                                </div>
+                                {(() => {
+                                  const contentType = editContent.length > 1000 ? 'long-form' : editContent.length > 280 ? 'thread' : 'single'
+                                  const maxLength = contentType === 'long-form' ? 4000 : contentType === 'thread' ? 2000 : 280
+                                  
+                                  return (
+                                    <>
+                                      <span className={`text-sm font-semibold ${
+                                        editContent.length > maxLength ? 'text-red-600' : 
+                                        editContent.length > maxLength * 0.9 ? 'text-amber-600' : 
+                                        'text-blue-600'
+                                      }`}>
+                                        {editContent.length}/{maxLength}
+                                      </span>
+                                      <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                        contentType === 'single' ? 'bg-blue-100 text-blue-700' :
+                                        contentType === 'thread' ? 'bg-purple-100 text-purple-700' :
+                                        'bg-green-100 text-green-700'
+                                      }`}>
+                                        {contentType === 'single' ? '📝 Single' : 
+                                         contentType === 'thread' ? '🧵 Thread' : 
+                                         '📄 Long-form'}
+                                      </span>
+                                      <div className={`h-2 w-16 rounded-full overflow-hidden ${
+                                        editContent.length > maxLength ? 'bg-red-100' : 
+                                        editContent.length > maxLength * 0.9 ? 'bg-amber-100' :
+                                        'bg-blue-100'
+                                      }`}>
+                                        <div 
+                                          className={`h-full transition-all duration-300 ${
+                                            editContent.length > maxLength ? 'bg-red-500' : 
+                                            editContent.length > maxLength * 0.9 ? 'bg-amber-500' :
+                                            'bg-blue-500'
+                                          }`}
+                                          style={{ width: `${Math.min((editContent.length / maxLength) * 100, 100)}%` }}
+                                        />
+                                      </div>
+                                    </>
+                                  )
+                                })()}
                               </div>
                               <div className="flex space-x-3">
                                 <button
@@ -512,7 +538,7 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
                                 </button>
                                 <button
                                   onClick={() => saveEdit(tweet.id)}
-                                  disabled={saving || !editContent.trim() || editContent.length > 280}
+                                  disabled={saving || !editContent.trim() || editContent.length > 10000}
                                   className="bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-semibold px-4 py-2 rounded-lg transition-colors duration-200 shadow-sm"
                                 >
                                   {saving ? '⏳ Saving...' : '💾 Save'}
