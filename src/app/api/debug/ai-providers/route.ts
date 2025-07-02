@@ -122,7 +122,7 @@ export async function GET() {
           total_time: Date.now() - fallbackStartTime
         }
 
-      } catch (_error) {
+      } catch {
         providersTest.fallback_simulation = {
           primary_provider: availableProviders[0],
           fallback_triggered: true,

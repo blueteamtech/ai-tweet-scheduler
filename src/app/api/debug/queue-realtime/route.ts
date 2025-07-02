@@ -26,6 +26,7 @@ interface RealtimeTest {
     data_consistency: boolean
     last_poll_time: string
     changes_detected: boolean
+    poll_duration_ms: number
   }
   overall_status?: 'optimal' | 'acceptable' | 'issues_detected' | 'error'
   response_time_ms?: number
@@ -94,18 +95,20 @@ export async function GET() {
     }
 
     // 4. Test Database Polling
-    const _pollStart = Date.now()
+    const pollStart = Date.now()
     const { data: pollData, error: pollError } = await supabase
       .from('tweets')
       .select('created_at, updated_at')
       .order('updated_at', { ascending: false })
       .limit(5)
 
+    const pollDuration = Date.now() - pollStart
     realtimeTest.database_polling = {
       poll_frequency: testInterval,
       data_consistency: !pollError && pollData && pollData.length >= 0,
       last_poll_time: new Date().toISOString(),
-      changes_detected: pollData ? pollData.length > 0 : false
+      changes_detected: pollData ? pollData.length > 0 : false,
+      poll_duration_ms: pollDuration
     }
 
     // 5. Performance Benchmarks

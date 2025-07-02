@@ -74,7 +74,7 @@ export async function GET() {
     
     // Simulate refresh after edit
     const refreshStart = Date.now()
-    const { error: _refreshError } = await supabase
+    const { error: refreshError } = await supabase
       .from('tweets')
       .select('tweet_content')
       .limit(1)
@@ -145,7 +145,7 @@ export async function GET() {
       character_limit_validation: allLimitTestsPass,
       instant_character_count: true,
       save_confirmation: !dbError,
-      error_display: dbError ? true : false
+      error_display: dbError || refreshError ? true : false
     }
 
     // 6. Performance Assessment
@@ -171,7 +171,7 @@ export async function GET() {
       issues.push('Character limit validation failing')
     }
     
-    if (dbError) {
+    if (dbError || refreshError) {
       issues.push('Database connectivity issues')
     }
 

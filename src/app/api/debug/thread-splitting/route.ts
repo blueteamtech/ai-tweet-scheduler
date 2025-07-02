@@ -160,8 +160,9 @@ export async function GET() {
         threadTest.smart_breaking[test.name as keyof typeof threadTest.smart_breaking] = {
           input: test.input.substring(0, 80) + '...',
           break_points: breakPoints,
-          [test.testType === 'paragraphs' ? 'preserves_paragraphs' : 
-           test.testType === 'sentences' ? 'complete_sentences' : 'no_word_cuts']: preservesStructure,
+          preserves_paragraphs: test.testType === 'paragraphs' ? preservesStructure : true,
+          complete_sentences: test.testType === 'sentences' ? preservesStructure : true,
+          no_word_cuts: test.testType === 'words' ? preservesStructure : true,
           readable
         }
       }
@@ -261,19 +262,21 @@ export async function GET() {
         if (test.name in threadTest.edge_cases) {
           threadTest.edge_cases[test.name as keyof typeof threadTest.edge_cases] = {
             input: test.input.substring(0, 50) + '...',
-            [test.name === 'mixed_content' ? 'preserves_structure' : 
-             test.name === 'empty_paragraphs' ? 'handles_correctly' :
-             test.name === 'unicode_content' ? 'handled_correctly' : 'handled_gracefully']: handled,
+            handled_gracefully: test.name === 'single_long_word' ? handled : true,
+            handled_correctly: test.name === 'unicode_content' ? handled : true,
+            preserves_structure: test.name === 'mixed_content' ? handled : true,
+            handles_correctly: test.name === 'empty_paragraphs' ? handled : true,
             parts_created: parts.length
           }
         }
-      } catch (_error) {
+      } catch {
         if (test.name in threadTest.edge_cases) {
           threadTest.edge_cases[test.name as keyof typeof threadTest.edge_cases] = {
             input: test.input.substring(0, 50) + '...',
-            [test.name === 'mixed_content' ? 'preserves_structure' : 
-             test.name === 'empty_paragraphs' ? 'handles_correctly' :
-             test.name === 'unicode_content' ? 'handled_correctly' : 'handled_gracefully']: false,
+            handled_gracefully: test.name === 'single_long_word' ? false : true,
+            handled_correctly: test.name === 'unicode_content' ? false : true,
+            preserves_structure: test.name === 'mixed_content' ? false : true,
+            handles_correctly: test.name === 'empty_paragraphs' ? false : true,
             parts_created: 0
           }
         }
@@ -303,7 +306,7 @@ export async function GET() {
       length_variance: Math.round(variance),
       natural_breaks: naturalBreaks,
       forced_breaks: forcedBreaks,
-      readability_score
+      readability_score: readabilityScore
     }
 
     // 7. Analyze Issues
