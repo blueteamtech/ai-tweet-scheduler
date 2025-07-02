@@ -166,7 +166,7 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
     refreshQueue: loadQueueStatus,
     startAutoRefresh,
     stopAutoRefresh
-  }))
+  }), [loadQueueStatus, startAutoRefresh, stopAutoRefresh])
 
   // Initialize component - only run once when userId changes
   useEffect(() => {
@@ -179,7 +179,7 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
     return () => {
       stopAutoRefresh()
     }
-  }, [userId]) // Remove function dependencies to prevent infinite loop
+  }, [userId, loadQueueStatus, startAutoRefresh, stopAutoRefresh])
 
   const handleManualRefresh = () => {
     // Reset failure count on manual refresh

@@ -75,7 +75,11 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update the tweet content
-    const updateData: any = { 
+    const updateData: {
+      tweet_content: string
+      updated_at: string
+      content_type?: string
+    } = { 
       tweet_content: content.trim(),
       updated_at: new Date().toISOString()
     }
