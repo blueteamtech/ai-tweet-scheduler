@@ -548,12 +548,30 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
                             </div>
                           </div>
                         ) : (
-                          <p className="text-gray-900 text-base leading-relaxed font-medium">
-                            {tweet.tweet_content.length > 120 
-                              ? `${tweet.tweet_content.substring(0, 120)}...` 
-                              : tweet.tweet_content
-                            }
-                          </p>
+                          <div className="text-gray-900 text-base leading-relaxed font-medium">
+                            <p className="break-words overflow-hidden max-w-full">
+                              {tweet.tweet_content.length > 150 
+                                ? `${tweet.tweet_content.substring(0, 150)}...` 
+                                : tweet.tweet_content
+                              }
+                            </p>
+                            {tweet.tweet_content.length > 150 && (
+                              <div className="mt-2 flex items-center space-x-2">
+                                <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full">
+                                  {tweet.tweet_content.length} characters
+                                </span>
+                                <span className={`text-xs px-2 py-1 rounded-full font-medium ${
+                                  tweet.tweet_content.length > 1000 ? 'bg-green-100 text-green-700' :
+                                  tweet.tweet_content.length > 280 ? 'bg-purple-100 text-purple-700' :
+                                  'bg-blue-100 text-blue-700'
+                                }`}>
+                                  {tweet.tweet_content.length > 1000 ? '📄 Long-form' : 
+                                   tweet.tweet_content.length > 280 ? '🧵 Thread' : 
+                                   '📝 Single'}
+                                </span>
+                              </div>
+                            )}
+                          </div>
                         )}
                       </div>
                       <div className="flex space-x-3">
