@@ -199,7 +199,8 @@ export function validateLongFormContent(content: string): { valid: boolean; reas
   }
   
   // Check for unsupported content (could be expanded)
-  if (trimmedContent.includes('@') && trimmedContent.match(/@\w+/g)?.length > 10) {
+  const mentions = trimmedContent.match(/@\w+/g)
+  if (trimmedContent.includes('@') && mentions && mentions.length > 10) {
     return { valid: false, reason: 'Too many mentions for long-form content' }
   }
   

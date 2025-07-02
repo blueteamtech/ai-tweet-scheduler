@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useImperativeHandle, forwardRef } from 'react'
+import { useState, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Tweet } from '@/types'
 
@@ -41,6 +41,27 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
   const [refreshIntervalId, setRefreshIntervalId] = useState<NodeJS.Timeout | null>(null)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
 
+  const startAutoRefresh = useCallback(() => {
+    if (refreshIntervalId) {
+      clearInterval(refreshIntervalId)
+    }
+    
+    const intervalId = setInterval(() => {
+      loadQueueStatus(true) // Silent refresh
+    }, autoRefreshInterval)
+    
+    setRefreshIntervalId(intervalId)
+    setAutoRefreshActive(true)
+  }, [refreshIntervalId, autoRefreshInterval])
+
+  const stopAutoRefresh = useCallback(() => {
+    if (refreshIntervalId) {
+      clearInterval(refreshIntervalId)
+      setRefreshIntervalId(null)
+    }
+    setAutoRefreshActive(false)
+  }, [refreshIntervalId])
+
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
     refreshQueue: loadQueueStatus,
@@ -58,30 +79,9 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
     return () => {
       stopAutoRefresh()
     }
-  }, [userId])
+  }, [userId, startAutoRefresh, stopAutoRefresh, loadQueueStatus])
 
-  const startAutoRefresh = () => {
-    if (refreshIntervalId) {
-      clearInterval(refreshIntervalId)
-    }
-    
-    const intervalId = setInterval(() => {
-      loadQueueStatus(true) // Silent refresh
-    }, autoRefreshInterval)
-    
-    setRefreshIntervalId(intervalId)
-    setAutoRefreshActive(true)
-  }
-
-  const stopAutoRefresh = () => {
-    if (refreshIntervalId) {
-      clearInterval(refreshIntervalId)
-      setRefreshIntervalId(null)
-    }
-    setAutoRefreshActive(false)
-  }
-
-     const loadQueueStatus = async (silent = false) => {
+  const loadQueueStatus = useCallback(async (silent = false) => {
     try {
       if (!silent) {
         setLoading(true)
@@ -151,7 +151,7 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
       setLoading(false)
       setRefreshing(false)
     }
-  }
+  }, [])
 
   const handleManualRefresh = () => {
     loadQueueStatus(false)
