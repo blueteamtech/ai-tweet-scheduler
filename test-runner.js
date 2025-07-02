@@ -21,7 +21,10 @@ const DEBUG_ENDPOINTS = [
   'queue-validation', 
   'ui-components',
   'scheduled-tweets',
-  'queue-times'
+  'queue-times',
+  'queue-realtime',
+  'edit-simulation',
+  'queue-consistency'
 ]
 
 // Parse command line arguments

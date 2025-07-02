@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useImperativeHandle, forwardRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Tweet } from '@/types'
 
@@ -18,24 +18,76 @@ interface QueueDay {
 interface QueueDisplayProps {
   userId: string
   onRefresh?: () => void
+  autoRefreshInterval?: number // in milliseconds, default 30 seconds
 }
 
-export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
+export interface QueueDisplayRef {
+  refreshQueue: () => Promise<void>
+  startAutoRefresh: () => void
+  stopAutoRefresh: () => void
+}
+
+const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(
+  ({ userId, onRefresh, autoRefreshInterval = 30000 }, ref) => {
   const [queueDays, setQueueDays] = useState<QueueDay[]>([])
   const [loading, setLoading] = useState(true)
+  const [refreshing, setRefreshing] = useState(false)
   const [error, setError] = useState('')
   const [editingTweet, setEditingTweet] = useState<string | null>(null)
   const [editContent, setEditContent] = useState('')
   const [saving, setSaving] = useState(false)
   const [removingTweet, setRemovingTweet] = useState<string | null>(null)
+  const [autoRefreshActive, setAutoRefreshActive] = useState(false)
+  const [refreshIntervalId, setRefreshIntervalId] = useState<NodeJS.Timeout | null>(null)
+  const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    refreshQueue: loadQueueStatus,
+    startAutoRefresh,
+    stopAutoRefresh
+  }))
 
   useEffect(() => {
     loadQueueStatus()
+    
+    // Start auto-refresh by default
+    startAutoRefresh()
+    
+    // Cleanup on unmount
+    return () => {
+      stopAutoRefresh()
+    }
   }, [userId])
 
-  const loadQueueStatus = async () => {
+  const startAutoRefresh = () => {
+    if (refreshIntervalId) {
+      clearInterval(refreshIntervalId)
+    }
+    
+    const intervalId = setInterval(() => {
+      loadQueueStatus(true) // Silent refresh
+    }, autoRefreshInterval)
+    
+    setRefreshIntervalId(intervalId)
+    setAutoRefreshActive(true)
+  }
+
+  const stopAutoRefresh = () => {
+    if (refreshIntervalId) {
+      clearInterval(refreshIntervalId)
+      setRefreshIntervalId(null)
+    }
+    setAutoRefreshActive(false)
+  }
+
+     const loadQueueStatus = async (silent = false) => {
     try {
-      setLoading(true)
+      if (!silent) {
+        setLoading(true)
+      } else {
+        setRefreshing(true)
+      }
       setError('')
 
       // Get queue status for next 7 days
@@ -91,12 +143,18 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
       })
 
       setQueueDays(transformedDays)
+      setLastRefresh(new Date())
     } catch (error) {
       console.error('Error loading queue status:', error)
       setError('Failed to load queue status')
     } finally {
       setLoading(false)
+      setRefreshing(false)
     }
+  }
+
+  const handleManualRefresh = () => {
+    loadQueueStatus(false)
   }
 
   const formatTime = (scheduledAt: string) => {
@@ -234,7 +292,7 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
         <div className="text-red-600 text-center py-8">
           <p>{error}</p>
           <button
-            onClick={loadQueueStatus}
+            onClick={handleManualRefresh}
             className="mt-4 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700"
           >
             Retry
@@ -255,15 +313,42 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
             Upcoming Tweets ({totalQueued} scheduled)
           </h3>
           <button
-            onClick={loadQueueStatus}
-            className="text-blue-600 hover:text-blue-800 font-medium text-sm"
+            onClick={handleManualRefresh}
+            disabled={refreshing}
+            className="text-blue-600 hover:text-blue-800 disabled:text-gray-400 font-medium text-sm flex items-center space-x-1"
           >
-            🔄 Refresh
+            <span className={refreshing ? 'animate-spin' : ''}>🔄</span>
+            <span>{refreshing ? 'Refreshing...' : 'Refresh'}</span>
           </button>
         </div>
-        <p className="text-gray-600 text-sm mt-1">
-          5 tweets per day • 8 AM - 9 PM Eastern
-        </p>
+        <div className="flex justify-between items-center mt-1">
+          <p className="text-gray-600 text-sm">
+            5 tweets per day • 8 AM - 9 PM Eastern
+          </p>
+          <div className="flex items-center space-x-3 text-xs text-gray-500">
+            {lastRefresh && (
+              <span>
+                Last updated: {lastRefresh.toLocaleTimeString('en-US', { 
+                  hour: 'numeric', 
+                  minute: '2-digit',
+                  hour12: true 
+                })}
+              </span>
+            )}
+            <div className="flex items-center space-x-1">
+              <div className={`w-2 h-2 rounded-full ${autoRefreshActive ? 'bg-green-500 animate-pulse' : 'bg-gray-300'}`}></div>
+              <span className={autoRefreshActive ? 'text-green-600' : 'text-gray-400'}>
+                Auto-refresh {autoRefreshActive ? 'ON' : 'OFF'}
+              </span>
+              <button
+                onClick={autoRefreshActive ? stopAutoRefresh : startAutoRefresh}
+                className="ml-1 text-xs text-blue-600 hover:text-blue-800 underline"
+              >
+                {autoRefreshActive ? 'Turn Off' : 'Turn On'}
+              </button>
+            </div>
+          </div>
+        </div>
         
         {/* Error Message */}
         {error && (
@@ -473,4 +558,6 @@ export default function QueueDisplay({ userId, onRefresh }: QueueDisplayProps) {
       </div>
     </div>
   )
-} 
+})
+
+export default QueueDisplay 

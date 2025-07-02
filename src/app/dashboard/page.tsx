@@ -1,12 +1,12 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useRouter } from 'next/navigation'
 import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import type { Tweet } from '@/types'
 import TwitterConnect from '@/components/TwitterConnect'
-import QueueDisplay from '@/components/QueueDisplay'
+import QueueDisplay, { type QueueDisplayRef } from '@/components/QueueDisplay'
 import WritingAnalysisInput from '@/components/WritingAnalysisInput'
 import TweetComposer from '@/components/TweetComposer'
 import TweetManager from '@/components/TweetManager'
@@ -19,6 +19,9 @@ export default function DashboardPage() {
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const router = useRouter()
+  
+  // Ref for QueueDisplay to trigger refresh
+  const queueDisplayRef = useRef<QueueDisplayRef>(null)
 
   useEffect(() => {
     // Check if user is logged in
@@ -69,6 +72,19 @@ export default function DashboardPage() {
   const handleLogout = async () => {
     await supabase.auth.signOut()
     router.push('/')
+  }
+
+  // Enhanced refresh function that updates both drafts and queue
+  const handleTweetAdded = async () => {
+    if (!user) return
+    
+    // Refresh draft tweets for TweetManager
+    await loadTweets(user.id)
+    
+    // Refresh queue display immediately
+    if (queueDisplayRef.current) {
+      await queueDisplayRef.current.refreshQueue()
+    }
   }
 
   if (loading) {
@@ -176,13 +192,13 @@ export default function DashboardPage() {
                 {/* Tweet Composer Component */}
                 <TweetComposer
                   user={user}
-                  onTweetAdded={() => loadTweets(user.id)}
+                  onTweetAdded={handleTweetAdded}
                   onError={setError}
                   onSuccess={setSuccess}
                 />
 
                 {/* Queue Display */}
-                <QueueDisplay userId={user.id} onRefresh={() => loadTweets(user.id)} />
+                <QueueDisplay userId={user.id} onRefresh={() => loadTweets(user.id)} ref={queueDisplayRef} />
               </div>
             </>
           )}

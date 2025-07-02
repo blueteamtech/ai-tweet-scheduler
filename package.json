@@ -10,7 +10,11 @@
     "test:debug": "node test-runner.js",
     "test:debug:verbose": "node test-runner.js --verbose",
     "test:health": "node test-runner.js --endpoint=system-health",
-    "test:queue": "node test-runner.js --endpoint=queue-validation"
+    "test:queue": "node test-runner.js --endpoint=queue-validation",
+    "test:realtime": "node test-runner.js --endpoint=queue-realtime",
+    "test:edit": "node test-runner.js --endpoint=edit-simulation",
+    "test:consistency": "node test-runner.js --endpoint=queue-consistency",
+    "test:phase2": "node test-runner.js --endpoints=queue-realtime,edit-simulation,queue-consistency"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
