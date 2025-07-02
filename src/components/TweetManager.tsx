@@ -188,8 +188,8 @@ export default function TweetManager({
               className="border border-gray-200 rounded-lg p-4 hover:border-gray-300 transition-colors"
             >
               <div className="flex justify-between items-start mb-3">
-                <div className="flex-1">
-                  <p className="text-gray-900 whitespace-pre-wrap">
+                <div className="flex-1 min-w-0">
+                  <p className="text-gray-900 whitespace-pre-wrap break-words overflow-wrap-anywhere hyphens-auto max-w-full">
                     {tweet.tweet_content}
                   </p>
                   <p className="text-sm text-gray-500 mt-2">

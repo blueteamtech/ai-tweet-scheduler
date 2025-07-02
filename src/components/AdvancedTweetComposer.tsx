@@ -234,9 +234,9 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         )}
 
         {showPreview && (
-          <div className="mt-3 p-3 bg-white rounded-lg border-l-4 border-blue-500">
+          <div className="mt-3 p-3 bg-white rounded-lg border-l-4 border-blue-500 max-w-full overflow-hidden">
             <div className="text-xs text-gray-600 mb-2">Preview:</div>
-            <div className="text-sm text-gray-900">{preview}</div>
+            <div className="text-sm text-gray-900 break-words overflow-wrap-anywhere whitespace-pre-wrap hyphens-auto max-w-full">{preview}</div>
           </div>
         )}
       </div>
@@ -249,16 +249,16 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
     const formattedParts = formatThreadParts(contentAnalysis.threadParts, formatOptions)
 
     return (
-      <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4">
+      <div className="bg-green-50 border border-green-200 rounded-xl p-4 mb-4 max-w-full overflow-hidden">
         <h4 className="text-sm font-semibold text-green-900 mb-3">🧵 Thread Preview</h4>
-        <div className="space-y-3">
+        <div className="space-y-3 max-w-full overflow-hidden">
           {formattedParts.map((part, index) => (
-            <div key={index} className="bg-white rounded-lg p-3 border-l-4 border-green-500">
+            <div key={index} className="bg-white rounded-lg p-3 border-l-4 border-green-500 max-w-full overflow-hidden">
               <div className="flex justify-between items-start mb-2">
                 <span className="text-xs text-green-600 font-medium">Tweet {index + 1}</span>
                 <span className="text-xs text-gray-500">{part.length} chars</span>
               </div>
-              <div className="text-sm text-gray-900">{part}</div>
+              <div className="text-sm text-gray-900 break-words overflow-wrap-anywhere whitespace-pre-wrap hyphens-auto max-w-full">{part}</div>
             </div>
           ))}
         </div>
