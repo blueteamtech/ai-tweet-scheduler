@@ -24,7 +24,10 @@ const DEBUG_ENDPOINTS = [
   'queue-times',
   'queue-realtime',
   'edit-simulation',
-  'queue-consistency'
+  'queue-consistency',
+  'character-counting',
+  'thread-splitting',
+  'content-formatting'
 ]
 
 // Parse command line arguments

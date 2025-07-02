@@ -14,7 +14,11 @@
     "test:realtime": "node test-runner.js --endpoint=queue-realtime",
     "test:edit": "node test-runner.js --endpoint=edit-simulation",
     "test:consistency": "node test-runner.js --endpoint=queue-consistency",
-    "test:phase2": "node test-runner.js --endpoints=queue-realtime,edit-simulation,queue-consistency"
+    "test:character": "node test-runner.js --endpoint=character-counting",
+    "test:thread": "node test-runner.js --endpoint=thread-splitting",
+    "test:format": "node test-runner.js --endpoint=content-formatting",
+    "test:phase2": "node test-runner.js --endpoints=queue-realtime,edit-simulation,queue-consistency",
+    "test:phase3": "node test-runner.js --endpoints=character-counting,thread-splitting,content-formatting"
   },
   "dependencies": {
     "@supabase/ssr": "^0.6.1",
