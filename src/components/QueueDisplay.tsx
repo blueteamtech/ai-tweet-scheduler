@@ -27,8 +27,8 @@ export interface QueueDisplayRef {
   stopAutoRefresh: () => void
 }
 
-const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(
-  ({ userId, onRefresh, autoRefreshInterval = 30000 }, ref) => {
+const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function QueueDisplay(
+  { userId, onRefresh, autoRefreshInterval = 30000 }, ref) {
   const [queueDays, setQueueDays] = useState<QueueDay[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)

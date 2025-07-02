@@ -77,7 +77,7 @@ export async function GET() {
 
     // 1. Get Current Provider Reliability
     const currentMetrics = aiProviderManager.getProviderMetrics()
-    Object.entries(currentMetrics).forEach(([provider, metrics]: [string, any]) => {
+    Object.entries(currentMetrics).forEach(([provider, metrics]) => {
       fallbackTest.provider_reliability[provider] = {
         current_reliability_score: metrics.reliabilityScore || 1,
         should_use: metrics.shouldUse !== false,
@@ -115,7 +115,7 @@ export async function GET() {
         
         const response = await aiProviderManager.generateTweet({
           prompt: `Test ${scenario.name} - generate a brief tech tweet`
-        }, scenario.primary as any, true)
+        }, scenario.primary as 'openai' | 'claude' | 'grok' | undefined, true)
 
         const fallbackTriggered = scenario.primary && response.provider !== scenario.primary
 
@@ -158,7 +158,7 @@ export async function GET() {
     let fastestTime = Infinity
     let highestReliability = 0
 
-    Object.entries(metrics).forEach(([provider, metric]: [string, any]) => {
+    Object.entries(metrics).forEach(([provider, metric]) => {
       if (metric.averageResponseTime > 0 && metric.averageResponseTime < fastestTime) {
         fastestTime = metric.averageResponseTime
         fastestProvider = provider

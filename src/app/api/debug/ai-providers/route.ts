@@ -14,7 +14,15 @@ interface AIProvidersTest {
       sample_response?: string
     }
   }>
-  provider_metrics?: Record<string, any>
+  provider_metrics?: Record<string, {
+    totalRequests: number
+    successfulRequests: number
+    averageResponseTime: number
+    lastFailure?: Date
+    consecutiveFailures: number
+    reliabilityScore: number
+    shouldUse: boolean
+  }>
   fallback_simulation?: {
     primary_provider: string
     fallback_triggered: boolean
@@ -48,7 +56,16 @@ export async function GET() {
     }
 
     // 2. Check Environment Variables and Configuration
-    const providerTests: Record<string, any> = {}
+    const providerTests: Record<string, {
+      configured: boolean
+      api_key_length: number
+      connection_test?: {
+        success: boolean
+        responseTime?: number
+        error?: string
+        response?: string
+      }
+    }> = {}
     
     // OpenAI
     providerTests.openai = {
@@ -96,7 +113,7 @@ export async function GET() {
         
         const response = await aiProviderManager.generateTweet({
           prompt: 'Test fallback system functionality'
-        }, primaryProvider as any, true)
+        }, primaryProvider, true)
 
         providersTest.fallback_simulation = {
           primary_provider: primaryProvider,
@@ -123,14 +140,18 @@ export async function GET() {
     let fastestTime = Infinity
     let highestReliability = 0
 
-    Object.entries(metrics).forEach(([provider, metric]: [string, any]) => {
-      if (metric.averageResponseTime > 0 && metric.averageResponseTime < fastestTime) {
-        fastestTime = metric.averageResponseTime
+    Object.entries(metrics).forEach(([provider, metric]) => {
+      const metricData = metric as {
+        averageResponseTime: number
+        reliabilityScore: number
+      }
+      if (metricData.averageResponseTime > 0 && metricData.averageResponseTime < fastestTime) {
+        fastestTime = metricData.averageResponseTime
         fastestProvider = provider
       }
       
-      if (metric.reliabilityScore > highestReliability) {
-        highestReliability = metric.reliabilityScore
+      if (metricData.reliabilityScore > highestReliability) {
+        highestReliability = metricData.reliabilityScore
         mostReliableProvider = provider
       }
     })
@@ -151,7 +172,7 @@ export async function GET() {
       overall_status: totalIssues === 0 ? 'healthy' : totalIssues <= 2 ? 'warning' : 'critical',
       summary: {
         total_providers_configured: availableProviders.length,
-        working_providers: Object.values(providerTests).filter((test: any) => test.connection_test?.success).length,
+        working_providers: Object.values(providerTests).filter(test => test.connection_test?.success).length,
         total_issues: totalIssues,
         fallback_available: availableProviders.length > 1,
         recommendation: totalIssues === 0 

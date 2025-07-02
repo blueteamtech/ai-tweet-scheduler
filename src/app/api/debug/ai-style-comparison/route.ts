@@ -359,7 +359,19 @@ function analyzeComparison(providerResponses: Record<string, any>, category: str
   return `For ${category} content: Average response time ${Math.round(avgResponseTime)}ms, average quality score ${Math.round(avgQualityScore * 100)}%`
 }
 
-function analyzeProviderStrengths(responses: any[]): string[] {
+function analyzeProviderStrengths(responses: {
+  response: string
+  character_count: number
+  response_time: number
+  style_analysis: {
+    tone: string
+    engagement_level: string
+    personality: string
+    technical_accuracy: string
+  }
+  quality_score: number
+  error?: string
+}[]): string[] {
   const strengths: string[] = []
   
   const avgResponseTime = responses.reduce((sum, r) => sum + r.response_time, 0) / responses.length
@@ -376,7 +388,19 @@ function analyzeProviderStrengths(responses: any[]): string[] {
   return strengths.length > 0 ? strengths : ['basic_functionality']
 }
 
-function analyzeProviderWeaknesses(responses: any[]): string[] {
+function analyzeProviderWeaknesses(responses: {
+  response: string
+  character_count: number
+  response_time: number
+  style_analysis: {
+    tone: string
+    engagement_level: string
+    personality: string
+    technical_accuracy: string
+  }
+  quality_score: number
+  error?: string
+}[]): string[] {
   const weaknesses: string[] = []
   
   const avgResponseTime = responses.reduce((sum, r) => sum + r.response_time, 0) / responses.length
@@ -394,7 +418,23 @@ function analyzeProviderWeaknesses(responses: any[]): string[] {
   return weaknesses.length > 0 ? weaknesses : ['none_identified']
 }
 
-function determineBestUseCases(responses: any[], testPrompts: any[]): string[] {
+function determineBestUseCases(responses: {
+  response: string
+  character_count: number
+  response_time: number
+  style_analysis: {
+    tone: string
+    engagement_level: string
+    personality: string
+    technical_accuracy: string
+  }
+  quality_score: number
+  error?: string
+}[], testPrompts: {
+  prompt: string
+  category: string
+  expected_style: string
+}[]): string[] {
   const useCases: string[] = []
   
   // Analyze which categories this provider performed best in

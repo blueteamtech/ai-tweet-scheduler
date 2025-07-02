@@ -119,7 +119,15 @@ class ProviderMetrics {
   }
 
   getMetrics() {
-    const result: Record<string, any> = {}
+    const result: Record<string, {
+      totalRequests: number
+      successfulRequests: number
+      averageResponseTime: number
+      lastFailure?: Date
+      consecutiveFailures: number
+      reliabilityScore: number
+      shouldUse: boolean
+    }> = {}
     this.metrics.forEach((metric, provider) => {
       result[provider] = {
         ...metric,
@@ -408,7 +416,7 @@ class GrokProvider {
 
 // Main AI Manager with intelligent fallback
 export class AIProviderManager {
-  private providers: Map<AIProvider, any> = new Map()
+  private providers: Map<AIProvider, OpenAIProvider | ClaudeProvider | GrokProvider> = new Map()
   private configs: Map<AIProvider, AIConfig> = new Map()
 
   constructor() {
@@ -558,8 +566,18 @@ export class AIProviderManager {
     }
   }
 
-  async testAllProviders(): Promise<Record<AIProvider, any>> {
-    const results: Record<string, any> = {}
+  async testAllProviders(): Promise<Record<AIProvider, {
+    success: boolean
+    responseTime?: number
+    error?: string
+    response?: string
+  }>> {
+    const results: Record<string, {
+      success: boolean
+      responseTime?: number
+      error?: string
+      response?: string
+    }> = {}
     const availableProviders = this.getAvailableProviders()
     
     await Promise.all(
