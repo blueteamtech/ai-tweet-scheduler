@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { addTweetToQueue } from '@/lib/queue-scheduler';
+import { validateLongFormContent, getAccurateCharacterCount } from '@/lib/content-management';
 
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -9,7 +10,7 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    const { content } = await request.json();
+    const { content, contentType, formatOptions } = await request.json();
 
     if (!content) {
       return NextResponse.json(
@@ -18,11 +19,29 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    if (content.length > 280) {
-      return NextResponse.json(
-        { error: 'Tweet content must be 280 characters or less' },
-        { status: 400 }
-      );
+    // Smart content validation based on type
+    const characterCount = getAccurateCharacterCount(content);
+    
+    if (contentType === 'single' && characterCount.displayCount > 280) {
+      return NextResponse.json({ 
+        error: 'Single tweet content is too long (280 characters max). Try using thread or long-form mode.' 
+      }, { status: 400 });
+    }
+    
+    if (contentType === 'long-form') {
+      const validation = validateLongFormContent(content);
+      if (!validation.valid) {
+        return NextResponse.json({ 
+          error: validation.reason || 'Invalid long-form content' 
+        }, { status: 400 });
+      }
+    }
+    
+    // For threads and auto mode, allow longer content
+    if (characterCount.displayCount > 10000) {
+      return NextResponse.json({ 
+        error: 'Content is too long (10,000 characters max)' 
+      }, { status: 400 });
     }
 
     // Get user from auth header
@@ -45,13 +64,14 @@ export async function POST(request: NextRequest) {
     }
 
     // Add tweet to queue
-    console.log('[queue-tweet] About to call addTweetToQueue for user:', user.id);
+    console.log('[queue-tweet] About to call addTweetToQueue for user:', user.id, 'contentType:', contentType);
     const result = await addTweetToQueue(user.id, content);
     console.log('[queue-tweet] addTweetToQueue result:', {
       tweetId: result.tweet.id,
       scheduledAt: result.tweet.scheduled_at,
       queueDate: result.queueSlot.date.toISOString().split('T')[0],
-      slot: result.queueSlot.slot
+      slot: result.queueSlot.slot,
+      contentType: contentType
     });
 
     // Automatically schedule with QStash (no manual processing needed)

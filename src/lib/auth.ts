@@ -80,7 +80,7 @@ export async function getUserFromRequest(request: NextRequest) {
 export const tweetSchema = z.object({
   tweetContent: z.string()
     .min(1, 'Tweet content is required')
-    .max(280, 'Tweet must be 280 characters or less')
+    .max(10000, 'Tweet content too long (10,000 characters max)')
     .refine((content: string) => content.trim().length > 0, 'Tweet cannot be empty')
     .refine((content: string) => !content.includes('\x00'), 'Invalid characters detected'),
   scheduledAt: z.string().datetime().optional(),
@@ -103,7 +103,7 @@ export const tweetIdSchema = z.object({
 export const contentSchema = z.object({
   content: z.string()
     .min(1, 'Content is required')
-    .max(280, 'Content must be 280 characters or less')
+    .max(10000, 'Content too long (10,000 characters max)')
     .refine((content: string) => content.trim().length > 0, 'Content cannot be empty')
     .refine((content: string) => !content.includes('\x00'), 'Invalid characters detected'),
 })
