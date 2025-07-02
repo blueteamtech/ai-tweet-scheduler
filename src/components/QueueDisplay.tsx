@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useImperativeHandle, forwardRef, useCallback } from 'react'
+import { useState, useEffect, useImperativeHandle, forwardRef, useCallback, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { Tweet } from '@/types'
 
@@ -38,8 +38,12 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
   const [saving, setSaving] = useState(false)
   const [removingTweet, setRemovingTweet] = useState<string | null>(null)
   const [autoRefreshActive, setAutoRefreshActive] = useState(false)
-  const [refreshIntervalId, setRefreshIntervalId] = useState<NodeJS.Timeout | null>(null)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
+  
+  // Use refs to avoid dependency issues
+  const refreshIntervalRef = useRef<NodeJS.Timeout | null>(null)
+  const consecutiveFailuresRef = useRef(0)
+  const maxFailures = 3
 
   const loadQueueStatus = useCallback(async (silent = false) => {
     try {
@@ -104,9 +108,18 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
 
       setQueueDays(transformedDays)
       setLastRefresh(new Date())
+      consecutiveFailuresRef.current = 0 // Reset failure count on success
     } catch (error) {
       console.error('Error loading queue status:', error)
-      setError('Failed to load queue status')
+      consecutiveFailuresRef.current += 1
+      
+      // Stop auto-refresh after too many failures to prevent runaway requests
+      if (consecutiveFailuresRef.current >= maxFailures) {
+        stopAutoRefresh()
+        setError(`Failed to load queue status (${consecutiveFailuresRef.current} failures). Auto-refresh disabled.`)
+      } else {
+        setError('Failed to load queue status')
+      }
     } finally {
       setLoading(false)
       setRefreshing(false)
@@ -114,25 +127,39 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
   }, [])
 
   const startAutoRefresh = useCallback(() => {
-    if (refreshIntervalId) {
-      clearInterval(refreshIntervalId)
+    // Clear any existing interval
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current)
     }
+    
+    // Reset failure count when manually starting
+    consecutiveFailuresRef.current = 0
     
     const intervalId = setInterval(() => {
-      loadQueueStatus(true) // Silent refresh
+      // Check if we should continue auto-refresh
+      if (consecutiveFailuresRef.current < maxFailures) {
+        loadQueueStatus(true) // Silent refresh
+      } else {
+        // Stop auto-refresh if too many failures
+        if (refreshIntervalRef.current) {
+          clearInterval(refreshIntervalRef.current)
+          refreshIntervalRef.current = null
+        }
+        setAutoRefreshActive(false)
+      }
     }, autoRefreshInterval)
     
-    setRefreshIntervalId(intervalId)
+    refreshIntervalRef.current = intervalId
     setAutoRefreshActive(true)
-  }, [refreshIntervalId, autoRefreshInterval])
+  }, [autoRefreshInterval, loadQueueStatus])
 
   const stopAutoRefresh = useCallback(() => {
-    if (refreshIntervalId) {
-      clearInterval(refreshIntervalId)
-      setRefreshIntervalId(null)
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current)
+      refreshIntervalRef.current = null
     }
     setAutoRefreshActive(false)
-  }, [refreshIntervalId])
+  }, [])
 
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({
@@ -141,6 +168,7 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
     stopAutoRefresh
   }))
 
+  // Initialize component - only run once when userId changes
   useEffect(() => {
     loadQueueStatus()
     
@@ -151,10 +179,17 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
     return () => {
       stopAutoRefresh()
     }
-  }, [userId, startAutoRefresh, stopAutoRefresh, loadQueueStatus])
+  }, [userId]) // Remove function dependencies to prevent infinite loop
 
   const handleManualRefresh = () => {
+    // Reset failure count on manual refresh
+    consecutiveFailuresRef.current = 0
     loadQueueStatus(false)
+    
+    // Restart auto-refresh if it was stopped due to failures
+    if (!autoRefreshActive) {
+      startAutoRefresh()
+    }
   }
 
   const formatTime = (scheduledAt: string) => {
