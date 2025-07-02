@@ -41,46 +41,6 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
   const [refreshIntervalId, setRefreshIntervalId] = useState<NodeJS.Timeout | null>(null)
   const [lastRefresh, setLastRefresh] = useState<Date | null>(null)
 
-  const startAutoRefresh = useCallback(() => {
-    if (refreshIntervalId) {
-      clearInterval(refreshIntervalId)
-    }
-    
-    const intervalId = setInterval(() => {
-      loadQueueStatus(true) // Silent refresh
-    }, autoRefreshInterval)
-    
-    setRefreshIntervalId(intervalId)
-    setAutoRefreshActive(true)
-  }, [refreshIntervalId, autoRefreshInterval])
-
-  const stopAutoRefresh = useCallback(() => {
-    if (refreshIntervalId) {
-      clearInterval(refreshIntervalId)
-      setRefreshIntervalId(null)
-    }
-    setAutoRefreshActive(false)
-  }, [refreshIntervalId])
-
-  // Expose methods to parent via ref
-  useImperativeHandle(ref, () => ({
-    refreshQueue: loadQueueStatus,
-    startAutoRefresh,
-    stopAutoRefresh
-  }))
-
-  useEffect(() => {
-    loadQueueStatus()
-    
-    // Start auto-refresh by default
-    startAutoRefresh()
-    
-    // Cleanup on unmount
-    return () => {
-      stopAutoRefresh()
-    }
-  }, [userId, startAutoRefresh, stopAutoRefresh, loadQueueStatus])
-
   const loadQueueStatus = useCallback(async (silent = false) => {
     try {
       if (!silent) {
@@ -152,6 +112,46 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
       setRefreshing(false)
     }
   }, [])
+
+  const startAutoRefresh = useCallback(() => {
+    if (refreshIntervalId) {
+      clearInterval(refreshIntervalId)
+    }
+    
+    const intervalId = setInterval(() => {
+      loadQueueStatus(true) // Silent refresh
+    }, autoRefreshInterval)
+    
+    setRefreshIntervalId(intervalId)
+    setAutoRefreshActive(true)
+  }, [refreshIntervalId, autoRefreshInterval])
+
+  const stopAutoRefresh = useCallback(() => {
+    if (refreshIntervalId) {
+      clearInterval(refreshIntervalId)
+      setRefreshIntervalId(null)
+    }
+    setAutoRefreshActive(false)
+  }, [refreshIntervalId])
+
+  // Expose methods to parent via ref
+  useImperativeHandle(ref, () => ({
+    refreshQueue: loadQueueStatus,
+    startAutoRefresh,
+    stopAutoRefresh
+  }))
+
+  useEffect(() => {
+    loadQueueStatus()
+    
+    // Start auto-refresh by default
+    startAutoRefresh()
+    
+    // Cleanup on unmount
+    return () => {
+      stopAutoRefresh()
+    }
+  }, [userId, startAutoRefresh, stopAutoRefresh, loadQueueStatus])
 
   const handleManualRefresh = () => {
     loadQueueStatus(false)
