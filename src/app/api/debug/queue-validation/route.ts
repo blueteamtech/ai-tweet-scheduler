@@ -2,13 +2,62 @@ import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 import { calculateBaseTimes, generateDailyMinuteOffsets, calculatePostingTime, getDefaultQueueSettings } from '@/lib/timing-algorithm'
 
+interface QueueLogic {
+  default_settings?: {
+    posts_per_day: number
+    start_time: string
+    end_time: string
+    timezone: string
+    valid: boolean
+  }
+}
+
+interface TimingAlgorithm {
+  base_times?: string[]
+  daily_offsets?: number[]
+  base_times_count?: number
+  expected_count?: number
+  offsets_range?: {
+    min: number
+    max: number
+  }
+  valid?: boolean
+  test_slots?: Array<{
+    slot: number
+    scheduled_time?: string
+    minute_offset?: number
+    local_time?: string
+    valid: boolean
+    error?: string
+  }>
+  all_slots_valid?: boolean
+  time_range_validation?: {
+    morning_hour: number
+    evening_hour: number
+    within_business_hours: boolean
+  }
+}
+
+interface DatabaseConsistency {
+  tweets_table?: {
+    accessible: boolean
+    error: string | null
+  }
+  queue_settings_table?: {
+    accessible: boolean
+    error: string | null
+  }
+  overall_valid?: boolean
+  error?: string
+}
+
 export async function GET() {
   const startTime = Date.now()
   const validation = {
     timestamp: new Date().toISOString(),
-    queue_logic: {} as Record<string, any>,
-    timing_algorithm: {} as Record<string, any>,
-    database_consistency: {} as Record<string, any>,
+    queue_logic: {} as QueueLogic,
+    timing_algorithm: {} as TimingAlgorithm,
+    database_consistency: {} as DatabaseConsistency,
     overall_status: 'unknown' as 'valid' | 'issues_found' | 'error',
     response_time_ms: 0,
     issues: [] as string[],
@@ -82,7 +131,7 @@ export async function GET() {
       )
 
       // Check if required tables exist and have expected columns
-      const { data: tweetsSchema, error: tweetsError } = await supabase
+      const { error: tweetsError } = await supabase
         .from('tweets')
         .select('id, user_id, queue_date, time_slot, minute_offset, status, scheduled_at')
         .limit(1)
@@ -93,7 +142,7 @@ export async function GET() {
       }
 
       // Check if queue_settings table exists
-      const { data: queueSettingsSchema, error: queueError } = await supabase
+      const { error: queueError } = await supabase
         .from('queue_settings')
         .select('user_id, posts_per_day, start_time, end_time, timezone')
         .limit(1)

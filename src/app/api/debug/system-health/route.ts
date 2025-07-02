@@ -1,11 +1,26 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+interface ServiceHealth {
+  status: string
+  url?: string
+  error?: string | null
+  response_time_ms?: number
+  configured_vars?: number
+  total_vars?: number
+  missing_vars?: string[]
+  token_length?: number
+  webhook_url?: string
+  key_length?: number
+  key_configured?: boolean
+  secret_configured?: boolean
+}
+
 export async function GET() {
   const startTime = Date.now()
   const healthChecks = {
     timestamp: new Date().toISOString(),
-    services: {} as Record<string, any>,
+    services: {} as Record<string, ServiceHealth>,
     overall: 'unknown' as 'healthy' | 'degraded' | 'unhealthy' | 'unknown',
     response_time_ms: 0
   }
@@ -16,7 +31,7 @@ export async function GET() {
     const supabaseServiceKey = process.env.SUPABASE_SERVICE_ROLE_KEY!
     const supabase = createClient(supabaseUrl, supabaseServiceKey)
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('tweets')
       .select('count')
       .limit(1)

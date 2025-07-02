@@ -1,16 +1,105 @@
 import { NextResponse } from 'next/server'
 import { createClient } from '@supabase/supabase-js'
 
+interface TweetComposer {
+  character_limit?: number
+  status_options?: string[]
+  api_endpoints?: {
+    generate_tweet: string
+    queue_tweet: string
+    save_draft: string
+  }
+  validation_rules?: {
+    min_length: number
+    max_length: number
+    trim_whitespace: boolean
+    require_content: boolean
+  }
+  ui_states?: string[]
+}
+
+interface QueueDisplay {
+  date_range?: {
+    start_date: string
+    end_date: string
+    total_days: number
+  }
+  slot_configuration?: {
+    slots_per_day: number
+    time_window: string
+    slot_indicators: string[]
+  }
+  required_data?: {
+    date: string
+    display_date: string
+    weekday: string
+    slots_used: string
+    total_slots: string
+    tweets: string
+  }
+  api_endpoints?: {
+    queue_status: string
+    edit_tweet: string
+    cancel_tweet: string
+  }
+}
+
+interface TweetManager {
+  supported_statuses?: string[]
+  available_actions?: {
+    draft: string[]
+    scheduled: string[]
+    posted: string[]
+    failed: string[]
+  }
+  data_requirements?: {
+    tweet_content: string
+    status: string
+    created_at: string
+    scheduled_at: string
+    twitter_tweet_id: string
+  }
+}
+
+interface DataStructures {
+  tweet_schema?: {
+    accessible: boolean
+    sample_count: number
+    required_fields: string[]
+    error: string | null
+    structure_valid?: boolean
+    sample_fields?: string[]
+  }
+}
+
+interface ApiEndpoints {
+  debug_endpoints?: string[]
+  base_url?: string
+  authentication?: string
+  error?: string
+}
+
+interface CharacterValidation {
+  test_cases?: Array<{
+    text: string
+    length: number
+    valid: boolean
+    reason: string
+  }>
+  limit?: number
+  all_tests_expected?: boolean
+}
+
 export async function GET() {
   const startTime = Date.now()
   const componentTests = {
     timestamp: new Date().toISOString(),
-    tweet_composer: {} as Record<string, any>,
-    queue_display: {} as Record<string, any>,
-    tweet_manager: {} as Record<string, any>,
-    data_structures: {} as Record<string, any>,
-    api_endpoints: {} as Record<string, any>,
-    character_validation: {} as Record<string, any>,
+    tweet_composer: {} as TweetComposer,
+    queue_display: {} as QueueDisplay,
+    tweet_manager: {} as TweetManager,
+    data_structures: {} as DataStructures,
+    api_endpoints: {} as ApiEndpoints,
+    character_validation: {} as CharacterValidation,
     overall_status: 'unknown' as 'valid' | 'issues_found' | 'error',
     response_time_ms: 0,
     issues: [] as string[],
