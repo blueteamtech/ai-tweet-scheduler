@@ -9,7 +9,6 @@ import {
   estimateEngagement, 
   generatePreview,
   getAccurateCharacterCount,
-  validateLongFormContent,
   type ContentAnalysis,
   type ContentFormatOptions
 } from '@/lib/content-management'
