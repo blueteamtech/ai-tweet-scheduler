@@ -114,7 +114,7 @@ export async function POST(request: NextRequest) {
   }
 }
 
-export async function GET(request: NextRequest) {
+export async function GET() {
   try {
     // Get table schema and constraints
     const { data: tableInfo, error: schemaError } = await supabase
