@@ -61,12 +61,16 @@ export async function POST(request: NextRequest) {
     }
 
     // Check database constraints
-    const { data: constraintInfo, error: constraintError } = await supabase
-      .rpc('get_table_constraints', { table_name: 'user_writing_samples' })
-      .single();
+    try {
+      const { error: constraintError } = await supabase
+        .rpc('get_table_constraints', { table_name: 'user_writing_samples' })
+        .single();
 
-    if (constraintError) {
-      console.log('Could not fetch constraints:', constraintError);
+      if (constraintError) {
+        console.log('Could not fetch constraints:', constraintError);
+      }
+    } catch (error) {
+      console.log('Could not fetch constraints:', error);
     }
 
     // Try the actual insert to see what happens
