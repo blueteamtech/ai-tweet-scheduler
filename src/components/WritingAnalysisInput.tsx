@@ -255,7 +255,7 @@ export default function WritingAnalysisInput() {
               id="writing-content"
               value={content}
               onChange={(e) => setContent(e.target.value)}
-              placeholder="Paste a sample of your writing here (emails, articles, blog posts, previous tweets, etc.). Longer samples provide better personality analysis - don't hesitate to paste substantial content!"
+              placeholder="Paste a sample of your writing here (emails, articles, blog posts, previous tweets, etc.). Longer samples (up to 50k characters) provide better personality analysis - don't hesitate to paste full articles or substantial content!"
               className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
               rows={6}
               disabled={isAnalyzing}
@@ -273,6 +273,16 @@ export default function WritingAnalysisInput() {
                 )}
                 {trimmedCharacterCount < 50 && (
                   <span className="block text-xs">Minimum 50 characters needed (after trimming)</span>
+                )}
+                {trimmedCharacterCount > 45000 && (
+                  <span className="block text-xs text-orange-600">
+                    Approaching 50k character limit ({(50000 - trimmedCharacterCount).toLocaleString()} remaining)
+                  </span>
+                )}
+                {trimmedCharacterCount >= 1000 && trimmedCharacterCount <= 45000 && (
+                  <span className="block text-xs text-green-600">
+                    Great sample size for personality analysis!
+                  </span>
                 )}
               </div>
               
@@ -438,7 +448,7 @@ export default function WritingAnalysisInput() {
         <div className="space-y-2 text-sm text-gray-700">
           <div className="flex items-start space-x-2">
             <span className="text-purple-500 mt-0.5">•</span>
-            <span>Add samples of your natural writing (emails, articles, social posts)</span>
+            <span>Add samples of your natural writing (emails, articles, social posts, up to 50k characters each)</span>
           </div>
           <div className="flex items-start space-x-2">
             <span className="text-purple-500 mt-0.5">•</span>
@@ -446,11 +456,15 @@ export default function WritingAnalysisInput() {
           </div>
           <div className="flex items-start space-x-2">
             <span className="text-purple-500 mt-0.5">•</span>
+            <span>Longer samples (1k+ characters) provide richer personality analysis</span>
+          </div>
+          <div className="flex items-start space-x-2">
+            <span className="text-purple-500 mt-0.5">•</span>
             <span>When generating tweets, AI matches your unique writing style</span>
           </div>
           <div className="flex items-start space-x-2">
             <span className="text-purple-500 mt-0.5">•</span>
-            <span>More samples = better personality matching and more authentic tweets</span>
+            <span>More diverse samples = better personality matching and more authentic tweets</span>
           </div>
         </div>
       </div>

@@ -103,16 +103,16 @@ export const tweetIdSchema = z.object({
 export const contentSchema = z.object({
   content: z.string()
     .min(1, 'Content is required')
-    .max(10000, 'Content too long (10,000 characters max)')
+    .max(50000, 'Content too long (50,000 characters max)')
     .refine((content: string) => content.trim().length > 0, 'Content cannot be empty')
     .refine((content: string) => !content.includes('\x00'), 'Invalid characters detected'),
 })
 
 export const writingSampleSchema = z.object({
   content: z.string()
-    .min(10, 'Writing sample must be at least 10 characters')
-    .max(10000, 'Writing sample too long (max 10,000 characters)')
-    .refine((content: string) => content.trim().length >= 10, 'Writing sample too short')
+    .min(50, 'Writing sample must be at least 50 characters')
+    .max(50000, 'Writing sample too long (max 50,000 characters)')
+    .refine((content: string) => content.trim().length >= 50, 'Writing sample too short after trimming')
     .refine((content: string) => !content.includes('\x00'), 'Invalid characters detected'),
   content_type: z.string().optional().default('sample'),
 })

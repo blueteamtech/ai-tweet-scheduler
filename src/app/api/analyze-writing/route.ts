@@ -59,15 +59,14 @@ export async function POST(request: NextRequest) {
     }
     
     // Additional validation for database constraints (should never fail after 50-char check, but safety)
-    if (trimmedContent.length < 10 || trimmedContent.length > 10000) {
+    if (trimmedContent.length > 50000) {
       console.error('Content length constraint violation:', {
         length: trimmedContent.length,
-        minRequired: 10,
-        maxAllowed: 10000
+        maxAllowed: 50000
       });
       return NextResponse.json({
         success: false,
-        error: 'Content must be between 10 and 10000 characters'
+        error: 'Content must be under 50,000 characters (for optimal performance and storage efficiency)'
       } as AnalyzeWritingResponse, { status: 400 });
     }
 
@@ -107,10 +106,22 @@ export async function POST(request: NextRequest) {
       } as AnalyzeWritingResponse, { status: 500 });
     }
 
+    // Provide helpful feedback based on sample size
+    let message = 'Writing sample analyzed and stored successfully! This will help improve AI tweet generation.';
+    if (trimmedContent.length >= 5000) {
+      message += ' Great sample size - this will provide rich personality analysis for more authentic tweets!';
+    } else if (trimmedContent.length >= 1000) {
+      message += ' Good sample size for personality matching!';
+    }
+
     return NextResponse.json({
       success: true,
-      message: 'Writing sample analyzed and stored successfully! This will help improve AI tweet generation.',
-      sample_id: sample.id
+      message,
+      sample_id: sample.id,
+      sample_stats: {
+        character_count: trimmedContent.length,
+        estimated_words: Math.round(trimmedContent.length / 5)
+      }
     } as AnalyzeWritingResponse, { status: 200 });
 
   } catch (error) {
