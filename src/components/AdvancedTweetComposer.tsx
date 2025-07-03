@@ -29,15 +29,30 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   const [formatOptions, setFormatOptions] = useState<ContentFormatOptions>({
     maxCharactersPerTweet: 280,
     threadingStyle: 'numbered',
-    longFormEnabled: true,
+    longFormEnabled: true, // This should always be true for automatic detection
     preserveParagraphs: true,
     smartBreaking: true
   })
+
+  // Force re-analysis when component mounts to clear any cache
+  useEffect(() => {
+    if (tweetContent.trim()) {
+      const analysis = analyzeContent(tweetContent, formatOptions)
+      setContentAnalysis(analysis)
+    }
+  }, []) // Run once on mount
 
   // Analyze content whenever it changes
   useEffect(() => {
     if (tweetContent.trim()) {
       const analysis = analyzeContent(tweetContent, formatOptions)
+      console.log('🔍 Content Analysis Debug:', {
+        contentLength: tweetContent.trim().length,
+        formatOptions: formatOptions,
+        result: analysis.contentType,
+        longFormEnabled: formatOptions.longFormEnabled,
+        characterCount: analysis.characterCount
+      })
       setContentAnalysis(analysis)
     } else {
       setContentAnalysis(null)
@@ -80,6 +95,42 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
       console.error('Error generating tweet:', error)
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const saveDraft = async () => {
+    if (!user || !tweetContent.trim()) {
+      onError('Please enter some content before saving')
+      return
+    }
+
+    setIsSaving(true)
+    onError('')
+
+    try {
+      const { error } = await supabase
+        .from('tweets')
+        .insert([
+          {
+            user_id: user.id,
+            tweet_content: tweetContent.trim(),
+            status: 'draft'
+          }
+        ])
+
+      if (error) throw error
+
+      onSuccess('Draft saved successfully!')
+      setTweetContent('')
+      setShowPreview(false)
+      onTweetAdded()
+      
+      setTimeout(() => onSuccess(''), 3000)
+    } catch (error) {
+      onError('Failed to save draft. Please try again.')
+      console.error('Error saving draft:', error)
+    } finally {
+      setIsSaving(false)
     }
   }
 
@@ -357,6 +408,24 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
             <>
               <span className="text-lg">🚀</span>
               <span>Add to Queue</span>
+            </>
+          )}
+        </button>
+
+        <button
+          onClick={saveDraft}
+          disabled={isSaving || !tweetContent.trim() || isOverLimit}
+          className="bg-gradient-to-r from-gray-600 to-gray-700 hover:from-gray-700 hover:to-gray-800 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-semibold text-base flex items-center space-x-2 shadow-lg transition-all duration-200 hover:shadow-xl transform hover:-translate-y-0.5"
+        >
+          {isSaving ? (
+            <>
+              <div className="animate-spin rounded-full h-5 w-5 border-2 border-white border-t-transparent"></div>
+              <span>Saving...</span>
+            </>
+          ) : (
+            <>
+              <span className="text-lg">💾</span>
+              <span>Save Draft</span>
             </>
           )}
         </button>
