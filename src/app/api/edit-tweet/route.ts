@@ -67,11 +67,26 @@ export async function PUT(request: NextRequest) {
       return NextResponse.json({ error: 'Tweet not found' }, { status: 404 })
     }
 
-    // Only allow editing of queued or draft tweets
-    if (!['queued', 'draft'].includes(existingTweet.status)) {
+    // Allow editing of queued, draft, and scheduled tweets (but not posted or failed)
+    if (!['queued', 'draft', 'scheduled'].includes(existingTweet.status)) {
       return NextResponse.json({ 
-        error: `Cannot edit tweet with status: ${existingTweet.status}. Only queued and draft tweets can be edited.` 
+        error: `Cannot edit tweet with status: ${existingTweet.status}. Only queued, draft, and scheduled tweets can be edited.` 
       }, { status: 400 })
+    }
+
+    // If the tweet is scheduled, we need to handle QStash
+    let shouldReschedule = false
+    if (existingTweet.status === 'scheduled' && existingTweet.qstash_message_id) {
+      try {
+        // Cancel the existing QStash schedule
+        const { cancelScheduledTweet } = await import('@/lib/qstash')
+        await cancelScheduledTweet(existingTweet.qstash_message_id)
+        console.log('[edit-tweet] Cancelled existing QStash message:', existingTweet.qstash_message_id)
+        shouldReschedule = true
+      } catch (qstashError) {
+        console.error('[edit-tweet] Failed to cancel QStash message:', qstashError)
+        // Continue with the edit, but log the issue
+      }
     }
 
     // Update the tweet content
@@ -79,6 +94,7 @@ export async function PUT(request: NextRequest) {
       tweet_content: string
       updated_at: string
       content_type?: string
+      qstash_message_id?: null
     } = { 
       tweet_content: content.trim(),
       updated_at: new Date().toISOString()
@@ -87,6 +103,11 @@ export async function PUT(request: NextRequest) {
     // Store content type if provided
     if (contentType) {
       updateData.content_type = contentType
+    }
+
+    // Clear QStash message ID if we're editing a scheduled tweet
+    if (shouldReschedule) {
+      updateData.qstash_message_id = null
     }
 
     const { data: updatedTweet, error: updateError } = await supabase
@@ -101,18 +122,50 @@ export async function PUT(request: NextRequest) {
       throw new Error(`Failed to update tweet: ${updateError.message}`)
     }
 
+    // If we need to reschedule, do it now
+    if (shouldReschedule && existingTweet.scheduled_at) {
+      try {
+        const { scheduleTweet } = await import('@/lib/qstash')
+        const qstashResult = await scheduleTweet(
+          tweetId,
+          user.id,
+          content.trim(),
+          new Date(existingTweet.scheduled_at)
+        )
+
+        // Update with new QStash message ID
+        await supabase
+          .from('tweets')
+          .update({ 
+            qstash_message_id: qstashResult.messageId,
+            status: 'scheduled' // Ensure it stays scheduled
+          })
+          .eq('id', tweetId)
+
+        console.log('[edit-tweet] Rescheduled tweet with new QStash message:', qstashResult.messageId)
+      } catch (rescheduleError) {
+        console.error('[edit-tweet] Failed to reschedule tweet:', rescheduleError)
+        // Set status back to queued if rescheduling fails
+        await supabase
+          .from('tweets')
+          .update({ status: 'queued' })
+          .eq('id', tweetId)
+      }
+    }
+
     console.log('[edit-tweet] Successfully updated tweet:', tweetId)
 
     return NextResponse.json({
       success: true,
-      message: 'Tweet updated successfully',
+      message: shouldReschedule ? 'Tweet updated and rescheduled successfully' : 'Tweet updated successfully',
       tweet: {
         id: updatedTweet.id,
         tweet_content: updatedTweet.tweet_content,
         content_type: updatedTweet.content_type,
         status: updatedTweet.status,
         updated_at: updatedTweet.updated_at
-      }
+      },
+      rescheduled: shouldReschedule
     })
 
   } catch (error) {
