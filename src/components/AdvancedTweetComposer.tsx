@@ -5,8 +5,6 @@ import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
 import { 
   analyzeContent, 
-  estimateEngagement, 
-  generatePreview,
   getAccurateCharacterCount,
   type ContentAnalysis,
   type ContentFormatOptions
@@ -25,7 +23,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   const [isSaving, setIsSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
   const [contentAnalysis, setContentAnalysis] = useState<ContentAnalysis | null>(null)
-  const [formatOptions, setFormatOptions] = useState<ContentFormatOptions>({
+  const [formatOptions] = useState<ContentFormatOptions>({
     maxCharactersPerTweet: 280,
     longFormEnabled: true
   })
@@ -36,7 +34,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
       try {
         const analysis = analyzeContent(tweetContent, formatOptions)
         setContentAnalysis(analysis)
-      } catch (error) {
+      } catch {
         // Content too long for both single and long-form
         setContentAnalysis(null)
       }

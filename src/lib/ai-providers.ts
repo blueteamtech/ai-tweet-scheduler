@@ -610,34 +610,4 @@ export class AIProviderManager {
 }
 
 // Singleton instance
-export const aiProviderManager = new AIProviderManager()
-
-const getContentTypePrompts = (contentType: 'single' | 'long-form' | 'auto') => {
-  const prompts = {
-    'single': '- Keep it under 280 characters',
-    'long-form': '- Write as a long-form tweet (280-4000 characters), use paragraphs and detailed thoughts',
-    'auto': '- Choose the best format: single tweet (≤280 chars) or long-form tweet (281-4000 chars)'
-  }
-  
-  return prompts[contentType] || prompts.auto
-}
-
-const getClaudeContentTypePrompts = (contentType: 'single' | 'long-form' | 'auto') => {
-  const prompts = {
-    'single': '- Keep it concise, under 280 characters',
-    'long-form': '- Write as a long-form tweet (280-4000 characters) with detailed insights and proper structure',
-    'auto': '- Choose the optimal format: single tweet (≤280 chars) or long-form tweet (281-4000 chars) based on content depth'
-  }
-  
-  return prompts[contentType] || prompts.auto
-}
-
-const getGrokContentTypePrompts = (contentType: 'single' | 'long-form' | 'auto') => {
-  const prompts = {
-    'single': '- Keep it punchy and under 280 characters',
-    'long-form': '- Write as a long-form tweet (280-4000 characters) with depth and personality',
-    'auto': '- Choose the best format: short and punchy (≤280 chars) or detailed long-form (281-4000 chars)'
-  }
-  
-  return prompts[contentType] || prompts.auto
-} 
+export const aiProviderManager = new AIProviderManager() 
