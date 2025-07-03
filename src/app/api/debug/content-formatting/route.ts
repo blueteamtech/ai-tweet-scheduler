@@ -4,8 +4,7 @@ import {
   validateLongFormContent,
   estimateEngagement,
   generatePreview,
-  getAccurateCharacterCount,
-  type ContentFormatOptions
+  getAccurateCharacterCount
 } from '@/lib/content-management'
 
 interface ContentFormattingTest {
