@@ -43,22 +43,22 @@ export async function POST(request: NextRequest) {
     const body: AnalyzeWritingRequest = await request.json();
     const { content, content_type = 'sample' } = body;
 
-    // Validate input
-    if (!content || content.trim().length < 50) {
+    // Validate input - ensure we validate the TRIMMED content that will be stored
+    const trimmedContent = content.trim();
+    
+    if (!content || trimmedContent.length < 50) {
       console.error('Content validation failed:', {
         hasContent: !!content,
         originalLength: content?.length || 0,
-        trimmedLength: content?.trim().length || 0
+        trimmedLength: trimmedContent.length
       });
       return NextResponse.json({
         success: false,
-        error: 'Content must be at least 50 characters long'
+        error: 'Content must be at least 50 characters long (after removing extra whitespace)'
       } as AnalyzeWritingResponse, { status: 400 });
     }
-
-    const trimmedContent = content.trim();
     
-    // Additional validation for database constraints
+    // Additional validation for database constraints (should never fail after 50-char check, but safety)
     if (trimmedContent.length < 10 || trimmedContent.length > 10000) {
       console.error('Content length constraint violation:', {
         length: trimmedContent.length,

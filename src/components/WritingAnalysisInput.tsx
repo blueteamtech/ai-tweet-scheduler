@@ -25,14 +25,16 @@ export default function WritingAnalysisInput() {
   const [saving, setSaving] = useState(false);
   const [deleting, setDeleting] = useState<string | null>(null);
 
+  const trimmedContent = content.trim();
   const characterCount = content.length;
-  const isValid = content.trim().length >= 50;
+  const trimmedCharacterCount = trimmedContent.length;
+  const isValid = trimmedCharacterCount >= 50;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
     if (!isValid) {
-      setError('Please enter at least 50 characters');
+      setError(`Please enter at least 50 characters (currently ${trimmedCharacterCount} after removing extra whitespace)`);
       return;
     }
 
@@ -124,8 +126,9 @@ export default function WritingAnalysisInput() {
   };
 
   const saveEdit = async (sampleId: string) => {
-    if (!editContent.trim() || editContent.trim().length < 50) {
-      setError('Content must be at least 50 characters');
+    const trimmedEditContent = editContent.trim();
+    if (!editContent || trimmedEditContent.length < 50) {
+      setError(`Content must be at least 50 characters (currently ${trimmedEditContent.length} after removing extra whitespace)`);
       return;
     }
 
@@ -149,7 +152,7 @@ export default function WritingAnalysisInput() {
         },
         body: JSON.stringify({
           id: sampleId,
-          content: editContent.trim(),
+          content: trimmedEditContent,
           content_type: editContentType
         })
       });
@@ -260,11 +263,16 @@ export default function WritingAnalysisInput() {
             
             <div className="flex justify-between items-center mt-2">
               <div className={`text-sm ${
-                characterCount < 50 ? 'text-red-500' : 'text-gray-500'
+                trimmedCharacterCount < 50 ? 'text-red-500' : 'text-gray-500'
               }`}>
                 {characterCount} characters
-                {characterCount < 50 && (
-                  <span className="block text-xs">Minimum 50 characters needed</span>
+                {characterCount !== trimmedCharacterCount && (
+                  <span className="block text-xs text-gray-400">
+                    ({trimmedCharacterCount} after removing extra whitespace)
+                  </span>
+                )}
+                {trimmedCharacterCount < 50 && (
+                  <span className="block text-xs">Minimum 50 characters needed (after trimming)</span>
                 )}
               </div>
               
@@ -350,9 +358,13 @@ export default function WritingAnalysisInput() {
                         disabled={saving}
                       />
                       <div className={`text-xs mt-1 ${
-                        editContent.length < 50 ? 'text-red-600' : 'text-gray-500'
+                        editContent.trim().length < 50 ? 'text-red-600' : 'text-gray-500'
                       }`}>
-                        {editContent.length} characters (minimum 50)
+                        {editContent.length} characters
+                        {editContent.length !== editContent.trim().length && (
+                          <span className="text-gray-400"> ({editContent.trim().length} after trimming)</span>
+                        )}
+                        <span className="block">Minimum 50 characters needed (after trimming)</span>
                       </div>
                     </div>
                     <div className="flex justify-end space-x-2">
@@ -365,7 +377,7 @@ export default function WritingAnalysisInput() {
                       </button>
                       <button
                         onClick={() => saveEdit(sample.id)}
-                        disabled={saving || !editContent.trim() || editContent.length < 50}
+                        disabled={saving || !editContent.trim() || editContent.trim().length < 50}
                         className="px-4 py-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-300 disabled:cursor-not-allowed text-white text-sm font-medium rounded"
                       >
                         {saving ? 'Saving...' : 'Save Changes'}

@@ -317,3 +317,8 @@ Before any major work:
 - ✅ Simplified database development workflow
 
 Remember: The queue scheduler introduces automated timing and queue management. Use MCP Supabase for efficient database management and take time to research APIs to avoid costly mistakes. 
+
+- When testing, instead of npm run process, let's go ahead and git add commit push so we can deploy it directly to vercel and i can take a look there. Don't test debug at endpoint ie npm run test
+- this is my url https://ai-tweet-scheduler.vercel.app/
+- when we debug let us not require authentication or bearer token
+
