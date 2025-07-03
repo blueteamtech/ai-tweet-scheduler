@@ -45,30 +45,65 @@ export async function POST(request: NextRequest) {
 
     // Validate input
     if (!content || content.trim().length < 50) {
+      console.error('Content validation failed:', {
+        hasContent: !!content,
+        originalLength: content?.length || 0,
+        trimmedLength: content?.trim().length || 0
+      });
       return NextResponse.json({
         success: false,
         error: 'Content must be at least 50 characters long'
       } as AnalyzeWritingResponse, { status: 400 });
     }
 
+    const trimmedContent = content.trim();
+    
+    // Additional validation for database constraints
+    if (trimmedContent.length < 10 || trimmedContent.length > 10000) {
+      console.error('Content length constraint violation:', {
+        length: trimmedContent.length,
+        minRequired: 10,
+        maxAllowed: 10000
+      });
+      return NextResponse.json({
+        success: false,
+        error: 'Content must be between 10 and 10000 characters'
+      } as AnalyzeWritingResponse, { status: 400 });
+    }
+
+    console.log('Attempting to store writing sample:', {
+      userId: user.id,
+      contentLength: trimmedContent.length,
+      contentType: content_type,
+      contentPreview: trimmedContent.substring(0, 100)
+    });
+
     // Store writing sample in database
+    const insertData = {
+      user_id: user.id,
+      content: trimmedContent,
+      content_type: content_type,
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString()
+    };
+
     const { data: sample, error: insertError } = await supabase
       .from('user_writing_samples')
-      .insert({
-        user_id: user.id,
-        content: content.trim(),
-        content_type: content_type,
-        created_at: new Date().toISOString(),
-        updated_at: new Date().toISOString()
-      })
+      .insert(insertData)
       .select('id')
       .single();
 
     if (insertError) {
-      console.error('Failed to store writing sample:', insertError);
+      console.error('Failed to store writing sample:', {
+        error: insertError,
+        insertData: {
+          ...insertData,
+          content: '[content hidden for logging]'
+        }
+      });
       return NextResponse.json({
         success: false,
-        error: 'Failed to store writing sample'
+        error: `Failed to store writing sample: ${insertError.message || 'Unknown database error'}`
       } as AnalyzeWritingResponse, { status: 500 });
     }
 
