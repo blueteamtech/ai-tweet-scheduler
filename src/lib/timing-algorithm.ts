@@ -113,14 +113,7 @@ export function calculatePostingTime(
   return { scheduledTime, minuteOffset };
 }
 
-// Helper function to convert time to user's timezone (placeholder for future enhancement)
-// eslint-disable-next-line @typescript-eslint/no-unused-vars
-export function convertToUserTimezone(date: Date, _timezone: string): Date {
-  // For now, just return the date as-is
-  // In production, you'd use a library like date-fns-tz or luxon
-  // to properly handle timezone conversion
-  return date;
-}
+
 
 // Get default queue settings
 export function getDefaultQueueSettings(): QueueSettings {

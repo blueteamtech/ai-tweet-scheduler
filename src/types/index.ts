@@ -340,31 +340,6 @@ export interface DebugInfo {
 }
 
 // ==========================================
-// TYPE GUARDS
-// ==========================================
-
-export function isTweet(obj: unknown): obj is Tweet {
-  return !!(obj && 
-    typeof obj === 'object' &&
-    'id' in obj &&
-    'user_id' in obj &&
-    'tweet_content' in obj &&
-    'status' in obj &&
-    typeof (obj as Record<string, unknown>).id === 'string' &&
-    typeof (obj as Record<string, unknown>).user_id === 'string' &&
-    typeof (obj as Record<string, unknown>).tweet_content === 'string' &&
-    ['draft', 'queued', 'scheduled', 'posted', 'failed'].includes((obj as Record<string, unknown>).status as string))
-}
-
-export function isValidTweetStatus(status: string): status is TweetStatus {
-  return ['draft', 'queued', 'scheduled', 'posted', 'failed'].includes(status)
-}
-
-export function isTemplateCategory(category: string): category is TemplateCategory {
-  return ['wisdom', 'story', 'motivational', 'paradox', 'framework'].includes(category)
-}
-
-// ==========================================
 // CONSTANTS
 // ==========================================
 

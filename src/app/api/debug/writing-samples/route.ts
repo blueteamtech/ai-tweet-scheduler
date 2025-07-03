@@ -13,16 +13,6 @@ const supabase = createClient(
 
 export async function POST(request: NextRequest) {
   try {
-    // Check for debug token
-    const authHeader = request.headers.get('authorization');
-    const debugToken = process.env.DEBUG_TOKEN;
-    
-    if (!debugToken || authHeader !== `Bearer ${debugToken}`) {
-      return NextResponse.json({
-        error: 'Debug authentication required'
-      }, { status: 401 });
-    }
-
     const body = await request.json();
     const { content, content_type = 'sample', user_id_override } = body;
 
@@ -126,16 +116,6 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    // Check for debug token
-    const authHeader = request.headers.get('authorization');
-    const debugToken = process.env.DEBUG_TOKEN;
-    
-    if (!debugToken || authHeader !== `Bearer ${debugToken}`) {
-      return NextResponse.json({
-        error: 'Debug authentication required'
-      }, { status: 401 });
-    }
-
     // Get table schema and constraints
     const { data: tableInfo, error: schemaError } = await supabase
       .from('information_schema.columns')

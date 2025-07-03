@@ -16,39 +16,237 @@ if (!supabaseUrl.startsWith('https://')) {
 // Create a single supabase client for interacting with your database
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
-// Type definitions for our database tables (we'll expand this as we add more tables)
+// Current Database Schema Types (Generated from Supabase)
+export type Json =
+  | string
+  | number
+  | boolean
+  | null
+  | { [key: string]: Json | undefined }
+  | Json[]
+
 export type Database = {
   public: {
     Tables: {
-      tweets: {
+      oauth_temp_storage: {
         Row: {
+          created_at: string | null
+          expires_at: string
           id: string
+          oauth_token: string
+          oauth_token_secret: string
           user_id: string
-          tweet_content: string
-          status: 'draft' | 'scheduled' | 'posted'
-          scheduled_at: string | null
-          created_at: string
-          updated_at: string
         }
         Insert: {
+          created_at?: string | null
+          expires_at: string
           id?: string
+          oauth_token: string
+          oauth_token_secret: string
           user_id: string
-          tweet_content: string
-          status?: 'draft' | 'scheduled' | 'posted'
-          scheduled_at?: string | null
-          created_at?: string
-          updated_at?: string
         }
         Update: {
+          created_at?: string | null
+          expires_at?: string
           id?: string
+          oauth_token?: string
+          oauth_token_secret?: string
           user_id?: string
-          tweet_content?: string
-          status?: 'draft' | 'scheduled' | 'posted'
-          scheduled_at?: string | null
-          created_at?: string
-          updated_at?: string
         }
+        Relationships: []
       }
+      queue_settings: {
+        Row: {
+          created_at: string | null
+          end_time: string | null
+          posts_per_day: number | null
+          start_time: string | null
+          timezone: string | null
+          updated_at: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          end_time?: string | null
+          posts_per_day?: number | null
+          start_time?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          end_time?: string | null
+          posts_per_day?: number | null
+          start_time?: string | null
+          timezone?: string | null
+          updated_at?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
+      tweet_templates: {
+        Row: {
+          category: string
+          created_at: string
+          example_tweet: string
+          id: string
+          last_used_at: string | null
+          template_structure: string
+          usage_count: number
+          word_count_max: number
+          word_count_min: number
+        }
+        Insert: {
+          category: string
+          created_at?: string
+          example_tweet: string
+          id?: string
+          last_used_at?: string | null
+          template_structure: string
+          usage_count?: number
+          word_count_max?: number
+          word_count_min?: number
+        }
+        Update: {
+          category?: string
+          created_at?: string
+          example_tweet?: string
+          id?: string
+          last_used_at?: string | null
+          template_structure?: string
+          usage_count?: number
+          word_count_max?: number
+          word_count_min?: number
+        }
+        Relationships: []
+      }
+      tweets: {
+        Row: {
+          created_at: string | null
+          error_message: string | null
+          id: string
+          minute_offset: number | null
+          posted_at: string | null
+          qstash_message_id: string | null
+          queue_date: string | null
+          queue_position: number | null
+          scheduled_at: string | null
+          status: string | null
+          time_slot: number | null
+          tweet_content: string
+          twitter_tweet_id: string | null
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          minute_offset?: number | null
+          posted_at?: string | null
+          qstash_message_id?: string | null
+          queue_date?: string | null
+          queue_position?: number | null
+          scheduled_at?: string | null
+          status?: string | null
+          time_slot?: number | null
+          tweet_content: string
+          twitter_tweet_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          minute_offset?: number | null
+          posted_at?: string | null
+          qstash_message_id?: string | null
+          queue_date?: string | null
+          queue_position?: number | null
+          scheduled_at?: string | null
+          status?: string | null
+          time_slot?: number | null
+          tweet_content?: string
+          twitter_tweet_id?: string | null
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_twitter_accounts: {
+        Row: {
+          access_token: string
+          connected_at: string | null
+          id: string
+          refresh_token: string | null
+          twitter_user_id: string
+          twitter_username: string
+          updated_at: string | null
+          user_id: string | null
+        }
+        Insert: {
+          access_token: string
+          connected_at?: string | null
+          id?: string
+          refresh_token?: string | null
+          twitter_user_id: string
+          twitter_username: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Update: {
+          access_token?: string
+          connected_at?: string | null
+          id?: string
+          refresh_token?: string | null
+          twitter_user_id?: string
+          twitter_username?: string
+          updated_at?: string | null
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      user_writing_samples: {
+        Row: {
+          content: string
+          content_type: string
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          content: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          content?: string
+          content_type?: string
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+    }
+    Views: {
+      [_ in never]: never
+    }
+    Functions: {
+      [_ in never]: never
+    }
+    Enums: {
+      [_ in never]: never
+    }
+    CompositeTypes: {
+      [_ in never]: never
     }
   }
 } 
