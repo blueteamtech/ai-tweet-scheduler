@@ -6,13 +6,10 @@ export async function GET(request: NextRequest) {
     const searchParams = request.nextUrl.searchParams
     const content = searchParams.get('content') || 'This is a test content that is exactly 390 characters long to test the content analysis function. It should be detected as long-form content since it is over 280 characters but under 4000 characters. Let me add more text to make this exactly 390 characters long. This should definitely be detected as long-form and not as a thread according to our logic rules.'
 
-    // Test with our current format options
+    // Test with our current format options (simplified - no threading)
     const formatOptions: ContentFormatOptions = {
       maxCharactersPerTweet: 280,
-      threadingStyle: 'numbered',
-      longFormEnabled: true,
-      preserveParagraphs: true,
-      smartBreaking: true
+      longFormEnabled: true
     }
 
     const analysis = analyzeContent(content, formatOptions)
@@ -27,9 +24,9 @@ export async function GET(request: NextRequest) {
         characterCount: analysis.characterCount,
         contentType: analysis.contentType,
         needsSplitting: analysis.needsSplitting,
-        hasThreadParts: !!analysis.threadParts,
         hasLongFormContent: !!analysis.longFormContent,
-        threadPartsCount: analysis.threadParts?.length || 0
+        wordCount: analysis.wordCount,
+        estimatedReadTime: analysis.estimatedReadTime
       },
       debug: {
         step1_characterCount: analysis.characterCount,
@@ -38,7 +35,8 @@ export async function GET(request: NextRequest) {
         step4_longFormEnabled: formatOptions.longFormEnabled,
         step5_longFormLimit: 4000,
         step6_isUnderLongFormLimit: analysis.characterCount <= 4000,
-        step7_shouldBeLongForm: formatOptions.longFormEnabled && analysis.characterCount <= 4000 && analysis.characterCount > formatOptions.maxCharactersPerTweet
+        step7_shouldBeLongForm: formatOptions.longFormEnabled && analysis.characterCount <= 4000 && analysis.characterCount > formatOptions.maxCharactersPerTweet,
+        finalContentType: analysis.contentType
       }
     })
   } catch (error) {

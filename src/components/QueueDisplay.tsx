@@ -151,7 +151,7 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
     
     refreshIntervalRef.current = intervalId
     setAutoRefreshActive(true)
-  }, [autoRefreshInterval, loadQueueStatus, maxFailures])
+  }, [autoRefreshInterval, loadQueueStatus, maxFailures]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const stopAutoRefresh = useCallback(() => {
     if (refreshIntervalRef.current) {
