@@ -93,16 +93,10 @@ export async function PUT(request: NextRequest) {
     const updateData: {
       tweet_content: string
       updated_at: string
-      content_type?: string
       qstash_message_id?: null
     } = { 
       tweet_content: content.trim(),
       updated_at: new Date().toISOString()
-    }
-    
-    // Store content type if provided
-    if (contentType) {
-      updateData.content_type = contentType
     }
 
     // Clear QStash message ID if we're editing a scheduled tweet
@@ -161,7 +155,6 @@ export async function PUT(request: NextRequest) {
       tweet: {
         id: updatedTweet.id,
         tweet_content: updatedTweet.tweet_content,
-        content_type: updatedTweet.content_type,
         status: updatedTweet.status,
         updated_at: updatedTweet.updated_at
       },
