@@ -277,10 +277,10 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
       }
 
       // Auto-detect content type based on length
-      let contentType = 'single'
-      if (editContent.length > 280) {
-        contentType = editContent.length > 1000 ? 'long-form' : 'thread'
-      }
+              let contentType = 'single'
+        if (editContent.length > 280) {
+          contentType = 'long-form'
+        }
 
       const response = await fetch('/api/edit-tweet', {
         method: 'PUT',
@@ -484,13 +484,13 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
                               onChange={(e) => setEditContent(e.target.value)}
                               className="w-full p-4 border-2 border-blue-300 rounded-xl resize-y focus:ring-3 focus:ring-blue-500/30 focus:border-blue-500 text-gray-900 text-base leading-relaxed font-medium placeholder-gray-500 bg-white shadow-sm transition-all duration-200"
                               rows={editContent.length > 280 ? 8 : 4}
-                              placeholder="Edit your tweet... Supports single tweets, threads, and long-form content!"
+                              placeholder="Edit your tweet... Supports single tweets and long-form content!"
                             />
                             <div className="flex justify-between items-center">
                               <div className="flex items-center space-x-3">
                                 {(() => {
-                                  const contentType = editContent.length > 1000 ? 'long-form' : editContent.length > 280 ? 'thread' : 'single'
-                                  const maxLength = contentType === 'long-form' ? 4000 : contentType === 'thread' ? 2000 : 280
+                                              const contentType = editContent.length > 280 ? 'long-form' : 'single'
+            const maxLength = contentType === 'long-form' ? 4000 : 280
                                   
                                   return (
                                     <>
@@ -503,11 +503,9 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
                                       </span>
                                       <span className={`text-xs px-2 py-1 rounded-full font-medium ${
                                         contentType === 'single' ? 'bg-blue-100 text-blue-700' :
-                                        contentType === 'thread' ? 'bg-purple-100 text-purple-700' :
                                         'bg-green-100 text-green-700'
                                       }`}>
                                         {contentType === 'single' ? '📝 Single' : 
-                                         contentType === 'thread' ? '🧵 Thread' : 
                                          '📄 Long-form'}
                                       </span>
                                       <div className={`h-2 w-16 rounded-full overflow-hidden ${
@@ -560,12 +558,10 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
                                   {tweet.tweet_content.length} characters
                                 </span>
                                 <span className={`text-xs px-2 py-1 rounded-full font-medium ${
-                                  tweet.tweet_content.length > 1000 ? 'bg-green-100 text-green-700' :
-                                  tweet.tweet_content.length > 280 ? 'bg-purple-100 text-purple-700' :
+                                  tweet.tweet_content.length > 280 ? 'bg-green-100 text-green-700' :
                                   'bg-blue-100 text-blue-700'
                                 }`}>
-                                  {tweet.tweet_content.length > 1000 ? '📄 Long-form' : 
-                                   tweet.tweet_content.length > 280 ? '🧵 Thread' : 
+                                  {tweet.tweet_content.length > 280 ? '📄 Long-form' : 
                                    '📝 Single'}
                                 </span>
                               </div>

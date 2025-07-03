@@ -33,7 +33,7 @@ export async function PUT(request: NextRequest) {
     
     if (contentType === 'single' && characterCount.displayCount > 280) {
       return NextResponse.json({ 
-        error: 'Single tweet content is too long (280 characters max). Try using thread or long-form mode.' 
+        error: 'Single tweet content is too long (280 characters max). Try using long-form mode.' 
       }, { status: 400 })
     }
     
@@ -46,7 +46,7 @@ export async function PUT(request: NextRequest) {
       }
     }
     
-    // For threads and auto mode, allow longer content
+    // For long-form and auto mode, allow longer content
     if (characterCount.displayCount > 10000) {
       return NextResponse.json({ 
         error: 'Content is too long (10,000 characters max)' 

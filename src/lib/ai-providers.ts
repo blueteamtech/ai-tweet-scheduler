@@ -27,11 +27,19 @@ export interface AIResponse {
 
 export interface AIGenerationRequest {
   prompt: string
-  contentType?: 'single' | 'thread' | 'long-form' | 'auto'
+  contentType?: 'single' | 'long-form' | 'auto'
   maxLength?: number
   personalityContext?: string
   templateContext?: string
   userWritingStyle?: string
+}
+
+export interface AIGenerationOptions {
+  maxTokens?: number
+  temperature?: number
+  personalityContext?: string
+  contentType?: 'single' | 'long-form' | 'auto'
+  maxLength?: number
 }
 
 // Provider configurations
@@ -196,18 +204,22 @@ Generate a single tweet based on the user's input. The tweet should be:
     if (request.contentType && request.contentType !== 'auto') {
       const contentInstructions = {
         'single': '- Format as a single tweet (280 characters max)',
-        'thread': '- Format as the first tweet in a thread, ending with "1/"',
         'long-form': '- Format as long-form content (up to 4000 characters)'
       }
-      prompt += `\n${contentInstructions[request.contentType]}`
+      
+      prompt += '\n' + (contentInstructions[request.contentType] || contentInstructions.single)
     }
 
     if (request.personalityContext) {
-      prompt += `\n\n${request.personalityContext}`
+      prompt += `\n\nPersonality Context: ${request.personalityContext}`
     }
 
     if (request.templateContext) {
-      prompt += `\n\n${request.templateContext}`
+      prompt += `\n\nTemplate Context: ${request.templateContext}`
+    }
+
+    if (request.userWritingStyle) {
+      prompt += `\n\nUser Writing Style: ${request.userWritingStyle}`
     }
 
     return prompt
@@ -284,30 +296,34 @@ class ClaudeProvider {
   }
 
   private buildSystemPrompt(request: AIGenerationRequest): string {
-    let prompt = `You are a social media expert who creates engaging, authentic tweets. Create content that is:
+    let prompt = `You are Claude, an AI assistant specialized in creating compelling social media content. Your task is to generate authentic, engaging tweets that match the user's writing style and voice.
 
-- Under 280 characters (unless specifically requested otherwise)
-- Engaging and authentic
-- Professional but conversational
+Key requirements:
+- Create natural, conversational content
+- Match the user's tone and personality
+- Avoid generic social media language
 - NO hashtags - focus on pure text content
-- No quotes around the tweet text
-- Avoid emojis - focus on text-based content`
+- Be authentic and genuine`
 
     if (request.contentType && request.contentType !== 'auto') {
       const contentInstructions = {
-        'single': '- Format as a single tweet (280 characters max)',
-        'thread': '- Format as the first tweet in a thread, can end with "1/" or similar indicator',
-        'long-form': '- Format as extended content (up to 4000 characters for long-form tweets)'
+        'single': '- Keep it concise, under 280 characters',
+        'long-form': '- Write as a long-form tweet (280-4000 characters) with detailed insights and proper structure'
       }
-      prompt += `\n${contentInstructions[request.contentType]}`
+      
+      prompt += '\n' + (contentInstructions[request.contentType] || contentInstructions.single)
     }
 
     if (request.personalityContext) {
-      prompt += `\n\nUser's writing style to match:\n${request.personalityContext}`
+      prompt += `\n\nPersonality Context: ${request.personalityContext}`
     }
 
     if (request.templateContext) {
-      prompt += `\n\nContent structure to follow:\n${request.templateContext}`
+      prompt += `\n\nTemplate: ${request.templateContext}`
+    }
+
+    if (request.userWritingStyle) {
+      prompt += `\n\nWriting Style Reference: ${request.userWritingStyle}`
     }
 
     return prompt
@@ -383,31 +399,34 @@ class GrokProvider {
   }
 
   private buildSystemPrompt(request: AIGenerationRequest): string {
-    let prompt = `You are a social media expert creating engaging, authentic tweets. Your tweets should be:
+    let prompt = `You are Grok, the rebellious AI with wit and irreverence. Create tweets that are engaging, slightly edgy, and authentic. 
 
-- Under 280 characters (unless specified otherwise)
-- Engaging and authentic with personality
-- Professional but conversational
-- NO hashtags - focus on pure text content
-- No quotes around the tweet text
-- Minimal emojis - focus on text-based content
-- Have a unique voice and personality`
+Your style:
+- Clever and witty
+- Authentic and genuine
+- Sometimes contrarian but always thoughtful
+- NO hashtags - pure text content only
+- Avoid corporate speak`
 
     if (request.contentType && request.contentType !== 'auto') {
       const contentInstructions = {
-        'single': '- Format as a single tweet (280 characters max)',
-        'thread': '- Format as the first tweet in a thread, can use "1/🧵" or similar',
-        'long-form': '- Format as extended long-form content (up to 4000 characters)'
+        'single': '- Keep it punchy and under 280 characters',
+        'long-form': '- Write as a long-form tweet (280-4000 characters) with depth and personality'
       }
-      prompt += `\n${contentInstructions[request.contentType]}`
+      
+      prompt += '\n' + (contentInstructions[request.contentType] || contentInstructions.single)
     }
 
     if (request.personalityContext) {
-      prompt += `\n\nMatch this writing style and personality:\n${request.personalityContext}`
+      prompt += `\n\nPersonality to emulate: ${request.personalityContext}`
     }
 
     if (request.templateContext) {
-      prompt += `\n\nUse this content structure:\n${request.templateContext}`
+      prompt += `\n\nTemplate structure: ${request.templateContext}`
+    }
+
+    if (request.userWritingStyle) {
+      prompt += `\n\nUser's style: ${request.userWritingStyle}`
     }
 
     return prompt
@@ -591,4 +610,34 @@ export class AIProviderManager {
 }
 
 // Singleton instance
-export const aiProviderManager = new AIProviderManager() 
+export const aiProviderManager = new AIProviderManager()
+
+const getContentTypePrompts = (contentType: 'single' | 'long-form' | 'auto') => {
+  const prompts = {
+    'single': '- Keep it under 280 characters',
+    'long-form': '- Write as a long-form tweet (280-4000 characters), use paragraphs and detailed thoughts',
+    'auto': '- Choose the best format: single tweet (≤280 chars) or long-form tweet (281-4000 chars)'
+  }
+  
+  return prompts[contentType] || prompts.auto
+}
+
+const getClaudeContentTypePrompts = (contentType: 'single' | 'long-form' | 'auto') => {
+  const prompts = {
+    'single': '- Keep it concise, under 280 characters',
+    'long-form': '- Write as a long-form tweet (280-4000 characters) with detailed insights and proper structure',
+    'auto': '- Choose the optimal format: single tweet (≤280 chars) or long-form tweet (281-4000 chars) based on content depth'
+  }
+  
+  return prompts[contentType] || prompts.auto
+}
+
+const getGrokContentTypePrompts = (contentType: 'single' | 'long-form' | 'auto') => {
+  const prompts = {
+    'single': '- Keep it punchy and under 280 characters',
+    'long-form': '- Write as a long-form tweet (280-4000 characters) with depth and personality',
+    'auto': '- Choose the best format: short and punchy (≤280 chars) or detailed long-form (281-4000 chars)'
+  }
+  
+  return prompts[contentType] || prompts.auto
+} 

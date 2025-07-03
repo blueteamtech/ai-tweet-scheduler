@@ -23,6 +23,8 @@ export default function TweetManager({
   activeTab 
 }: TweetManagerProps) {
   const [isOperating, setIsOperating] = useState<string | null>(null)
+  const [editingTweetId, setEditingTweetId] = useState<string | null>(null)
+  const [editingContent, setEditingContent] = useState<string>('')
 
   const deleteTweet = async (tweetId: string) => {
     try {
@@ -44,6 +46,114 @@ export default function TweetManager({
     } catch (error) {
       onError('Failed to delete tweet')
       console.error('Error deleting tweet:', error)
+    } finally {
+      setIsOperating(null)
+    }
+  }
+
+  const startEditing = (tweet: Tweet) => {
+    setEditingTweetId(tweet.id)
+    setEditingContent(tweet.tweet_content)
+  }
+
+  const cancelEditing = () => {
+    setEditingTweetId(null)
+    setEditingContent('')
+  }
+
+  const saveDraftEdit = async (tweetId: string) => {
+    if (!editingContent.trim()) {
+      onError('Content cannot be empty')
+      return
+    }
+
+    if (editingContent.length > 4000) {
+      onError('Content too long (max 4000 characters)')
+      return
+    }
+
+    try {
+      setIsOperating(tweetId)
+      onError('')
+
+      const { error } = await supabase
+        .from('tweets')
+        .update({ 
+          tweet_content: editingContent.trim(),
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', tweetId)
+
+      if (error) throw error
+
+      await onTweetsUpdated()
+      onSuccess('Draft updated successfully!')
+      setEditingTweetId(null)
+      setEditingContent('')
+      
+      setTimeout(() => onSuccess(''), 3000)
+    } catch (error) {
+      onError('Failed to update draft')
+      console.error('Error updating draft:', error)
+    } finally {
+      setIsOperating(null)
+    }
+  }
+
+  const addDraftToQueue = async (tweetId: string, tweetContent: string) => {
+    try {
+      setIsOperating(tweetId)
+      onError('')
+
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      if (!session) {
+        onError('You must be logged in to add tweets to the queue')
+        return
+      }
+
+      const response = await fetch('/api/queue-tweet', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session.access_token}`
+        },
+        body: JSON.stringify({ 
+          content: tweetContent.trim(),
+          contentType: 'auto'
+        })
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to add tweet to queue')
+      }
+
+      // Delete the draft since it's now queued
+      await supabase
+        .from('tweets')
+        .delete()
+        .eq('id', tweetId)
+
+      if (result.autoScheduled) {
+        onSuccess(`✅ ${result.message}`)
+      } else if (result.warning) {
+        onSuccess(`⚠️ ${result.warning}`)
+      } else {
+        const queueDate = new Date(result.queueSlot.date + 'T00:00:00').toLocaleDateString('en-US', {
+          weekday: 'short',
+          month: 'short',
+          day: 'numeric'
+        })
+        onSuccess(`Draft added to queue for ${queueDate}`)
+      }
+      
+      await onTweetsUpdated()
+      setTimeout(() => onSuccess(''), 3000)
+    } catch (error) {
+      onError('Failed to add draft to queue')
+      console.error('Error adding draft to queue:', error)
     } finally {
       setIsOperating(null)
     }
@@ -145,10 +255,6 @@ export default function TweetManager({
     }
   }
 
-  const loadDraft = (tweet: Tweet, onContentLoad: (content: string) => void) => {
-    onContentLoad(tweet.tweet_content)
-  }
-
   const formatScheduledDate = (dateString: string) => {
     const date = new Date(dateString)
     return date.toLocaleDateString('en-US', { 
@@ -189,18 +295,40 @@ export default function TweetManager({
             >
               <div className="flex justify-between items-start mb-3">
                 <div className="flex-1 min-w-0">
-                  <p className="text-gray-900 whitespace-pre-wrap break-words overflow-wrap-anywhere hyphens-auto max-w-full">
-                    {tweet.tweet_content}
-                  </p>
-                  <p className="text-sm text-gray-500 mt-2">
-                    Created: {new Date(tweet.created_at).toLocaleDateString('en-US', {
-                      year: 'numeric',
-                      month: 'short',
-                      day: 'numeric',
-                      hour: '2-digit',
-                      minute: '2-digit'
-                    })}
-                  </p>
+                  {editingTweetId === tweet.id ? (
+                    <div className="space-y-3">
+                      <textarea
+                        value={editingContent}
+                        onChange={(e) => setEditingContent(e.target.value)}
+                        className="w-full p-3 border border-gray-300 rounded-md resize-none focus:ring-blue-500 focus:border-blue-500"
+                        rows={4}
+                        placeholder="Edit your draft..."
+                      />
+                      <div className="flex justify-between items-center text-sm">
+                        <span className={`${editingContent.length > 4000 ? 'text-red-500' : 'text-gray-500'}`}>
+                          {editingContent.length} / 4000 characters
+                        </span>
+                        {editingContent.length > 4000 && (
+                          <span className="text-red-500 font-medium">Too long!</span>
+                        )}
+                      </div>
+                    </div>
+                  ) : (
+                    <>
+                      <p className="text-gray-900 whitespace-pre-wrap break-words overflow-wrap-anywhere hyphens-auto max-w-full">
+                        {tweet.tweet_content}
+                      </p>
+                      <p className="text-sm text-gray-500 mt-2">
+                        Created: {new Date(tweet.created_at).toLocaleDateString('en-US', {
+                          year: 'numeric',
+                          month: 'short',
+                          day: 'numeric',
+                          hour: '2-digit',
+                          minute: '2-digit'
+                        })}
+                      </p>
+                    </>
+                  )}
                 </div>
                 
                 <div className="flex items-center space-x-2 ml-4">
@@ -221,22 +349,48 @@ export default function TweetManager({
               <div className="flex space-x-2">
                 {tweet.status === 'draft' && (
                   <>
-                    <button
-                      onClick={() => loadDraft(tweet, (content) => {
-                        // This would need to be passed up to parent to set content
-                        console.log('Load draft content:', content)
-                      })}
-                      className="bg-blue-600 hover:bg-blue-700 text-white px-3 py-1 rounded text-sm font-medium"
-                    >
-                      Load to Editor
-                    </button>
-                    <button
-                      onClick={() => postTweetNow(tweet.id, tweet.tweet_content)}
-                      disabled={isOperating === tweet.id}
-                      className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-3 py-1 rounded text-sm font-medium"
-                    >
-                      {isOperating === tweet.id ? 'Posting...' : 'Post Now'}
-                    </button>
+                    {editingTweetId === tweet.id ? (
+                      <>
+                        <button
+                          onClick={() => saveDraftEdit(tweet.id)}
+                          disabled={isOperating === tweet.id || !editingContent.trim() || editingContent.length > 4000}
+                          className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-3 py-1 rounded text-sm font-medium"
+                        >
+                          {isOperating === tweet.id ? 'Saving...' : '💾 Save'}
+                        </button>
+                        <button
+                          onClick={cancelEditing}
+                          disabled={isOperating === tweet.id}
+                          className="bg-gray-600 hover:bg-gray-700 disabled:opacity-50 text-white px-3 py-1 rounded text-sm font-medium"
+                        >
+                          Cancel
+                        </button>
+                      </>
+                    ) : (
+                      <>
+                        <button
+                          onClick={() => startEditing(tweet)}
+                          disabled={isOperating === tweet.id}
+                          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white px-3 py-1 rounded text-sm font-medium"
+                        >
+                          ✏️ Edit
+                        </button>
+                        <button
+                          onClick={() => addDraftToQueue(tweet.id, tweet.tweet_content)}
+                          disabled={isOperating === tweet.id}
+                          className="bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-3 py-1 rounded text-sm font-medium"
+                        >
+                          {isOperating === tweet.id ? 'Adding...' : '📅 Add to Queue'}
+                        </button>
+                        <button
+                          onClick={() => postTweetNow(tweet.id, tweet.tweet_content)}
+                          disabled={isOperating === tweet.id}
+                          className="bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-3 py-1 rounded text-sm font-medium"
+                        >
+                          {isOperating === tweet.id ? 'Posting...' : '🚀 Post Now'}
+                        </button>
+                      </>
+                    )}
                   </>
                 )}
                 
@@ -250,13 +404,15 @@ export default function TweetManager({
                   </button>
                 )}
 
-                <button
-                  onClick={() => deleteTweet(tweet.id)}
-                  disabled={isOperating === tweet.id}
-                  className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-3 py-1 rounded text-sm font-medium"
-                >
-                  {isOperating === tweet.id ? 'Deleting...' : 'Delete'}
-                </button>
+                {editingTweetId !== tweet.id && (
+                  <button
+                    onClick={() => deleteTweet(tweet.id)}
+                    disabled={isOperating === tweet.id}
+                    className="bg-red-600 hover:bg-red-700 disabled:opacity-50 text-white px-3 py-1 rounded text-sm font-medium"
+                  >
+                    {isOperating === tweet.id ? 'Deleting...' : '🗑️ Delete'}
+                  </button>
+                )}
               </div>
             </div>
           ))}
