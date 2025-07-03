@@ -21,7 +21,7 @@ interface AdvancedTweetComposerProps {
   onSuccess: (message: string) => void
 }
 
-type ContentMode = 'single' | 'thread' | 'long-form' | 'auto'
+type ContentMode = 'single' | 'long-form' | 'auto'
 
 export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onSuccess }: AdvancedTweetComposerProps) {
   const [tweetContent, setTweetContent] = useState('')
@@ -91,9 +91,12 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
     setContentMode(mode)
     
     // Update format options based on mode
-    if (mode === 'thread') {
+    if (mode === 'long-form') {
+      setFormatOptions(prev => ({ ...prev, longFormEnabled: true }))
+    } else if (mode === 'single') {
       setFormatOptions(prev => ({ ...prev, longFormEnabled: false }))
-    } else if (mode === 'long-form') {
+    } else {
+      // Auto mode - keep long form enabled for automatic detection
       setFormatOptions(prev => ({ ...prev, longFormEnabled: true }))
     }
   }
@@ -130,9 +133,11 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
       }
 
       // Determine final content type
-      let finalContentType = contentMode
+      let finalContentType: 'single' | 'thread' | 'long-form' = 'single'
       if (contentMode === 'auto' && contentAnalysis) {
         finalContentType = contentAnalysis.contentType
+      } else if (contentMode !== 'auto') {
+        finalContentType = contentMode
       }
 
       const response = await fetch('/api/queue-tweet', {
@@ -284,7 +289,6 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
           {[
             { value: 'auto', label: '🤖 Auto', desc: 'Let AI decide' },
             { value: 'single', label: '📝 Single', desc: 'Standard tweet' },
-            { value: 'thread', label: '🧵 Thread', desc: 'Multi-part story' },
             { value: 'long-form', label: '📄 Long-form', desc: 'Extended content' }
           ].map(mode => (
             <button
@@ -304,7 +308,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
       </div>
 
       {/* Threading Options */}
-      {(contentMode === 'thread' || (contentMode === 'auto' && contentAnalysis?.contentType === 'thread')) && (
+      {(contentMode === 'auto' && contentAnalysis?.contentType === 'thread') && (
         <div className="mb-6 bg-gray-50 rounded-lg p-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">Threading Style</label>
           <div className="flex gap-2">
@@ -362,7 +366,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
           </div>
           {isOverLimit && contentMode === 'single' && (
             <span className="text-red-700 text-sm font-semibold bg-red-100 px-3 py-1 rounded-full border border-red-200">
-              Tweet too long! Try thread or long-form mode.
+              Tweet too long! Try long-form mode.
             </span>
           )}
         </div>
