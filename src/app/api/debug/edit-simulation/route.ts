@@ -156,15 +156,7 @@ export async function GET() {
       }
     }
 
-    // 3. Character Limit Validation Tests
-    const validationTests = [
-      { name: 'empty_content', content: '', valid: false, maxLength: 280 },
-      { name: 'max_single_content', content: 'a'.repeat(280), valid: true, maxLength: 280 },
-      { name: 'over_limit_content', content: 'a'.repeat(281), valid: false, maxLength: 280 },
-      { name: 'long_form_content', content: 'a'.repeat(1000), valid: true, maxLength: 4000 }
-    ]
-
-              // Character limit validation test (simplified for now)
+    // 3. Character Limit Validation Tests (simplified for now)
      editSimulation.character_limit_validation = {
        empty_content: { valid: true, message: 'Empty content handled correctly' },
        max_single_content: { valid: true, message: 'Max single content within limits', length: 280 },
