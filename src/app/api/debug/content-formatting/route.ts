@@ -1,5 +1,12 @@
 import { NextResponse } from 'next/server'
-import { analyzeContent, validateLongFormContent, estimateEngagement, generatePreview } from '@/lib/content-management'
+import { 
+  analyzeContent, 
+  validateLongFormContent,
+  estimateEngagement,
+  generatePreview,
+  getAccurateCharacterCount,
+  type ContentFormatOptions
+} from '@/lib/content-management'
 
 interface ContentFormattingTest {
   timestamp?: string
@@ -8,11 +15,6 @@ interface ContentFormattingTest {
     optimal_content: { input: string; content_type: string; character_count: number; valid: boolean }
     max_length_content: { input: string; content_type: string; character_count: number; valid: boolean }
   }
-  thread_formatting?: {
-    medium_thread: { input: string; parts_count: number; formatted_correctly: boolean; readable: boolean }
-    long_thread: { input: string; parts_count: number; formatted_correctly: boolean; readable: boolean }
-    complex_thread: { input: string; parts_count: number; formatted_correctly: boolean; readable: boolean }
-  }
   long_form_formatting?: {
     medium_longform: { input: string; character_count: number; valid: boolean; readable: boolean }
     long_longform: { input: string; character_count: number; valid: boolean; readable: boolean }
@@ -20,12 +22,10 @@ interface ContentFormattingTest {
   }
   auto_detection?: {
     should_be_single: { input: string; detected_type: string; correct: boolean }
-    should_be_thread: { input: string; detected_type: string; correct: boolean }
     should_be_longform: { input: string; detected_type: string; correct: boolean }
   }
   engagement_estimation?: {
     single_tweet_engagement: { content_type: string; engagement_level: string; reasonable: boolean }
-    thread_engagement: { content_type: string; engagement_level: string; reasonable: boolean }
     longform_engagement: { content_type: string; engagement_level: string; reasonable: boolean }
   }
   preview_generation?: {
@@ -41,18 +41,29 @@ interface ContentFormattingTest {
 
 export async function GET() {
   const startTime = Date.now()
-  const formatTest: ContentFormattingTest = {
-    timestamp: new Date().toISOString(),
-    issues: [],
-    error: null
-  }
-
+  
   try {
+    const formatTest: ContentFormattingTest = {
+      timestamp: new Date().toISOString()
+    }
+
     // 1. Single Tweet Formatting Tests
     const singleTweetTests = [
-      { name: 'short_content', input: 'Short tweet content.', expectedValid: true },
-      { name: 'optimal_content', input: 'This is an optimal length tweet that provides good engagement while staying within the character limit and being informative.', expectedValid: true },
-      { name: 'max_length_content', input: 'a'.repeat(280), expectedValid: true }
+      {
+        name: 'short_content',
+        input: 'Short tweet content.',
+        expectedValid: true
+      },
+      {
+        name: 'optimal_content',
+        input: 'This is an optimal length tweet that provides value while staying within the character limit. It\'s engaging and informative without being too long.',
+        expectedValid: true
+      },
+      {
+        name: 'max_length_content',
+        input: 'A'.repeat(280),
+        expectedValid: true
+      }
     ]
 
     formatTest.single_tweet_formatting = {
@@ -63,68 +74,29 @@ export async function GET() {
 
     for (const test of singleTweetTests) {
       const analysis = analyzeContent(test.input)
-      
+      const characterCheck = getAccurateCharacterCount(test.input)
+      const valid = analysis.contentType === 'single' && characterCheck.displayCount <= 280
+
       if (test.name in formatTest.single_tweet_formatting) {
         formatTest.single_tweet_formatting[test.name as keyof typeof formatTest.single_tweet_formatting] = {
           input: test.input.substring(0, 50) + (test.input.length > 50 ? '...' : ''),
           content_type: analysis.contentType,
           character_count: analysis.characterCount,
-          valid: analysis.contentType === 'single' && analysis.characterCount <= 280
+          valid
         }
       }
     }
 
-    // 2. Thread Formatting Tests
-    const threadTests = [
-      {
-        name: 'medium_thread',
-        input: 'This is a medium thread that should be split into multiple parts. Each part should be readable and well-formatted. The content should flow naturally from one part to the next, maintaining coherence throughout the entire thread.',
-        expectedParts: 2
-      },
-      {
-        name: 'long_thread',
-        input: 'This is a longer thread that will require more parts. It should demonstrate the threading algorithm\'s ability to handle substantial content while maintaining readability.\n\nEach paragraph should be considered for natural break points.\n\nThe final thread should tell a complete story while respecting character limits and providing good user experience.',
-        expectedParts: 4
-      },
-      {
-        name: 'complex_thread',
-        input: 'Complex thread with @mentions, #hashtags, and https://example.com links.\n\nIt should handle special characters: café, naïve, résumé.\n\nEmojis too: 🚀 🌟 ✨\n\nAnd preserve formatting across multiple parts while maintaining readability and engagement.',
-        expectedParts: 3
-      }
-    ]
-
-    formatTest.thread_formatting = {
-      medium_thread: { input: '', parts_count: 0, formatted_correctly: false, readable: false },
-      long_thread: { input: '', parts_count: 0, formatted_correctly: false, readable: false },
-      complex_thread: { input: '', parts_count: 0, formatted_correctly: false, readable: false }
-    }
-
-    for (const test of threadTests) {
-      const analysis = analyzeContent(test.input)
-      const partsCount = analysis.threadParts?.length || 0
-      const formattedCorrectly = analysis.contentType === 'thread' && partsCount > 0
-      const readable = analysis.threadParts?.every(part => part.content.length > 10 && part.content.trim().length > 0) || false
-
-      if (test.name in formatTest.thread_formatting) {
-        formatTest.thread_formatting[test.name as keyof typeof formatTest.thread_formatting] = {
-          input: test.input.substring(0, 80) + '...',
-          parts_count: partsCount,
-          formatted_correctly: formattedCorrectly,
-          readable
-        }
-      }
-    }
-
-    // 3. Long-form Formatting Tests
+    // 2. Long-form Formatting Tests
     const longFormTests = [
       {
         name: 'medium_longform',
-        input: 'This is a medium-length piece of content that should be formatted as a long-form tweet. It provides substantial value while remaining within the long-form character limits. The content should be engaging and informative, demonstrating the benefits of long-form content over traditional threading approaches.',
+        input: 'This is a medium-length piece of content that should be formatted as a long-form tweet. It provides substantial value while remaining within the long-form character limits. The content should be engaging and informative, demonstrating the benefits of long-form content over traditional approaches.',
         expectedValid: true
       },
       {
         name: 'long_longform',
-        input: 'A'.repeat(2000) + ' This is a substantial long-form piece that tests the upper limits of long-form content handling. It should remain valid while providing comprehensive information that would be difficult to convey in a traditional thread format.',
+        input: 'A'.repeat(2000) + ' This is a substantial long-form piece that tests the upper limits of long-form content handling. It should remain valid while providing comprehensive information that would be difficult to convey in a traditional format.',
         expectedValid: true
       },
       {
@@ -155,16 +127,14 @@ export async function GET() {
       }
     }
 
-    // 4. Auto-detection Tests
+    // 3. Auto-detection Tests
     const autoDetectionTests = [
       { name: 'should_be_single', input: 'Short tweet.', expectedType: 'single' },
-      { name: 'should_be_thread', input: 'This is content that should definitely be detected as needing to be split into a thread because it\'s too long for a single tweet but not quite long enough for long-form formatting. It should be broken down into readable parts.', expectedType: 'thread' },
-      { name: 'should_be_longform', input: 'This is a comprehensive piece of content that should be detected as suitable for long-form formatting rather than threading. It provides substantial value and detailed information that benefits from the extended character limit. Long-form content allows for more nuanced discussion and detailed explanation of complex topics. This type of content is perfect for thought leadership, detailed analysis, or comprehensive tutorials that require more space than traditional tweets or threads can effectively provide.', expectedType: 'long-form' }
+      { name: 'should_be_longform', input: 'This is a comprehensive piece of content that should be detected as suitable for long-form formatting. It provides substantial value and detailed information that benefits from the extended character limit. Long-form content allows for more nuanced discussion and detailed explanation of complex topics. This type of content is perfect for thought leadership, detailed analysis, or comprehensive tutorials that require more space than traditional tweets can effectively provide.', expectedType: 'long-form' }
     ]
 
     formatTest.auto_detection = {
       should_be_single: { input: '', detected_type: '', correct: false },
-      should_be_thread: { input: '', detected_type: '', correct: false },
       should_be_longform: { input: '', detected_type: '', correct: false }
     }
 
@@ -180,16 +150,14 @@ export async function GET() {
       }
     }
 
-    // 5. Engagement Estimation Tests
+    // 4. Engagement Estimation Tests
     const engagementTests = [
       { type: 'single', input: 'Engaging single tweet with good length and content.' },
-      { type: 'thread', input: 'Thread content that should have good engagement metrics. This will be split into multiple parts, each designed to maintain reader interest and encourage interaction.' },
-      { type: 'longform', input: 'Long-form content designed to provide comprehensive value to readers. This type of content typically has different engagement patterns compared to threads or single tweets, focusing more on depth and sustained attention rather than quick interactions.' }
+      { type: 'longform', input: 'Long-form content designed to provide comprehensive value to readers. This type of content typically has different engagement patterns compared to single tweets, focusing more on depth and sustained attention rather than quick interactions.' }
     ]
 
     formatTest.engagement_estimation = {
       single_tweet_engagement: { content_type: '', engagement_level: '', reasonable: false },
-      thread_engagement: { content_type: '', engagement_level: '', reasonable: false },
       longform_engagement: { content_type: '', engagement_level: '', reasonable: false }
     }
 
@@ -203,9 +171,6 @@ export async function GET() {
       if (test.type === 'single' && engagement.singleTweet) {
         engagementLevel = engagement.singleTweet.engagement
         reasonable = ['high', 'medium'].includes(engagementLevel)
-      } else if (test.type === 'thread' && engagement.thread) {
-        engagementLevel = engagement.thread.engagement
-        reasonable = ['high', 'medium'].includes(engagementLevel)
       } else if (test.type === 'longform' && engagement.longForm) {
         engagementLevel = engagement.longForm.engagement
         reasonable = ['high', 'medium'].includes(engagementLevel)
@@ -213,12 +178,6 @@ export async function GET() {
 
       if (test.type === 'single') {
         formatTest.engagement_estimation.single_tweet_engagement = {
-          content_type: analysis.contentType,
-          engagement_level: engagementLevel,
-          reasonable
-        }
-      } else if (test.type === 'thread') {
-        formatTest.engagement_estimation.thread_engagement = {
           content_type: analysis.contentType,
           engagement_level: engagementLevel,
           reasonable
@@ -232,7 +191,7 @@ export async function GET() {
       }
     }
 
-    // 6. Preview Generation Tests
+    // 5. Preview Generation Tests
     const previewTests = [
       { name: 'short_preview', input: 'Short content for preview.', maxLength: 150 },
       { name: 'medium_preview', input: 'This is medium-length content that should be truncated to create a meaningful preview that captures the essence of the original content while staying within the specified character limit.', maxLength: 150 },
@@ -260,7 +219,7 @@ export async function GET() {
       }
     }
 
-    // 7. Analyze Issues
+    // 6. Analyze Issues
     const issues: string[] = []
 
     // Check single tweet formatting
@@ -268,14 +227,6 @@ export async function GET() {
       const singleResults = Object.values(formatTest.single_tweet_formatting)
       if (singleResults.some(test => !test.valid)) {
         issues.push('Single tweet formatting issues detected')
-      }
-    }
-
-    // Check thread formatting
-    if (formatTest.thread_formatting) {
-      const threadResults = Object.values(formatTest.thread_formatting)
-      if (threadResults.some(test => !test.formatted_correctly || !test.readable)) {
-        issues.push('Thread formatting or readability issues')
       }
     }
 
@@ -299,7 +250,7 @@ export async function GET() {
     if (formatTest.engagement_estimation) {
       const engagementResults = Object.values(formatTest.engagement_estimation)
       if (engagementResults.some(test => !test.reasonable)) {
-        issues.push('Unreasonable engagement estimations')
+        issues.push('Unreasonable engagement estimates')
       }
     }
 
@@ -307,34 +258,42 @@ export async function GET() {
     if (formatTest.preview_generation) {
       const previewResults = Object.values(formatTest.preview_generation)
       if (previewResults.some(test => !test.preserves_meaning)) {
-        issues.push('Preview generation issues')
+        issues.push('Preview generation quality issues')
       }
     }
 
-    // 8. Overall Status
+    // Determine overall status
     if (issues.length === 0) {
       formatTest.overall_status = 'excellent'
-    } else if (issues.length <= 1) {
+    } else if (issues.length === 1) {
       formatTest.overall_status = 'good'
-    } else if (issues.length <= 3) {
+    } else if (issues.length === 2) {
       formatTest.overall_status = 'acceptable'
-    } else if (issues.length <= 5) {
-      formatTest.overall_status = 'needs_work'
     } else {
-      formatTest.overall_status = 'error'
+      formatTest.overall_status = 'needs_work'
     }
 
     formatTest.issues = issues
+    formatTest.response_time_ms = Date.now() - startTime
+
+    return NextResponse.json({
+      status: 'success',
+      message: 'Content formatting tests completed',
+      data: formatTest
+    })
 
   } catch (error) {
-    formatTest.overall_status = 'error'
-    formatTest.error = error instanceof Error ? error.message : 'Content formatting test failed'
+    console.error('Content formatting test error:', error)
+    
+    return NextResponse.json({
+      status: 'error',
+      message: 'Content formatting tests failed',
+      data: {
+        timestamp: new Date().toISOString(),
+        overall_status: 'error',
+        response_time_ms: Date.now() - startTime,
+        error: error instanceof Error ? error.message : 'Unknown error'
+      }
+    })
   }
-
-  formatTest.response_time_ms = Date.now() - startTime
-
-  const statusCode = formatTest.overall_status === 'excellent' || formatTest.overall_status === 'good' ? 200 : 
-                    formatTest.overall_status === 'acceptable' ? 206 : 500
-
-  return NextResponse.json(formatTest, { status: statusCode })
 } 

@@ -256,8 +256,8 @@ export default function WritingAnalysisInput() {
               value={content}
               onChange={(e) => setContent(e.target.value)}
               placeholder="Paste a sample of your writing here (emails, articles, blog posts, previous tweets, etc.). Longer samples (up to 50k characters) provide better personality analysis - don't hesitate to paste full articles or substantial content!"
-              className="w-full p-4 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent resize-none"
-              rows={6}
+              className="w-full p-4 border-2 border-gray-400 rounded-lg focus:ring-3 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white text-gray-900 text-base font-medium leading-relaxed shadow-sm hover:border-gray-500 transition-colors"
+              rows={8}
               disabled={isAnalyzing}
             />
             
@@ -344,7 +344,7 @@ export default function WritingAnalysisInput() {
                       <select
                         value={editContentType}
                         onChange={(e) => setEditContentType(e.target.value)}
-                        className="w-full p-2 border border-gray-300 rounded focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                        className="w-full p-3 border-2 border-gray-400 rounded-lg focus:ring-3 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 text-base font-medium shadow-sm hover:border-gray-500 transition-colors"
                         disabled={saving}
                       >
                         <option value="sample">Sample</option>
@@ -362,8 +362,8 @@ export default function WritingAnalysisInput() {
                       <textarea
                         value={editContent}
                         onChange={(e) => setEditContent(e.target.value)}
-                        className="w-full p-3 border border-gray-300 rounded-lg resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
-                        rows={6}
+                        className="w-full p-4 border-2 border-gray-400 rounded-lg resize-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 text-base font-medium leading-relaxed shadow-sm hover:border-gray-500 transition-colors"
+                        rows={8}
                         placeholder="Edit your writing sample..."
                         disabled={saving}
                       />
