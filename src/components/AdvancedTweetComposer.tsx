@@ -21,11 +21,8 @@ interface AdvancedTweetComposerProps {
   onSuccess: (message: string) => void
 }
 
-type ContentMode = 'single' | 'long-form' | 'auto'
-
 export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onSuccess }: AdvancedTweetComposerProps) {
   const [tweetContent, setTweetContent] = useState('')
-  const [contentMode, setContentMode] = useState<ContentMode>('auto')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showPreview, setShowPreview] = useState(false)
@@ -49,7 +46,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   }, [tweetContent, formatOptions])
 
   const characterCount = getAccurateCharacterCount(tweetContent)
-  const isOverLimit = contentMode === 'single' && characterCount.displayCount > 280
+  const isOverLimit = characterCount.displayCount > 4000 // Only show warning for content that would become a thread
 
   const generateTweet = async () => {
     if (!user) return
@@ -68,8 +65,8 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         },
         body: JSON.stringify({
           prompt: tweetContent || 'Write a motivational tweet about entrepreneurship and building startups',
-          contentType: contentMode === 'auto' ? 'auto' : contentMode,
-          maxLength: contentMode === 'long-form' ? 4000 : 280
+          contentType: 'auto',
+          maxLength: 4000
         }),
       })
 
@@ -87,38 +84,10 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
     }
   }
 
-  const handleContentModeChange = (mode: ContentMode) => {
-    setContentMode(mode)
-    
-    // Update format options based on mode
-    if (mode === 'long-form') {
-      setFormatOptions(prev => ({ ...prev, longFormEnabled: true }))
-    } else if (mode === 'single') {
-      setFormatOptions(prev => ({ ...prev, longFormEnabled: false }))
-    } else {
-      // Auto mode - keep long form enabled for automatic detection
-      setFormatOptions(prev => ({ ...prev, longFormEnabled: true }))
-    }
-  }
-
   const addToQueue = async () => {
     if (!user || !tweetContent.trim()) {
       onError('Please enter some content before adding to queue')
       return
-    }
-
-    // Validate content based on selected mode
-    if (contentMode === 'single' && isOverLimit) {
-      onError('Tweet is too long for single tweet mode')
-      return
-    }
-
-    if (contentMode === 'long-form') {
-      const validation = validateLongFormContent(tweetContent)
-      if (!validation.valid) {
-        onError(validation.reason || 'Invalid long-form content')
-        return
-      }
     }
 
     setIsSaving(true)
@@ -132,13 +101,8 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         return
       }
 
-      // Determine final content type
-      let finalContentType: 'single' | 'thread' | 'long-form' = 'single'
-      if (contentMode === 'auto' && contentAnalysis) {
-        finalContentType = contentAnalysis.contentType
-      } else if (contentMode !== 'auto') {
-        finalContentType = contentMode
-      }
+      // Use the automatic content type from analysis
+      const finalContentType = contentAnalysis?.contentType || 'single'
 
       const response = await fetch('/api/queue-tweet', {
         method: 'POST',
@@ -282,33 +246,8 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         </h2>
       </div>
 
-      {/* Content Mode Selector */}
-      <div className="mb-6">
-        <label className="block text-sm font-medium text-gray-700 mb-2">Content Type</label>
-        <div className="flex flex-wrap gap-2">
-          {[
-            { value: 'auto', label: '🤖 Auto', desc: 'Let AI decide' },
-            { value: 'single', label: '📝 Single', desc: 'Standard tweet' },
-            { value: 'long-form', label: '📄 Long-form', desc: 'Extended content' }
-          ].map(mode => (
-            <button
-              key={mode.value}
-              onClick={() => handleContentModeChange(mode.value as ContentMode)}
-              className={`px-3 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
-                contentMode === mode.value
-                  ? 'bg-blue-100 text-blue-800 border-2 border-blue-300'
-                  : 'bg-gray-100 text-gray-700 border-2 border-transparent hover:bg-gray-200'
-              }`}
-              title={mode.desc}
-            >
-              {mode.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Threading Options */}
-      {(contentMode === 'auto' && contentAnalysis?.contentType === 'thread') && (
+      {/* Threading Options - only show when content is automatically detected as thread */}
+      {contentAnalysis?.contentType === 'thread' && (
         <div className="mb-6 bg-gray-50 rounded-lg p-4">
           <label className="block text-sm font-medium text-gray-700 mb-2">Threading Style</label>
           <div className="flex gap-2">
@@ -333,7 +272,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
           </div>
         </div>
       )}
-      
+
       {/* Tweet Textarea */}
       <div className="mb-6">
         <textarea
@@ -351,7 +290,14 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
               characterCount.displayCount > 200 ? 'text-blue-600' :
               'text-gray-700'
             }`}>
-              {characterCount.displayCount}/{contentMode === 'long-form' ? '4000' : '280'}
+              {characterCount.displayCount}/{contentAnalysis?.contentType === 'long-form' ? '4000' : '280'}
+              {contentAnalysis?.contentType && (
+                <span className="ml-2 text-xs font-normal text-gray-500">
+                  ({contentAnalysis.contentType === 'single' ? 'Tweet' : 
+                    contentAnalysis.contentType === 'long-form' ? 'Long-form' : 
+                    'Thread'})
+                </span>
+              )}
             </span>
             {characterCount.urls > 0 && (
               <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded">
@@ -364,9 +310,9 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
               </span>
             )}
           </div>
-          {isOverLimit && contentMode === 'single' && (
+          {isOverLimit && (
             <span className="text-red-700 text-sm font-semibold bg-red-100 px-3 py-1 rounded-full border border-red-200">
-              Tweet too long! Try long-form mode.
+              Content too long! Maximum 4000 characters supported.
             </span>
           )}
         </div>
@@ -400,7 +346,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
 
         <button
           onClick={addToQueue}
-          disabled={isSaving || !tweetContent.trim() || (contentMode === 'single' && isOverLimit)}
+          disabled={isSaving || !tweetContent.trim() || isOverLimit}
           className="bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-50 disabled:cursor-not-allowed text-white px-6 py-3 rounded-xl font-semibold text-base flex items-center space-x-2 shadow-lg transition-all duration-200 hover:shadow-xl transform hover:-translate-y-0.5"
         >
           {isSaving ? (
