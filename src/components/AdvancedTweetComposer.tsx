@@ -21,7 +21,6 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   const [tweetContent, setTweetContent] = useState('')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [showPreview, setShowPreview] = useState(false)
   const [contentAnalysis, setContentAnalysis] = useState<ContentAnalysis | null>(null)
   const [formatOptions] = useState<ContentFormatOptions>({
     maxCharactersPerTweet: 280,
@@ -106,7 +105,6 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
 
       onSuccess('Draft saved successfully!')
       setTweetContent('')
-      setShowPreview(false)
       onTweetAdded()
       
       setTimeout(() => onSuccess(''), 3000)
@@ -175,7 +173,6 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
       }
       
       setTweetContent('')
-      setShowPreview(false)
       onTweetAdded()
       
       setTimeout(() => onSuccess(''), 3000)
@@ -237,9 +234,11 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
           ✨ AI Tweet Composer
         </h2>
-        <p className="text-gray-600 text-sm">
-          Automatically formats as single tweet (≤280 chars) or long-form tweet (281-4000 chars)
-        </p>
+        {characterCount.displayCount > 280 && (
+          <p className="text-gray-600 text-sm">
+            Automatically formats as long-form tweet (281-4000 chars)
+          </p>
+        )}
       </div>
 
       <div className="space-y-4">
@@ -261,59 +260,13 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
           <textarea
             id="content"
             rows={6}
-            className="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
-            placeholder="Write your tweet content here... It will automatically be formatted as a single tweet or long-form tweet based on length."
+            className="w-full p-4 border-2 border-gray-400 rounded-lg focus:ring-3 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white text-gray-900 text-base font-medium leading-relaxed shadow-sm hover:border-gray-500 transition-colors"
+            placeholder="Write your tweet content here... It will automatically be formatted based on length."
             value={tweetContent}
             onChange={(e) => setTweetContent(e.target.value)}
           />
           {renderContentAnalysis()}
         </div>
-
-        {/* Preview Toggle */}
-        {contentAnalysis && (
-          <div className="flex items-center">
-            <label className="flex items-center">
-              <input
-                type="checkbox"
-                checked={showPreview}
-                onChange={(e) => setShowPreview(e.target.checked)}
-                className="rounded border-gray-300 text-blue-600 shadow-sm focus:border-blue-300 focus:ring focus:ring-blue-200 focus:ring-opacity-50"
-              />
-              <span className="ml-2 text-sm text-gray-700">Show preview</span>
-            </label>
-          </div>
-        )}
-
-        {/* Content Preview */}
-        {showPreview && contentAnalysis && (
-          <div className="bg-gray-50 rounded-lg p-4">
-            <h3 className="font-medium text-gray-900 mb-3">Preview</h3>
-            
-            <div className="bg-white rounded-lg border p-4">
-              <div className="flex items-start space-x-3">
-                <div className="w-10 h-10 bg-blue-100 rounded-full flex items-center justify-center">
-                  <span className="text-blue-600 font-medium">
-                    {user.email?.[0]?.toUpperCase() || 'U'}
-                  </span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="font-medium text-gray-900">Your Name</span>
-                    <span className="text-gray-500">@username</span>
-                    <span className="text-gray-500">·</span>
-                    <span className="text-gray-500 text-sm">now</span>
-                  </div>
-                  <div className="text-gray-900 whitespace-pre-wrap">
-                    {contentAnalysis.contentType === 'long-form' ? 
-                      contentAnalysis.longFormContent : 
-                      contentAnalysis.originalContent
-                    }
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
 
         {/* Action Buttons */}
         <div className="flex space-x-3">

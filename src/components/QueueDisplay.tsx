@@ -482,7 +482,7 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
                             <textarea
                               value={editContent}
                               onChange={(e) => setEditContent(e.target.value)}
-                              className="w-full p-4 border-2 border-blue-300 rounded-xl resize-y focus:ring-3 focus:ring-blue-500/30 focus:border-blue-500 text-gray-900 text-base leading-relaxed font-medium placeholder-gray-500 bg-white shadow-sm transition-all duration-200"
+                              className="w-full p-4 border-2 border-gray-400 rounded-lg focus:ring-3 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white text-gray-900 text-base font-medium leading-relaxed shadow-sm hover:border-gray-500 transition-colors"
                               rows={editContent.length > 280 ? 8 : 4}
                               placeholder="Edit your tweet... Supports single tweets and long-form content!"
                             />

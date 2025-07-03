@@ -162,7 +162,7 @@ export default function TweetComposer({ user, onTweetAdded, onError, onSuccess }
           value={tweetContent}
           onChange={(e) => setTweetContent(e.target.value)}
           placeholder="What's happening? Write your tweet or click 'Generate with AI' for inspiration..."
-          className="w-full p-5 border-2 border-gray-300 rounded-xl resize-none focus:ring-3 focus:ring-blue-500/30 focus:border-blue-500 text-gray-900 text-lg leading-relaxed font-medium placeholder-gray-500 bg-white shadow-sm transition-all duration-200 hover:border-gray-400"
+          className="w-full p-4 border-2 border-gray-400 rounded-lg focus:ring-3 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white text-gray-900 text-base font-medium leading-relaxed shadow-sm hover:border-gray-500 transition-colors"
           rows={5}
         />
         <div className="flex justify-between items-center mt-3 px-1">
