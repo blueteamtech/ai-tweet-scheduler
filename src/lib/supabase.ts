@@ -85,42 +85,6 @@ export type Database = {
         }
         Relationships: []
       }
-      tweet_templates: {
-        Row: {
-          category: string
-          created_at: string
-          example_tweet: string
-          id: string
-          last_used_at: string | null
-          template_structure: string
-          usage_count: number
-          word_count_max: number
-          word_count_min: number
-        }
-        Insert: {
-          category: string
-          created_at?: string
-          example_tweet: string
-          id?: string
-          last_used_at?: string | null
-          template_structure: string
-          usage_count?: number
-          word_count_max?: number
-          word_count_min?: number
-        }
-        Update: {
-          category?: string
-          created_at?: string
-          example_tweet?: string
-          id?: string
-          last_used_at?: string | null
-          template_structure?: string
-          usage_count?: number
-          word_count_max?: number
-          word_count_min?: number
-        }
-        Relationships: []
-      }
       tweets: {
         Row: {
           created_at: string | null
@@ -233,7 +197,53 @@ export type Database = {
           updated_at?: string
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "user_writing_samples_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      user_voice_projects: {
+        Row: {
+          id: string
+          user_id: string
+          instructions: string
+          writing_samples: string[]
+          is_active: boolean | null
+          created_at: string | null
+          updated_at: string | null
+        }
+        Insert: {
+          id?: string
+          user_id: string
+          instructions?: string
+          writing_samples?: string[]
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Update: {
+          id?: string
+          user_id?: string
+          instructions?: string
+          writing_samples?: string[]
+          is_active?: boolean | null
+          created_at?: string | null
+          updated_at?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "user_voice_projects_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "users"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {
