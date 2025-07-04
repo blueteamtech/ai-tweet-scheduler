@@ -21,7 +21,7 @@ async function loadVoiceProject(userId: string) {
       .single();
     
     return voiceProject;
-  } catch (error) {
+  } catch {
     console.log('No active voice project found');
     return null;
   }
