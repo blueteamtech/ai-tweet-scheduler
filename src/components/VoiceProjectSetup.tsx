@@ -16,6 +16,33 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
+  const [showBestPractices, setShowBestPractices] = useState(false);
+  const [bestPractices, setBestPractices] = useState(`📝 VOICE PROJECT BEST PRACTICES
+
+🎯 INSTRUCTIONS SECTION:
+• Be specific about your writing style (formal, casual, humorous, technical)
+• Include tone preferences (direct, friendly, professional, witty)
+• Mention topics you focus on (tech, business, personal growth)
+• Specify what to avoid (hashtags, emojis, corporate speak)
+• Keep it under 2000 characters for best results
+
+✍️ WRITING SAMPLES SECTION:
+• Include 3-5 diverse examples of your actual writing
+• Use different content types (tweets, emails, blog posts, messages)
+• Show various moods/topics to give AI range
+• Keep samples 100-500 characters each
+• Update samples regularly to reflect your evolving voice
+
+🔧 ACTIVATION TIPS:
+• Always check "Use this voice project" when ready
+• Test with simple prompts first
+• Use "Show Generation Process" to see how AI interprets your voice
+• Refine instructions based on results
+• Remember: AI will use ONLY your instructions when active (no built-in prompts)
+
+💡 EXAMPLE GOOD INSTRUCTIONS:
+"Write tweets like me: direct and conversational, focus on practical tech insights, avoid buzzwords, keep it human and authentic, no hashtags or emojis, share genuine experiences and lessons learned"`);
+  const [editingBestPractices, setEditingBestPractices] = useState(false);
 
   // Load existing voice project
   useEffect(() => {
@@ -144,6 +171,45 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
         </div>
       </div>
 
+      {/* Best Practices Section */}
+      <div className="bg-white border-2 border-gray-300 rounded-lg p-4 shadow-sm">
+        <div className="flex items-center justify-between mb-3">
+          <h3 className="font-semibold text-gray-900">💡 Best Practices & Tips</h3>
+          <button
+            onClick={() => setShowBestPractices(!showBestPractices)}
+            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+          >
+            {showBestPractices ? 'Hide' : 'Show'} Best Practices
+          </button>
+        </div>
+        
+        {showBestPractices && (
+          <div className="space-y-3">
+            <div className="flex items-center gap-2 mb-2">
+              <span className="text-sm text-gray-700">You can edit these best practices:</span>
+              <button
+                onClick={() => setEditingBestPractices(!editingBestPractices)}
+                className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+              >
+                {editingBestPractices ? 'Save' : 'Edit'}
+              </button>
+            </div>
+            
+            {editingBestPractices ? (
+              <textarea
+                value={bestPractices}
+                onChange={(e) => setBestPractices(e.target.value)}
+                className="w-full p-4 border-2 border-gray-400 rounded-lg h-64 resize-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 font-mono text-sm leading-relaxed"
+              />
+            ) : (
+              <pre className="whitespace-pre-wrap text-sm text-gray-900 bg-gray-50 p-4 rounded border-2 border-gray-300 font-mono leading-relaxed">
+                {bestPractices}
+              </pre>
+            )}
+          </div>
+        )}
+      </div>
+
       {message && (
         <div className={`p-4 rounded-lg ${message.type === 'success' ? 'bg-green-50 border border-green-200 text-green-800' : 'bg-red-50 border border-red-200 text-red-800'}`}>
           {message.text}
@@ -152,27 +218,27 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
 
       {/* Instructions Editor */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-base font-semibold text-gray-900 mb-2">
           Voice Instructions
-          <span className="text-gray-500 font-normal ml-1">(How should AI write like you?)</span>
+          <span className="text-gray-700 font-normal ml-1">(How should AI write like you?)</span>
         </label>
         <textarea
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
           placeholder="Write tweets like me: direct, humorous, tech-focused, use casual language, include personal anecdotes..."
-          className="w-full p-3 border border-gray-300 rounded-lg h-32 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
+          className="w-full p-4 border-2 border-gray-400 rounded-lg h-32 resize-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-600 text-base font-medium leading-relaxed shadow-sm hover:border-gray-500 transition-colors"
           maxLength={2000}
         />
-        <p className="text-sm text-gray-500 mt-1">
+        <p className="text-sm text-gray-700 mt-1 font-medium">
           {instructions.length}/2000 characters
         </p>
       </div>
 
       {/* Writing Samples Manager */}
       <div>
-        <label className="block text-sm font-medium text-gray-700 mb-2">
+        <label className="block text-base font-semibold text-gray-900 mb-2">
           Writing Samples
-          <span className="text-gray-500 font-normal ml-1">(Examples of your writing style)</span>
+          <span className="text-gray-700 font-normal ml-1">(Examples of your writing style)</span>
         </label>
         
         {writingSamples.map((sample, index) => (
@@ -183,7 +249,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
                   value={sample}
                   onChange={(e) => updateWritingSample(index, e.target.value)}
                   placeholder={`Writing sample ${index + 1} - paste an example of your writing (tweet, email, blog post, etc.)`}
-                  className="w-full p-3 border border-gray-300 rounded-lg h-24 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
+                  className="w-full p-4 border-2 border-gray-400 rounded-lg h-24 resize-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-600 text-base font-medium leading-relaxed shadow-sm hover:border-gray-500 transition-colors"
                 />
               </div>
               {writingSamples.length > 1 && (

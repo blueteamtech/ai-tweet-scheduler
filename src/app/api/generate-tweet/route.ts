@@ -155,7 +155,7 @@ ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
     const aiRequest = {
       prompt,
       contentType: contentType === 'auto' ? 'single' : contentType,
-      personalityContext: systemPrompt.includes('writing style examples') ? systemPrompt : undefined,
+      personalityContext: systemPrompt || undefined,
       templateContext: undefined // No more template context
     }
 

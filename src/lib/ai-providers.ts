@@ -191,6 +191,12 @@ class OpenAIProvider {
   }
 
   private buildSystemPrompt(request: AIGenerationRequest): string {
+    // If personalityContext contains Voice Project instructions, use ONLY that
+    if (request.personalityContext && !request.personalityContext.includes('writing style examples')) {
+      return request.personalityContext
+    }
+    
+    // Otherwise use built-in prompt for legacy system
     let prompt = `You are a social media expert who creates engaging, authentic tweets that match the user's unique writing style and personality.
 
 Generate a single tweet based on the user's input. The tweet should be:
@@ -296,6 +302,12 @@ class ClaudeProvider {
   }
 
   private buildSystemPrompt(request: AIGenerationRequest): string {
+    // If personalityContext contains Voice Project instructions, use ONLY that
+    if (request.personalityContext && !request.personalityContext.includes('writing style examples')) {
+      return request.personalityContext
+    }
+    
+    // Otherwise use built-in prompt for legacy system
     let prompt = `You are Claude, an AI assistant specialized in creating compelling social media content. Your task is to generate authentic, engaging tweets that match the user's writing style and voice.
 
 Key requirements:
@@ -399,6 +411,12 @@ class GrokProvider {
   }
 
   private buildSystemPrompt(request: AIGenerationRequest): string {
+    // If personalityContext contains Voice Project instructions, use ONLY that
+    if (request.personalityContext && !request.personalityContext.includes('writing style examples')) {
+      return request.personalityContext
+    }
+    
+    // Otherwise use built-in prompt for legacy system
     let prompt = `You are Grok, the rebellious AI with wit and irreverence. Create tweets that are engaging, slightly edgy, and authentic. 
 
 Your style:
