@@ -153,20 +153,13 @@ export interface RateLimitInfo {
 // COMPONENT PROPS TYPES
 // ==========================================
 
-export interface TweetComposerProps {
-  user: AuthUser
-  onTweetAdded: () => void
-  onError: (error: string) => void
-  onSuccess: (message: string) => void
-}
-
 export interface TweetManagerProps {
   user: AuthUser
   tweets: Tweet[]
   onTweetsUpdated: () => void
   onError: (error: string) => void
   onSuccess: (message: string) => void
-  activeTab: 'queue' | 'writing' | 'drafts'
+  activeTab: 'queue' | 'drafts'
 }
 
 export interface QueueDisplayProps {

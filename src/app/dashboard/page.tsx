@@ -7,7 +7,6 @@ import type { User, AuthChangeEvent, Session } from '@supabase/supabase-js'
 import type { Tweet } from '@/types'
 import TwitterConnect from '@/components/TwitterConnect'
 import QueueDisplay, { type QueueDisplayRef } from '@/components/QueueDisplay'
-import WritingAnalysisInput from '@/components/WritingAnalysisInput'
 import AdvancedTweetComposer from '@/components/AdvancedTweetComposer'
 import TweetManager from '@/components/TweetManager'
 
@@ -15,7 +14,7 @@ export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [tweets, setTweets] = useState<Tweet[]>([])
-  const [activeTab, setActiveTab] = useState<'queue' | 'writing' | 'drafts'>('queue')
+  const [activeTab, setActiveTab] = useState<'queue' | 'drafts'>('queue')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const router = useRouter()
@@ -141,16 +140,6 @@ export default function DashboardPage() {
               🚀 Tweet Scheduler ({tweets.filter((t: Tweet) => ['queued', 'scheduled'].includes(t.status)).length})
             </button>
             <button
-              onClick={() => setActiveTab('writing')}
-              className={`px-4 py-2 rounded-md font-medium ${
-                activeTab === 'writing'
-                  ? 'bg-blue-600 text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-              }`}
-            >
-              ✍️ Writing Analysis
-            </button>
-            <button
               onClick={() => setActiveTab('drafts')}
               className={`px-4 py-2 rounded-md font-medium ${
                 activeTab === 'drafts'
@@ -160,17 +149,9 @@ export default function DashboardPage() {
             >
               📝 Drafts ({tweets.filter((t: Tweet) => t.status === 'draft').length})
             </button>
-            {/* All Tweets tab removed - redundant */}
           </div>
 
           {/* Tab Content */}
-
-          {activeTab === 'writing' && user && (
-            <>
-              <TwitterConnect userId={user.id} />
-              <WritingAnalysisInput />
-            </>
-          )}
 
           {activeTab === 'queue' && user && (
             <>
@@ -189,6 +170,9 @@ export default function DashboardPage() {
 
               {/* Tweet Scheduler - Refactored into components */}
               <div className="space-y-6">
+                {/* Twitter Connect */}
+                <TwitterConnect userId={user.id} />
+
                 {/* Advanced Tweet Composer Component */}
                 <AdvancedTweetComposer
                   user={user}
