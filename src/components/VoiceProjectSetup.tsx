@@ -56,32 +56,44 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
+      if (!session) {
+        throw new Error('You must be logged in to save voice projects');
+      }
+      
       const payload: VoiceProjectRequest = {
         instructions: instructions.trim(),
         writing_samples: writingSamples.filter(sample => sample.trim()),
         is_active: isActive
       };
 
+      console.log('Saving voice project:', payload);
+
       const response = await fetch('/api/voice-project', {
         method: 'POST',
         headers: { 
           'Content-Type': 'application/json',
-          ...(session && { 'Authorization': `Bearer ${session.access_token}` }),
+          'Authorization': `Bearer ${session.access_token}`,
         },
         body: JSON.stringify(payload)
       });
 
       const result = await response.json();
+      console.log('Save result:', result);
       
       if (result.success) {
         setVoiceProject(result.data);
         setMessage({ type: 'success', text: 'Voice project saved successfully!' });
       } else {
-        throw new Error(result.error || 'Failed to save voice project');
+        const errorMessage = result.error || 'Failed to save voice project';
+        const details = result.details ? ` Details: ${result.details.join(', ')}` : '';
+        throw new Error(errorMessage + details);
       }
     } catch (error) {
       console.error('Failed to save voice project:', error);
-      setMessage({ type: 'error', text: error instanceof Error ? error.message : 'Failed to save voice project' });
+      setMessage({ 
+        type: 'error', 
+        text: error instanceof Error ? error.message : 'Failed to save voice project. Please try again.' 
+      });
     } finally {
       setSaving(false);
     }
@@ -118,9 +130,18 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
     <div className={`space-y-6 ${className}`}>
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
         <h3 className="font-semibold text-blue-900 mb-2">🎭 Voice Project System</h3>
-        <p className="text-blue-700 text-sm">
+        <p className="text-blue-700 text-sm mb-3">
           Configure your personal voice once, and AI will automatically reference your instructions and writing samples for every tweet generation - just like ChatGPT Projects!
         </p>
+        <div className="text-blue-700 text-xs">
+          <p><strong>Quick Setup:</strong></p>
+          <ol className="list-decimal list-inside ml-2 space-y-1">
+            <li>Add instructions on how AI should write like you</li>
+            <li>Paste 2-3 examples of your writing style</li>
+            <li>Check the "Use this voice project" box</li>
+            <li>Click "Save Voice Project"</li>
+          </ol>
+        </div>
       </div>
 
       {message && (
@@ -139,7 +160,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
           placeholder="Write tweets like me: direct, humorous, tech-focused, use casual language, include personal anecdotes..."
-          className="w-full p-3 border border-gray-300 rounded-lg h-32 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full p-3 border border-gray-300 rounded-lg h-32 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
           maxLength={2000}
         />
         <p className="text-sm text-gray-500 mt-1">
@@ -162,7 +183,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
                   value={sample}
                   onChange={(e) => updateWritingSample(index, e.target.value)}
                   placeholder={`Writing sample ${index + 1} - paste an example of your writing (tweet, email, blog post, etc.)`}
-                  className="w-full p-3 border border-gray-300 rounded-lg h-24 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border border-gray-300 rounded-lg h-24 resize-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white text-gray-900 placeholder-gray-500"
                 />
               </div>
               {writingSamples.length > 1 && (
@@ -227,14 +248,32 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
           </button>
         )}
       </div>
+      
+      {/* Debug Info */}
+      {process.env.NODE_ENV === 'development' && (
+        <div className="text-xs text-gray-500 bg-gray-100 p-2 rounded">
+          <p>Debug: Check browser console for detailed error messages</p>
+        </div>
+      )}
 
       {/* Status Info */}
       {voiceProject && (
-        <div className="text-sm text-gray-600 bg-gray-50 p-3 rounded-lg">
-          <p><strong>Status:</strong> {isActive ? '🟢 Active' : '🔴 Inactive'}</p>
-          <p><strong>Instructions:</strong> {instructions.length > 0 ? `${instructions.length} characters` : 'None'}</p>
-          <p><strong>Writing Samples:</strong> {writingSamples.filter(s => s.trim()).length} samples</p>
-          <p><strong>Last Updated:</strong> {new Date(voiceProject.updated_at).toLocaleDateString()}</p>
+        <div className="text-sm text-gray-700 bg-gray-50 border border-gray-200 p-4 rounded-lg">
+          <h4 className="font-semibold text-gray-900 mb-2">📊 Voice Project Status</h4>
+          <div className="space-y-1">
+            <p><strong className="text-gray-900">Status:</strong> {isActive ? '🟢 Active - AI will use this voice project' : '🔴 Inactive - Click the checkbox above to activate'}</p>
+            <p><strong className="text-gray-900">Instructions:</strong> {instructions.length > 0 ? `${instructions.length} characters` : 'None'}</p>
+            <p><strong className="text-gray-900">Writing Samples:</strong> {writingSamples.filter(s => s.trim()).length} samples</p>
+            <p><strong className="text-gray-900">Last Updated:</strong> {new Date(voiceProject.updated_at).toLocaleDateString()}</p>
+          </div>
+          
+          {!isActive && (
+            <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
+              <p className="text-yellow-800 text-sm">
+                <strong>⚠️ Voice Project is Inactive:</strong> Check the box above to activate it, then click "Save Voice Project" to use it for tweet generation.
+              </p>
+            </div>
+          )}
         </div>
       )}
     </div>
