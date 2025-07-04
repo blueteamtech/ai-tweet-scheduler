@@ -94,6 +94,7 @@ export const promptSchema = z.object({
     .refine((prompt: string) => !prompt.includes('\x00'), 'Invalid characters detected'),
   aiProvider: z.enum(['openai', 'claude', 'grok', 'auto']).optional().default('auto'),
   contentType: z.enum(['single', 'long-form', 'auto']).optional().default('auto'),
+  showDebug: z.boolean().optional().default(false),
 })
 
 export const tweetIdSchema = z.object({

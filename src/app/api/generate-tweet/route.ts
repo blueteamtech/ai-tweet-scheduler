@@ -2,12 +2,30 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest, promptSchema, checkRateLimit, sanitizeError } from '@/lib/auth'
 import { createClient } from '@supabase/supabase-js'
 import { aiProviderManager, AIProvider } from '@/lib/ai-providers'
+import type { VoiceProjectDebugInfo, LegacyPersonalityDebugInfo } from '@/types/index'
 
 // Initialize Supabase client for writing samples
 const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+// Load user's voice project
+async function loadVoiceProject(userId: string) {
+  try {
+    const { data: voiceProject } = await supabase
+      .from('user_voice_projects')
+      .select('*')
+      .eq('user_id', userId)
+      .eq('is_active', true)
+      .single();
+    
+    return voiceProject;
+  } catch (error) {
+    console.log('No active voice project found');
+    return null;
+  }
+}
 
 export async function POST(request: NextRequest) {
   console.log('🚀 generate-tweet API called');
@@ -48,7 +66,7 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    const { prompt, aiProvider, contentType } = validation.data
+    const { prompt, aiProvider, contentType, showDebug } = validation.data
 
     // 4. Check if AI providers are available
     const availableProviders = aiProviderManager.getAvailableProviders()
@@ -62,93 +80,94 @@ export async function POST(request: NextRequest) {
 
     console.log('🔑 Available AI providers:', availableProviders.join(', '));
 
-    // 5. TWEET TEMPLATE SELECTION: Smart cycling through proven copywriting frameworks
-    let selectedTemplate = null;
-    let templateContext = '';
+    // 5. VOICE PROJECT SYSTEM: Load active voice project
+    const voiceProject = await loadVoiceProject(user.id);
     
-    try {
-      // Get least recently used template for smart cycling
-      const { data: template, error: templateError } = await supabase
-        .from('tweet_templates')
-        .select('*')
-        .order('usage_count', { ascending: true })
-        .order('last_used_at', { ascending: true, nullsFirst: true })
-        .limit(1)
-        .single();
+    let systemPrompt = 'You are a skilled social media content creator. Generate authentic, engaging tweets that sound natural and human-written.';
+    const debugInfo = { 
+      voiceProject: null as VoiceProjectDebugInfo | null, 
+      legacyPersonality: null as LegacyPersonalityDebugInfo | null,
+      fullPrompt: ''
+    };
 
-      if (!templateError && template) {
-        selectedTemplate = template;
-        
-        // Update usage tracking
-        await supabase
-          .from('tweet_templates')
-          .update({ 
-            usage_count: (template.usage_count || 0) + 1,
-            last_used_at: new Date().toISOString()
-          })
-          .eq('id', template.id);
+    if (voiceProject) {
+      // Build voice context from user's instructions and writing samples
+      const voiceContext = `
+VOICE PROJECT CONTEXT:
 
-        templateContext = `\n\nUSE THIS PROVEN COPYWRITING FRAMEWORK:
-Template Category: ${template.category}
-Structure: ${template.template_structure}
-Target Word Count: ${template.word_count_min}-${template.word_count_max} words
-Example: "${template.example_tweet}"
+INSTRUCTIONS:
+${voiceProject.instructions}
 
-IMPORTANT: Follow this exact structure and word count range, but fill it with content related to the user's topic while maintaining their personality and voice.`;
-        
-        console.log(`🎯 Template selected: ${template.category} - ${template.template_structure}`);
-      }
-    } catch (error) {
-      console.error('Error selecting tweet template:', error);
-      // Continue without template if there's an error
-    }
+WRITING SAMPLES (match this style):
+${voiceProject.writing_samples.join('\n\n---\n\n')}
 
-    // 6. PERSONALITY AI: Get user's writing samples for personality matching
-    let usedPersonalityAI = false
-    let personalityInfo = { samplesUsed: 0, hasWritingSamples: false }
-    let personalityContext = ''
+Generate a tweet following these instructions and matching the writing style.
+      `;
+      
+      systemPrompt = voiceContext + '\n\n' + systemPrompt;
+      debugInfo.voiceProject = {
+        hasInstructions: !!voiceProject.instructions,
+        sampleCount: voiceProject.writing_samples.length,
+        instructions: voiceProject.instructions,
+        isActive: voiceProject.is_active
+      };
+      
+      console.log(`🎭 Voice Project: Using active project with ${voiceProject.writing_samples.length} samples`);
+    } else {
+      // FALLBACK: Use legacy personality system if no voice project
+      console.log('🧠 Voice Project: None active, falling back to legacy personality system');
+      
+      try {
+        const { data: samples, error: samplesError } = await supabase
+          .from('user_writing_samples')
+          .select('content, content_type')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(5);
 
-    try {
-      const { data: samples, error: samplesError } = await supabase
-        .from('user_writing_samples')
-        .select('content, content_type')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(5); // Use last 5 samples for context
-
-      if (!samplesError && samples && samples.length > 0) {
-        usedPersonalityAI = true
-        personalityInfo = {
-          samplesUsed: samples.length,
-          hasWritingSamples: true
+        if (!samplesError && samples && samples.length > 0) {
+          const sampleTexts = samples.map(s => s.content.substring(0, 300)).join('\n\n');
+          const personalityContext = `\n\nUser's writing style examples:\n${sampleTexts}\n\nPlease match this writing style, tone, and personality when creating the tweet.`;
+          
+          systemPrompt = systemPrompt + personalityContext;
+          debugInfo.legacyPersonality = {
+            samplesUsed: samples.length,
+            hasWritingSamples: true
+          };
+          
+          console.log(`🧠 Legacy Personality: Using ${samples.length} writing samples`);
+        } else {
+          debugInfo.legacyPersonality = {
+            samplesUsed: 0,
+            hasWritingSamples: false
+          };
         }
-
-        // Create personality context from writing samples
-        const sampleTexts = samples.map(s => s.content.substring(0, 300)).join('\n\n');
-        personalityContext = `\n\nUser's writing style examples:\n${sampleTexts}\n\nPlease match this writing style, tone, and personality when creating the tweet. Pay attention to their voice, word choice, humor style, and way of expressing ideas.`
-        
-        console.log(`🧠 Personality AI: Using ${samples.length} writing samples for context`);
-      } else {
-        console.log('🧠 Personality AI: No writing samples found, using default generation');
+      } catch (error) {
+        console.error('Error fetching writing samples:', error);
+        debugInfo.legacyPersonality = {
+          samplesUsed: 0,
+          hasWritingSamples: false,
+          error: 'Failed to load samples'
+        };
       }
-    } catch (error) {
-      console.error('Error fetching writing samples:', error);
-      // Continue without personality context if there's an error
     }
 
-    // 7. Generate tweet using AI Provider Manager
+    // Store full prompt for transparency
+    debugInfo.fullPrompt = systemPrompt;
+
+    // 6. Generate tweet using AI Provider Manager
     const selectedProvider = aiProvider === 'auto' ? undefined : aiProvider as AIProvider
     
     const aiRequest = {
       prompt,
       contentType: contentType === 'auto' ? 'single' : contentType,
-      personalityContext: usedPersonalityAI ? personalityContext : undefined,
-      templateContext: templateContext || undefined
+      personalityContext: systemPrompt.includes('writing style examples') ? systemPrompt : undefined,
+      templateContext: undefined // No more template context
     }
 
     console.log(`🤖 Generating tweet with provider: ${selectedProvider || 'auto-selection'}, content type: ${aiRequest.contentType}`)
 
-    // 8. Call AI Provider Manager with fallback
+    // 7. Call AI Provider Manager with fallback
     const aiResponse = await aiProviderManager.generateTweet(aiRequest, selectedProvider, true)
 
     if (!aiResponse.content) {
@@ -158,14 +177,14 @@ IMPORTANT: Follow this exact structure and word count range, but fill it with co
       )
     }
 
-    // 9. Ensure tweet is under appropriate character limit
+    // 8. Ensure tweet is under appropriate character limit
     const maxLength = aiRequest.contentType === 'long-form' ? 4000 : 280
     const finalTweet = aiResponse.content.length > maxLength 
       ? aiResponse.content.substring(0, maxLength - 3) + '...'
       : aiResponse.content
 
-    // 10. Log successful generation (without sensitive data)
-    console.log(`Tweet generated for user ${user.id}: ${finalTweet.length} characters, Provider: ${aiResponse.provider}, Model: ${aiResponse.model}, Personality AI: ${usedPersonalityAI}, Template: ${selectedTemplate?.category || 'none'}`)
+    // 9. Log successful generation
+    console.log(`Tweet generated for user ${user.id}: ${finalTweet.length} characters, Provider: ${aiResponse.provider}, Model: ${aiResponse.model}, Voice Project: ${!!voiceProject}`)
 
     return NextResponse.json({
       tweet: finalTweet,
@@ -176,33 +195,40 @@ IMPORTANT: Follow this exact structure and word count range, but fill it with co
         responseTime: aiResponse.responseTime,
         fallbackUsed: selectedProvider !== aiResponse.provider
       },
+      voiceProject: {
+        used: !!voiceProject,
+        hasInstructions: voiceProject?.instructions ? true : false,
+        sampleCount: voiceProject?.writing_samples?.length || 0,
+        isActive: voiceProject?.is_active || false
+      },
       personalityAI: {
-        used: usedPersonalityAI,
-        samplesUsed: personalityInfo.samplesUsed,
-        hasWritingSamples: personalityInfo.hasWritingSamples
+        used: !voiceProject && (debugInfo.legacyPersonality?.samplesUsed || 0) > 0,
+        samplesUsed: debugInfo.legacyPersonality?.samplesUsed || 0,
+        hasWritingSamples: debugInfo.legacyPersonality?.hasWritingSamples || false
       },
       template: {
-        used: !!selectedTemplate,
-        category: selectedTemplate?.category || null,
-        structure: selectedTemplate?.template_structure || null,
-        wordCountTarget: selectedTemplate ? `${selectedTemplate.word_count_min}-${selectedTemplate.word_count_max}` : null
+        used: false, // Templates removed
+        category: null,
+        structure: null,
+        wordCountTarget: null
       },
       contentType: aiRequest.contentType,
       usage: aiResponse.usage,
-      // DEBUG INFO
-      debug: {
+      // DEBUG INFO - Only included if showDebug is true
+      debug: showDebug ? {
         userId: user.id,
-        personalityAttempted: true,
-        personalityContext: usedPersonalityAI ? 'loaded' : 'no_samples',
-        templateUsed: selectedTemplate?.category || 'none',
+        voiceProject: debugInfo.voiceProject,
+        legacyPersonality: debugInfo.legacyPersonality,
+        fullPrompt: debugInfo.fullPrompt,
+        aiRequest: aiRequest,
         providerMetrics: aiProviderManager.getProviderMetrics()
-      }
+      } : undefined
     })
 
   } catch (error) {
     console.error('Error generating tweet:', error)
     
-    // Handle specific OpenAI errors without exposing internal details
+    // Handle specific errors
     if (error instanceof Error) {
       if (error.message.includes('API key')) {
         return NextResponse.json(

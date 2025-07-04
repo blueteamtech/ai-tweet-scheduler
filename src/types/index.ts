@@ -40,16 +40,16 @@ export interface WritingSample {
   updated_at: string
 }
 
-export interface TweetTemplate {
+// TweetTemplate interface removed - replaced with Voice Project system
+
+export interface VoiceProject {
   id: string
-  category: 'wisdom' | 'story' | 'motivational' | 'paradox' | 'framework'
-  template_structure: string
-  word_count_min: number
-  word_count_max: number
-  example_tweet: string
-  usage_count: number
-  last_used_at: string | null
+  user_id: string
+  instructions: string
+  writing_samples: string[]
+  is_active: boolean
   created_at: string
+  updated_at: string
 }
 
 // ==========================================
@@ -79,6 +79,12 @@ export interface QueueTweetResponse {
 export interface GenerateTweetResponse {
   tweet: string
   characterCount: number
+  voiceProject: {
+    used: boolean
+    hasInstructions: boolean
+    sampleCount: number
+    isActive: boolean
+  }
   personalityAI: {
     used: boolean
     samplesUsed: number
@@ -90,12 +96,7 @@ export interface GenerateTweetResponse {
     structure: string | null
     wordCountTarget: string | null
   }
-  debug?: {
-    userId: string
-    personalityAttempted: boolean
-    personalityContext: string
-    templateUsed: string
-  }
+  debug?: DebugInfo
 }
 
 export interface QueueStatusResponse {
@@ -204,22 +205,12 @@ export interface PersonalityContext {
   context: string
 }
 
-export interface TemplateInfo {
-  id: string
-  category: TweetTemplate['category']
-  structure: string
-  wordCountRange: {
-    min: number
-    max: number
-  }
-  example: string
-}
+// TemplateInfo interface removed - replaced with Voice Project system
 
 export interface AIGenerationRequest {
   prompt: string
   userId?: string
   usePersonality?: boolean
-  templateCategory?: TweetTemplate['category']
 }
 
 // ==========================================
@@ -262,7 +253,6 @@ export interface TwitterPostResult {
 // ==========================================
 
 export type TweetStatus = Tweet['status']
-export type TemplateCategory = TweetTemplate['category']
 export type ActiveTab = 'queue' | 'writing' | 'drafts'
 
 // Utility type for making certain fields optional
@@ -285,6 +275,45 @@ export interface TweetFormData {
 export interface WritingSampleFormData {
   content: string
   content_type: string
+}
+
+export interface VoiceProjectRequest {
+  instructions: string
+  writing_samples: string[]
+  is_active: boolean
+}
+
+export interface VoiceProjectResponse {
+  success: boolean
+  data?: VoiceProject
+  error?: string
+}
+
+export interface VoiceProjectDebugInfo {
+  hasInstructions: boolean
+  sampleCount: number
+  instructions: string
+  isActive: boolean
+}
+
+export interface LegacyPersonalityDebugInfo {
+  samplesUsed: number
+  hasWritingSamples: boolean
+  error?: string
+}
+
+export interface DebugInfo {
+  userId: string
+  voiceProject?: VoiceProjectDebugInfo
+  legacyPersonality?: LegacyPersonalityDebugInfo
+  fullPrompt: string
+  aiRequest?: {
+    prompt: string
+    contentType: string
+    personalityContext?: string
+    templateContext?: string
+  }
+  providerMetrics?: Record<string, unknown>
 }
 
 // ==========================================
@@ -315,24 +344,6 @@ export interface UserStats {
 }
 
 // ==========================================
-// DEBUGGING TYPES
-// ==========================================
-
-export interface DebugInfo {
-  endpoint: string
-  userId?: string
-  timestamp: string
-  request?: Record<string, unknown>
-  response?: Record<string, unknown>
-  error?: string
-  performance?: {
-    startTime: number
-    endTime: number
-    duration: number
-  }
-}
-
-// ==========================================
 // CONSTANTS
 // ==========================================
 
@@ -350,13 +361,7 @@ export const TWEET_STATUSES = [
   'failed'
 ] as const
 
-export const TEMPLATE_CATEGORIES = [
-  'wisdom',
-  'story', 
-  'motivational',
-  'paradox',
-  'framework'
-] as const
+// TEMPLATE_CATEGORIES removed - replaced with Voice Project system
 
 export const TIMEZONE_DEFAULT = 'America/New_York' as const
 export const POSTING_WINDOW = {

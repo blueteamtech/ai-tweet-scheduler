@@ -9,6 +9,7 @@ import {
   type ContentAnalysis,
   type ContentFormatOptions
 } from '@/lib/content-management'
+import type { DebugInfo } from '@/types/index'
 
 interface AdvancedTweetComposerProps {
   user: User
@@ -26,6 +27,8 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
     maxCharactersPerTweet: 280,
     longFormEnabled: true
   })
+  const [showGenerationProcess, setShowGenerationProcess] = useState(false)
+  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null)
 
   // Analyze content whenever it changes
   useEffect(() => {
@@ -63,7 +66,8 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         body: JSON.stringify({
           prompt: tweetContent || 'Write a motivational tweet about entrepreneurship and building startups',
           contentType: 'auto',
-          maxLength: 4000
+          maxLength: 4000,
+          showDebug: showGenerationProcess
         }),
       })
 
@@ -73,6 +77,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
 
       const data = await response.json()
       setTweetContent(data.tweet)
+      setDebugInfo(data.debug)
     } catch (error) {
       onError('Failed to generate tweet. Please try again.')
       console.error('Error generating tweet:', error)
@@ -242,6 +247,20 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
       </div>
 
       <div className="space-y-4">
+        {/* Generation Transparency Toggle */}
+        <div className="flex items-center gap-3 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <input
+            type="checkbox"
+            id="show-generation"
+            checked={showGenerationProcess}
+            onChange={(e) => setShowGenerationProcess(e.target.checked)}
+            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+          />
+          <label htmlFor="show-generation" className="text-sm font-medium text-blue-700">
+            🔍 Show Generation Process (Full Transparency)
+          </label>
+        </div>
+
         {/* Content Input */}
         <div>
           <div className="flex justify-between items-center mb-2">
@@ -267,6 +286,49 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
           />
           {renderContentAnalysis()}
         </div>
+
+        {/* Debug Information Display */}
+        {showGenerationProcess && debugInfo && (
+          <div className="bg-gray-100 p-4 rounded-lg mt-4">
+            <h3 className="font-semibold mb-3 text-gray-800">🔍 Generation Process Transparency</h3>
+            
+            {debugInfo.voiceProject && (
+              <div className="mb-3 p-3 bg-blue-50 rounded border border-blue-200">
+                <h4 className="font-medium text-blue-900 mb-2">🎭 Voice Project Used</h4>
+                <p className="text-sm text-blue-800">
+                  <strong>Instructions:</strong> {debugInfo.voiceProject.hasInstructions ? 'Yes' : 'No'}
+                </p>
+                <p className="text-sm text-blue-800">
+                  <strong>Writing Samples:</strong> {debugInfo.voiceProject.sampleCount}
+                </p>
+                <p className="text-sm text-blue-800">
+                  <strong>Status:</strong> {debugInfo.voiceProject.isActive ? 'Active' : 'Inactive'}
+                </p>
+              </div>
+            )}
+            
+            {debugInfo.legacyPersonality && (
+              <div className="mb-3 p-3 bg-yellow-50 rounded border border-yellow-200">
+                <h4 className="font-medium text-yellow-900 mb-2">🧠 Legacy Personality System</h4>
+                <p className="text-sm text-yellow-800">
+                  <strong>Writing Samples Used:</strong> {debugInfo.legacyPersonality.samplesUsed}
+                </p>
+                <p className="text-sm text-yellow-800">
+                  <strong>Has Samples:</strong> {debugInfo.legacyPersonality.hasWritingSamples ? 'Yes' : 'No'}
+                </p>
+              </div>
+            )}
+            
+            <details className="mt-3">
+              <summary className="cursor-pointer font-medium text-gray-700 hover:text-gray-900">
+                📋 Full AI Prompt (Click to expand)
+              </summary>
+              <pre className="mt-2 p-3 bg-white rounded text-xs overflow-auto max-h-64 border border-gray-300">
+                {debugInfo.fullPrompt}
+              </pre>
+            </details>
+          </div>
+        )}
 
         {/* Action Buttons */}
         <div className="flex space-x-3">

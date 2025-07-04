@@ -9,12 +9,13 @@ import TwitterConnect from '@/components/TwitterConnect'
 import QueueDisplay, { type QueueDisplayRef } from '@/components/QueueDisplay'
 import AdvancedTweetComposer from '@/components/AdvancedTweetComposer'
 import TweetManager from '@/components/TweetManager'
+import VoiceProjectSetup from '@/components/VoiceProjectSetup'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
   const [tweets, setTweets] = useState<Tweet[]>([])
-  const [activeTab, setActiveTab] = useState<'queue' | 'drafts'>('queue')
+  const [activeTab, setActiveTab] = useState<'queue' | 'drafts' | 'voice'>('queue')
   const [error, setError] = useState('')
   const [success, setSuccess] = useState('')
   const router = useRouter()
@@ -140,6 +141,16 @@ export default function DashboardPage() {
               🚀 Tweet Scheduler ({tweets.filter((t: Tweet) => ['queued', 'scheduled'].includes(t.status)).length})
             </button>
             <button
+              onClick={() => setActiveTab('voice')}
+              className={`px-4 py-2 rounded-md font-medium ${
+                activeTab === 'voice'
+                  ? 'bg-purple-600 text-white'
+                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+              }`}
+            >
+              🎭 Voice Project
+            </button>
+            <button
               onClick={() => setActiveTab('drafts')}
               className={`px-4 py-2 rounded-md font-medium ${
                 activeTab === 'drafts'
@@ -185,6 +196,12 @@ export default function DashboardPage() {
                 <QueueDisplay userId={user.id} onRefresh={() => loadTweets(user.id)} ref={queueDisplayRef} />
               </div>
             </>
+          )}
+
+          {activeTab === 'voice' && user && (
+            <div className="bg-white rounded-lg border border-gray-200 p-6">
+              <VoiceProjectSetup />
+            </div>
           )}
 
           {activeTab === 'drafts' && user && (
