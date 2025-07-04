@@ -57,13 +57,22 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
+    console.log('🎭 Voice Project POST request received')
     const { user, error: authError } = await getUserFromRequest(request)
     
     if (authError || !user) {
+      console.log('❌ Authentication failed:', authError)
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
     }
 
+    console.log('✅ User authenticated:', user.id)
     const body = await request.json()
+    console.log('📝 Request body:', { 
+      instructionsLength: body.instructions?.length || 0,
+      samplesCount: body.writing_samples?.length || 0,
+      isActive: body.is_active 
+    })
+    
     const validation = voiceProjectSchema.safeParse(body)
     
     if (!validation.success) {
@@ -87,15 +96,24 @@ export async function POST(request: NextRequest) {
         writing_samples: filteredSamples,
         is_active,
         updated_at: new Date().toISOString()
+      }, {
+        onConflict: 'user_id'
       })
       .select()
       .single()
 
     if (dbError) {
       console.error('Database error saving voice project:', dbError)
+      console.error('Error details:', {
+        code: dbError.code,
+        message: dbError.message,
+        details: dbError.details,
+        hint: dbError.hint
+      })
       return NextResponse.json({ 
         success: false, 
-        error: 'Failed to save voice project' 
+        error: `Failed to save voice project: ${dbError.message}`,
+        dbError: dbError.code
       }, { status: 500 })
     }
 
