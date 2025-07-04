@@ -83,7 +83,7 @@ export async function POST(request: NextRequest) {
     // 5. VOICE PROJECT SYSTEM: Load active voice project
     const voiceProject = await loadVoiceProject(user.id);
     
-    let systemPrompt = 'You are a skilled social media content creator. Generate authentic, engaging tweets that sound natural and human-written.';
+    let systemPrompt = '';
     const debugInfo = { 
       voiceProject: null as VoiceProjectDebugInfo | null, 
       legacyPersonality: null as LegacyPersonalityDebugInfo | null,
@@ -91,20 +91,12 @@ export async function POST(request: NextRequest) {
     };
 
     if (voiceProject) {
-      // Build voice context from user's instructions and writing samples
-      const voiceContext = `
-VOICE PROJECT CONTEXT:
-
-INSTRUCTIONS:
-${voiceProject.instructions}
+      // Build voice context ONLY from user's instructions and writing samples - NO built-in prompts
+      systemPrompt = `${voiceProject.instructions}
 
 WRITING SAMPLES (match this style):
-${voiceProject.writing_samples.join('\n\n---\n\n')}
-
-Generate a tweet following these instructions and matching the writing style.
-      `;
+${voiceProject.writing_samples.join('\n\n---\n\n')}`;
       
-      systemPrompt = voiceContext + '\n\n' + systemPrompt;
       debugInfo.voiceProject = {
         hasInstructions: !!voiceProject.instructions,
         sampleCount: voiceProject.writing_samples.length,
@@ -116,6 +108,8 @@ Generate a tweet following these instructions and matching the writing style.
     } else {
       // FALLBACK: Use legacy personality system if no voice project
       console.log('🧠 Voice Project: None active, falling back to legacy personality system');
+      
+      systemPrompt = 'You are a skilled social media content creator. Generate authentic, engaging tweets that sound natural and human-written.';
       
       try {
         const { data: samples, error: samplesError } = await supabase

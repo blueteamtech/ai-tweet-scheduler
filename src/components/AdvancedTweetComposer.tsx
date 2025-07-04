@@ -289,41 +289,41 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
 
         {/* Debug Information Display */}
         {showGenerationProcess && debugInfo && (
-          <div className="bg-gray-100 p-4 rounded-lg mt-4">
-            <h3 className="font-semibold mb-3 text-gray-800">🔍 Generation Process Transparency</h3>
+          <div className="bg-white border-2 border-gray-300 p-4 rounded-lg mt-4 shadow-sm">
+            <h3 className="font-semibold mb-3 text-gray-900">🔍 Generation Process Transparency</h3>
             
             {debugInfo.voiceProject && (
-              <div className="mb-3 p-3 bg-blue-50 rounded border border-blue-200">
+              <div className="mb-3 p-3 bg-blue-50 rounded border border-blue-300">
                 <h4 className="font-medium text-blue-900 mb-2">🎭 Voice Project Used</h4>
-                <p className="text-sm text-blue-800">
+                <p className="text-sm text-blue-900 font-medium">
                   <strong>Instructions:</strong> {debugInfo.voiceProject.hasInstructions ? 'Yes' : 'No'}
                 </p>
-                <p className="text-sm text-blue-800">
+                <p className="text-sm text-blue-900 font-medium">
                   <strong>Writing Samples:</strong> {debugInfo.voiceProject.sampleCount}
                 </p>
-                <p className="text-sm text-blue-800">
+                <p className="text-sm text-blue-900 font-medium">
                   <strong>Status:</strong> {debugInfo.voiceProject.isActive ? 'Active' : 'Inactive'}
                 </p>
               </div>
             )}
             
             {debugInfo.legacyPersonality && (
-              <div className="mb-3 p-3 bg-yellow-50 rounded border border-yellow-200">
+              <div className="mb-3 p-3 bg-yellow-50 rounded border border-yellow-300">
                 <h4 className="font-medium text-yellow-900 mb-2">🧠 Legacy Personality System</h4>
-                <p className="text-sm text-yellow-800">
+                <p className="text-sm text-yellow-900 font-medium">
                   <strong>Writing Samples Used:</strong> {debugInfo.legacyPersonality.samplesUsed}
                 </p>
-                <p className="text-sm text-yellow-800">
+                <p className="text-sm text-yellow-900 font-medium">
                   <strong>Has Samples:</strong> {debugInfo.legacyPersonality.hasWritingSamples ? 'Yes' : 'No'}
                 </p>
               </div>
             )}
             
             <details className="mt-3">
-              <summary className="cursor-pointer font-medium text-gray-700 hover:text-gray-900">
+              <summary className="cursor-pointer font-medium text-gray-900 hover:text-gray-700 bg-gray-100 p-2 rounded">
                 📋 Full AI Prompt (Click to expand)
               </summary>
-              <pre className="mt-2 p-3 bg-white rounded text-xs overflow-auto max-h-64 border border-gray-300">
+              <pre className="mt-2 p-3 bg-white rounded text-sm overflow-auto max-h-64 border border-gray-400 text-gray-900 font-mono leading-relaxed">
                 {debugInfo.fullPrompt}
               </pre>
             </details>
