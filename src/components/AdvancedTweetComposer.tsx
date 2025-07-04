@@ -29,6 +29,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   })
   const [showGenerationProcess, setShowGenerationProcess] = useState(false)
   const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null)
+  const [selectedProvider, setSelectedProvider] = useState<'openai' | 'claude' | 'grok' | 'auto'>('auto')
 
   // Analyze content whenever it changes
   useEffect(() => {
@@ -67,7 +68,8 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
           prompt: tweetContent || 'Write a motivational tweet about entrepreneurship and building startups',
           contentType: 'auto',
           maxLength: 4000,
-          showDebug: showGenerationProcess
+          showDebug: showGenerationProcess,
+          aiProvider: selectedProvider
         }),
       })
 
@@ -247,6 +249,29 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
       </div>
 
       <div className="space-y-4">
+        {/* AI Provider Selection */}
+        <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
+          <label className="block text-sm font-medium text-purple-700 mb-2">
+            🤖 AI Provider
+          </label>
+          <select
+            value={selectedProvider}
+            onChange={(e) => setSelectedProvider(e.target.value as 'openai' | 'claude' | 'grok' | 'auto')}
+            className="w-full p-2 border border-purple-300 rounded-md focus:ring-2 focus:ring-purple-500 focus:border-purple-500 bg-white"
+          >
+            <option value="auto">🎯 Auto (Best Available)</option>
+            <option value="claude">🎭 Claude (Authentic Voice)</option>
+            <option value="grok">🔥 Grok (Wit & Edge)</option>
+            <option value="openai">💼 OpenAI (Professional)</option>
+          </select>
+          <p className="text-xs text-purple-600 mt-1">
+            {selectedProvider === 'auto' && 'System automatically selects the best performing provider'}
+            {selectedProvider === 'claude' && 'Best for authentic voice replication and natural conversation'}
+            {selectedProvider === 'grok' && 'Rebellious AI with wit, humor, and contrarian takes'}
+            {selectedProvider === 'openai' && 'Professional, reliable content generation'}
+          </p>
+        </div>
+
         {/* Generation Transparency Toggle */}
         <div className="flex items-center gap-3 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
           <input
@@ -291,6 +316,21 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         {showGenerationProcess && debugInfo && (
           <div className="bg-white border-2 border-gray-400 p-4 rounded-lg mt-4 shadow-md">
             <h3 className="font-semibold mb-3 text-black">🔍 Generation Process Transparency</h3>
+            
+            {debugInfo.aiProvider && (
+              <div className="mb-3 p-3 bg-purple-100 rounded border-2 border-purple-400">
+                <h4 className="font-medium text-purple-900 mb-2">🤖 AI Provider Used</h4>
+                <p className="text-sm text-purple-900 font-semibold">
+                  <strong>Provider:</strong> {debugInfo.aiProvider.provider}
+                </p>
+                <p className="text-sm text-purple-900 font-semibold">
+                  <strong>Model:</strong> {debugInfo.aiProvider.model}
+                </p>
+                <p className="text-sm text-purple-900 font-semibold">
+                  <strong>Response Time:</strong> {debugInfo.aiProvider.responseTime}ms
+                </p>
+              </div>
+            )}
             
             {debugInfo.voiceProject && (
               <div className="mb-3 p-3 bg-blue-100 rounded border-2 border-blue-400">
@@ -337,7 +377,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
             disabled={isGenerating || isSaving}
             className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isGenerating ? '🤖 Generating...' : '🤖 Generate AI'}
+            {isGenerating ? '🤖 Generating...' : selectedProvider === 'auto' ? '🤖 Generate AI' : selectedProvider === 'claude' ? '🎭 Generate with Claude' : selectedProvider === 'grok' ? '🔥 Generate with Grok' : '💼 Generate with OpenAI'}
           </button>
           
           <button

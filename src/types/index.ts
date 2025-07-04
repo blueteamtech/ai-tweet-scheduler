@@ -313,6 +313,16 @@ export interface DebugInfo {
     personalityContext?: string
     templateContext?: string
   }
+  aiProvider?: {
+    provider: string
+    model: string
+    responseTime: number
+    usage?: {
+      promptTokens: number
+      completionTokens: number
+      totalTokens: number
+    }
+  }
   providerMetrics?: Record<string, unknown>
 }
 
