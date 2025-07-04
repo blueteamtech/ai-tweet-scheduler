@@ -126,6 +126,14 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
     }
   }, [])
 
+  const stopAutoRefresh = useCallback(() => {
+    if (refreshIntervalRef.current) {
+      clearInterval(refreshIntervalRef.current)
+      refreshIntervalRef.current = null
+    }
+    setAutoRefreshActive(false)
+  }, [])
+
   const startAutoRefresh = useCallback(() => {
     // Clear any existing interval
     if (refreshIntervalRef.current) {
@@ -152,14 +160,6 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
     refreshIntervalRef.current = intervalId
     setAutoRefreshActive(true)
   }, [autoRefreshInterval, loadQueueStatus, maxFailures])
-
-  const stopAutoRefresh = useCallback(() => {
-    if (refreshIntervalRef.current) {
-      clearInterval(refreshIntervalRef.current)
-      refreshIntervalRef.current = null
-    }
-    setAutoRefreshActive(false)
-  }, [])
 
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({

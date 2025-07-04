@@ -138,8 +138,8 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
           <ol className="list-decimal list-inside ml-2 space-y-1">
             <li>Add instructions on how AI should write like you</li>
             <li>Paste 2-3 examples of your writing style</li>
-            <li>Check the "Use this voice project" box</li>
-            <li>Click "Save Voice Project"</li>
+            <li>Check the &quot;Use this voice project&quot; box</li>
+            <li>Click &quot;Save Voice Project&quot;</li>
           </ol>
         </div>
       </div>
@@ -270,7 +270,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
           {!isActive && (
             <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded">
               <p className="text-yellow-800 text-sm">
-                <strong>⚠️ Voice Project is Inactive:</strong> Check the box above to activate it, then click "Save Voice Project" to use it for tweet generation.
+                <strong>⚠️ Voice Project is Inactive:</strong> Check the box above to activate it, then click &quot;Save Voice Project&quot; to use it for tweet generation.
               </p>
             </div>
           )}
