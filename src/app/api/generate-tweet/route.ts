@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
       // Build voice context ONLY from user's instructions and writing samples - NO built-in prompts
       systemPrompt = `${voiceProject.instructions}
 
-WRITING SAMPLES (match this style):
+WRITING SAMPLES:
 ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
       
       debugInfo.voiceProject = {
