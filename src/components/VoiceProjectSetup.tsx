@@ -16,7 +16,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
-  const [showBestPractices, setShowBestPractices] = useState(false);
+  const [showBestPractices, setShowBestPractices] = useState(true);
   const [bestPractices, setBestPractices] = useState(`📝 VOICE PROJECT BEST PRACTICES
 
 🎯 INSTRUCTIONS SECTION:
@@ -172,12 +172,12 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
       </div>
 
       {/* Best Practices Section */}
-      <div className="bg-white border-2 border-gray-300 rounded-lg p-4 shadow-sm">
+      <div className="bg-gradient-to-r from-green-50 to-blue-50 border-2 border-green-300 rounded-lg p-4 shadow-md">
         <div className="flex items-center justify-between mb-3">
-          <h3 className="font-semibold text-gray-900">💡 Best Practices & Tips</h3>
+          <h3 className="font-bold text-green-900 text-lg">💡 Best Practices & Tips</h3>
           <button
             onClick={() => setShowBestPractices(!showBestPractices)}
-            className="text-blue-600 hover:text-blue-800 text-sm font-medium"
+            className="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 text-sm font-medium"
           >
             {showBestPractices ? 'Hide' : 'Show'} Best Practices
           </button>
@@ -186,12 +186,12 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
         {showBestPractices && (
           <div className="space-y-3">
             <div className="flex items-center gap-2 mb-2">
-              <span className="text-sm text-gray-700">You can edit these best practices:</span>
+              <span className="text-sm text-gray-800 font-medium">You can edit these best practices:</span>
               <button
                 onClick={() => setEditingBestPractices(!editingBestPractices)}
-                className="text-blue-600 hover:text-blue-800 text-xs font-medium"
+                className="bg-blue-600 text-white px-2 py-1 rounded text-xs font-medium hover:bg-blue-700"
               >
-                {editingBestPractices ? 'Save' : 'Edit'}
+                {editingBestPractices ? '💾 Save' : '✏️ Edit'}
               </button>
             </div>
             
