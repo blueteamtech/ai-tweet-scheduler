@@ -18,26 +18,30 @@
 ## 🚨 CRITICAL DEPLOYMENT ENVIRONMENT RULES
 
 ### 🛡️ **CATASTROPHIC DATA LOSS PREVENTION** 
-**MANDATORY:** NEVER delete user data without explicit permission
+**MANDATORY:** NEVER delete USER DATA without explicit permission
 ```
 🚨 CRITICAL: User is on FREE TIER - NO AUTOMATIC BACKUPS
-❌ NEVER run migrations that DROP tables without explicit user consent
-❌ NEVER run "reset", "rollback", or "clean" operations without permission
-❌ NEVER assume it's safe to delete data for "cleanup" or "organization"
-❌ NEVER run destructive MCP Supabase operations without user approval
-✅ ALWAYS ask user permission before ANY destructive database operation
-✅ ALWAYS warn about FREE TIER = NO BACKUPS before destructive operations
-✅ ALWAYS confirm schema changes that could delete data
-✅ ALWAYS ask "Are you sure?" before running DROP TABLE commands
+❌ NEVER delete tables/data that contain USER INPUT without explicit consent
+❌ NEVER run "reset", "rollback", or "clean" operations that delete USER DATA
+❌ NEVER delete user-generated content (tweets, settings, connections, etc.)
+❌ NEVER run destructive operations on populated tables without user approval
+✅ ALWAYS ask permission before deleting USER DATA (not empty schema)
+✅ ALWAYS warn about FREE TIER = NO BACKUPS before deleting USER DATA
+✅ Schema creation/modification for empty tables = NO PERMISSION NEEDED
+✅ Creating new tables or rebuilding empty schema = PROCEED WITHOUT ASKING
 ```
 
+**USER DATA vs SCHEMA DISTINCTION:**
+- **USER DATA** (requires permission): Tweets, writing samples, Twitter connections, queue settings, user preferences
+- **EMPTY SCHEMA** (no permission needed): Creating tables, indexes, constraints, RLS policies on empty tables
+
 **DESTRUCTIVE OPERATION CHECKLIST:**
-Before ANY operation that could delete data:
-1. ⚠️ **STOP** - Is this operation destructive?
-2. 🔍 **VERIFY** - Will this delete user data?
+Before ANY operation that could delete USER DATA:
+1. ⚠️ **STOP** - Does this table contain user input/data?
+2. 🔍 **VERIFY** - Will this delete actual user-generated content?
 3. 📋 **CHECK** - Is user on paid plan with backups?
-4. 💬 **ASK** - Get explicit user permission
-5. ⚠️ **WARN** - Explain consequences clearly
+4. 💬 **ASK** - Get explicit user permission for USER DATA deletion
+5. ⚠️ **WARN** - Explain FREE TIER = NO RECOVERY for user data
 6. ✅ **CONFIRM** - Double-check user wants to proceed
 
 ### 🌐 **NEVER ASSUME LOCAL DEVELOPMENT**
