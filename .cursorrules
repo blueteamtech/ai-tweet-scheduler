@@ -17,6 +17,29 @@
 
 ## 🚨 CRITICAL DEPLOYMENT ENVIRONMENT RULES
 
+### 🛡️ **CATASTROPHIC DATA LOSS PREVENTION** 
+**MANDATORY:** NEVER delete user data without explicit permission
+```
+🚨 CRITICAL: User is on FREE TIER - NO AUTOMATIC BACKUPS
+❌ NEVER run migrations that DROP tables without explicit user consent
+❌ NEVER run "reset", "rollback", or "clean" operations without permission
+❌ NEVER assume it's safe to delete data for "cleanup" or "organization"
+❌ NEVER run destructive MCP Supabase operations without user approval
+✅ ALWAYS ask user permission before ANY destructive database operation
+✅ ALWAYS warn about FREE TIER = NO BACKUPS before destructive operations
+✅ ALWAYS confirm schema changes that could delete data
+✅ ALWAYS ask "Are you sure?" before running DROP TABLE commands
+```
+
+**DESTRUCTIVE OPERATION CHECKLIST:**
+Before ANY operation that could delete data:
+1. ⚠️ **STOP** - Is this operation destructive?
+2. 🔍 **VERIFY** - Will this delete user data?
+3. 📋 **CHECK** - Is user on paid plan with backups?
+4. 💬 **ASK** - Get explicit user permission
+5. ⚠️ **WARN** - Explain consequences clearly
+6. ✅ **CONFIRM** - Double-check user wants to proceed
+
 ### 🌐 **NEVER ASSUME LOCAL DEVELOPMENT**
 **MANDATORY:** This project runs in production on Vercel, NOT localhost
 ```
@@ -81,6 +104,27 @@
 ### 🗄️ DATABASE MANAGEMENT WITH MCP SUPABASE
 **CONTEXT:** MCP Supabase provides direct database interaction - no manual SQL files needed
 **INTEGRATION:** Database schema and operations handled through MCP tools
+
+**🚨 CRITICAL MCP SUPABASE SAFEGUARDS:**
+```
+🛡️ DATA LOSS PREVENTION WITH MCP SUPABASE:
+❌ NEVER use mcp_supabase_apply_migration with DROP TABLE without user permission
+❌ NEVER run migrations named "reset", "rollback", "clean" without explicit consent
+❌ NEVER assume migration operations are safe - always check SQL content first
+❌ NEVER run destructive operations based on assumptions or "cleanup" needs
+✅ ALWAYS show user the SQL before running destructive migrations
+✅ ALWAYS ask permission before DROP, TRUNCATE, or DELETE operations
+✅ ALWAYS remind user about FREE TIER = NO BACKUPS before destructive operations
+✅ ALWAYS get explicit "YES" confirmation for any data deletion
+```
+
+**DESTRUCTIVE MCP OPERATION PROTOCOL:**
+1. 📋 **INSPECT** - Check what SQL will be executed
+2. 🔍 **ANALYZE** - Look for DROP, TRUNCATE, DELETE keywords
+3. ⚠️ **WARN** - Alert user about potential data loss
+4. 💬 **ASK** - Get explicit permission with clear explanation
+5. ⏸️ **WAIT** - For user's explicit "YES" response
+6. ✅ **EXECUTE** - Only after confirmed permission
 
 **WORKFLOW:**
 1. **Database Changes:** Use MCP Supabase tools for schema management
@@ -232,6 +276,23 @@ AI-Personality-Tweets-to-Scheduler/
 
 ---
 
+## 🚨 CRITICAL USER CONTEXT - FREE TIER LIMITATIONS
+
+**⚠️ IMPORTANT: USER IS ON SUPABASE FREE TIER**
+```
+🔴 NO AUTOMATIC BACKUPS - Data loss is PERMANENT
+🔴 NO POINT-IN-TIME RECOVERY - Cannot restore to previous state
+🔴 NO DAILY BACKUPS - Zero recovery options if data is deleted
+🔴 CATASTROPHIC IMPACT - Any data deletion is irreversible
+```
+
+**BEFORE ANY DATABASE OPERATION:**
+1. 🛑 **REMEMBER** - User has NO backups
+2. 💭 **THINK** - Could this delete data?
+3. 🚨 **STOP** - If yes, ask permission first
+4. 📢 **WARN** - Explain FREE TIER = NO RECOVERY
+5. ✅ **CONFIRM** - Get explicit user consent
+
 ## 🎯 CURRENT DEVELOPMENT PRIORITIES
 
 **Current Focus:** Improving user experience and AI quality
@@ -239,7 +300,7 @@ AI-Personality-Tweets-to-Scheduler/
 2. **AI Output Quality:** Make tweets sound more human and natural
 3. **Enhanced Voice Matching:** Better writing sample utilization
 4. **User Experience:** Improve queue management and interface
-5. **Database Safety:** Always backup before schema changes
+5. **Database Safety:** CRITICAL - User has NO backups on free tier
 6. **Production-Only Approach:** Use feature flags, no test environment needed
 
 ---
