@@ -308,7 +308,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
             📝 <strong>Template Tips:</strong> Paste your best-performing tweets here. AI will use these structures as templates while filling in your topic content.
           </p>
           <p className="text-orange-700 text-xs mt-1">
-            Example: &quot;Here's what I learned about [TOPIC] → [MAIN_POINT] → What's your experience?&quot;
+            Example: &quot;Here&apos;s what I learned about [TOPIC] → [MAIN_POINT] → What&apos;s your experience?&quot;
           </p>
           <div className="mt-2 p-2 bg-orange-100 rounded border">
             <p className="text-xs text-orange-700 font-medium">Template Cleanup Preview:</p>
