@@ -92,6 +92,31 @@ export async function POST(request: NextRequest) {
     // Filter out empty writing samples and templates
     const filteredSamples = writing_samples.filter(sample => sample.trim().length > 0)
     const filteredTemplates = tweet_templates.filter(template => template.trim().length > 0)
+    
+    // Clean up templates - separate multiple tweets and fix formatting
+    const cleanedTemplates = filteredTemplates.map(template => {
+      // Remove excessive whitespace and normalize line breaks
+      let cleaned = template.trim().replace(/\s+/g, ' ')
+      
+      // Remove quote marks that aren't part of content
+      cleaned = cleaned.replace(/^["']|["']$/g, '')
+      
+      // Split on common separators and take first tweet if multiple
+      const separators = ['\n\n', ' | ', ' / ', ' || ']
+      for (const sep of separators) {
+        if (cleaned.includes(sep)) {
+          cleaned = cleaned.split(sep)[0].trim()
+          break
+        }
+      }
+      
+      // Ensure it's tweet-worthy (not just a fragment)
+      if (cleaned.length < 20) {
+        return template.trim() // Return original if too short after cleanup
+      }
+      
+      return cleaned
+    })
 
     const { data: voiceProject, error: dbError } = await supabase
       .from('user_voice_projects')
@@ -99,7 +124,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         instructions: instructions.trim(),
         writing_samples: filteredSamples,
-        tweet_templates: filteredTemplates,
+        tweet_templates: cleanedTemplates,
         is_active,
         updated_at: new Date().toISOString()
       }, {
@@ -123,7 +148,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    console.log(`Voice project saved for user ${user.id}: ${filteredSamples.length} samples, ${filteredTemplates.length} templates, active: ${is_active}`)
+    console.log(`Voice project saved for user ${user.id}: ${filteredSamples.length} samples, ${cleanedTemplates.length} templates, active: ${is_active}`)
 
     return NextResponse.json({ 
       success: true, 

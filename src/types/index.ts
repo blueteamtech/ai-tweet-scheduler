@@ -96,6 +96,7 @@ export interface GenerateTweetResponse {
     category: string | null
     structure: string | null
     wordCountTarget: string | null
+    selectionReason?: string | null
   }
   debug?: DebugInfo
 }
@@ -308,6 +309,13 @@ export interface DebugInfo {
   userId: string
   voiceProject?: VoiceProjectDebugInfo
   legacyPersonality?: LegacyPersonalityDebugInfo
+  template?: {
+    used: boolean
+    category: string | null
+    structure: string | null
+    wordCountTarget: string | null
+    selectionReason?: string | null
+  }
   fullPrompt: string
   aiRequest?: {
     prompt: string

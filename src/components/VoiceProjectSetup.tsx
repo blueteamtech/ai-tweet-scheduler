@@ -310,6 +310,15 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
           <p className="text-orange-700 text-xs mt-1">
             Example: &quot;Here's what I learned about [TOPIC] → [MAIN_POINT] → What's your experience?&quot;
           </p>
+          <div className="mt-2 p-2 bg-orange-100 rounded border">
+            <p className="text-xs text-orange-700 font-medium">Template Cleanup Preview:</p>
+            <p className="text-xs text-orange-600 mt-1">
+              • Multiple tweets are automatically separated<br/>
+              • Unnecessary quotes are removed<br/>
+              • Formatting is normalized for AI use<br/>
+              • Templates under 20 characters are preserved as-is
+            </p>
+          </div>
         </div>
         
         {tweetTemplates.map((template, index) => (

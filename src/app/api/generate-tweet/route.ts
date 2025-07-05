@@ -27,6 +27,81 @@ async function loadVoiceProject(userId: string) {
   }
 }
 
+// Template selection logic
+function selectBestTemplate(userPrompt: string, templates: string[]): { template: string | null, reason: string } {
+  if (!templates || templates.length === 0) {
+    return { template: null, reason: 'No templates available' };
+  }
+
+  // Analyze user's topic characteristics
+  const promptLower = userPrompt.toLowerCase();
+  const isQuestion = promptLower.includes('?') || promptLower.includes('how') || promptLower.includes('what') || promptLower.includes('why');
+  const isAdvice = promptLower.includes('tip') || promptLower.includes('advice') || promptLower.includes('should') || promptLower.includes('help');
+  const isPersonal = promptLower.includes('i ') || promptLower.includes('my ') || promptLower.includes('me ') || promptLower.includes('personal');
+  const isInsight = promptLower.includes('learn') || promptLower.includes('discover') || promptLower.includes('realize') || promptLower.includes('insight');
+  const isOpinion = promptLower.includes('think') || promptLower.includes('believe') || promptLower.includes('opinion') || promptLower.includes('view');
+  
+  // Score each template based on compatibility
+  const templateScores = templates.map(template => {
+    const templateLower = template.toLowerCase();
+    let score = 0;
+    
+    // Question templates for question topics
+    if (isQuestion && (templateLower.includes('?') || templateLower.includes('what') || templateLower.includes('how'))) {
+      score += 3;
+    }
+    
+    // Advice templates for advice topics
+    if (isAdvice && (templateLower.includes('tip') || templateLower.includes('should') || templateLower.includes('try'))) {
+      score += 3;
+    }
+    
+    // Personal templates for personal topics
+    if (isPersonal && (templateLower.includes('i ') || templateLower.includes('my ') || templateLower.includes('me '))) {
+      score += 2;
+    }
+    
+    // Insight templates for learning topics
+    if (isInsight && (templateLower.includes('learn') || templateLower.includes('discover') || templateLower.includes('realize'))) {
+      score += 2;
+    }
+    
+    // Opinion templates for opinion topics
+    if (isOpinion && (templateLower.includes('think') || templateLower.includes('believe') || templateLower.includes('opinion'))) {
+      score += 2;
+    }
+    
+    // Bonus for templates with engagement elements
+    if (templateLower.includes('→') || templateLower.includes('->') || templateLower.includes(':')) {
+      score += 1;
+    }
+    
+    // Bonus for templates with CTA
+    if (templateLower.includes('your') || templateLower.includes('you') || templateLower.includes('thoughts')) {
+      score += 1;
+    }
+    
+    return { template, score };
+  });
+  
+  // Sort by score and select best match
+  templateScores.sort((a, b) => b.score - a.score);
+  
+  if (templateScores[0].score > 0) {
+    return {
+      template: templateScores[0].template,
+      reason: `Selected based on topic analysis (score: ${templateScores[0].score})`
+    };
+  } else {
+    // If no good matches, use first template with some randomization
+    const randomIndex = Math.floor(Math.random() * Math.min(3, templates.length));
+    return {
+      template: templates[randomIndex],
+      reason: 'Random selection from available templates'
+    };
+  }
+}
+
 export async function POST(request: NextRequest) {
   console.log('🚀 generate-tweet API called');
   
@@ -84,6 +159,8 @@ export async function POST(request: NextRequest) {
     const voiceProject = await loadVoiceProject(user.id);
     
     let systemPrompt = '';
+    let selectedTemplate = null;
+    let templateReason = '';
     const debugInfo = { 
       voiceProject: null as VoiceProjectDebugInfo | null, 
       legacyPersonality: null as LegacyPersonalityDebugInfo | null,
@@ -96,6 +173,24 @@ export async function POST(request: NextRequest) {
 
 WRITING SAMPLES:
 ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
+
+      // TEMPLATE SELECTION: Select best template if available
+      if (voiceProject.tweet_templates && voiceProject.tweet_templates.length > 0) {
+        const templateSelection = selectBestTemplate(prompt, voiceProject.tweet_templates);
+        selectedTemplate = templateSelection.template;
+        templateReason = templateSelection.reason;
+        
+        if (selectedTemplate) {
+          systemPrompt += `
+
+TEMPLATE STRUCTURE TO FOLLOW:
+${selectedTemplate}
+
+IMPORTANT: Use this template structure while filling in the content with the user's topic. Maintain the template's flow, style, and engagement elements while adapting the specific content to match their prompt.`;
+        }
+        
+        console.log(`🎯 Template Selection: ${selectedTemplate ? 'Selected template' : 'No template selected'} - ${templateReason}`);
+      }
       
       debugInfo.voiceProject = {
         hasInstructions: !!voiceProject.instructions,
@@ -104,7 +199,7 @@ ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
         isActive: voiceProject.is_active
       };
       
-      console.log(`🎭 Voice Project: Using active project with ${voiceProject.writing_samples.length} samples`);
+      console.log(`🎭 Voice Project: Using active project with ${voiceProject.writing_samples.length} samples, ${voiceProject.tweet_templates?.length || 0} templates`);
     } else {
       // FALLBACK: Use legacy personality system if no voice project
       console.log('🧠 Voice Project: None active, falling back to legacy personality system');
@@ -201,10 +296,11 @@ ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
         hasWritingSamples: debugInfo.legacyPersonality?.hasWritingSamples || false
       },
       template: {
-        used: false, // Templates removed
-        category: null,
-        structure: null,
-        wordCountTarget: null
+        used: !!selectedTemplate,
+        category: selectedTemplate ? 'user-defined' : null,
+        structure: selectedTemplate || null,
+        wordCountTarget: selectedTemplate ? (selectedTemplate.length > 100 ? 'long-form' : 'short-form') : null,
+        selectionReason: templateReason || null
       },
       contentType: aiRequest.contentType,
       usage: aiResponse.usage,
@@ -213,6 +309,13 @@ ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
         userId: user.id,
         voiceProject: debugInfo.voiceProject,
         legacyPersonality: debugInfo.legacyPersonality,
+        template: {
+          used: !!selectedTemplate,
+          category: selectedTemplate ? 'user-defined' : null,
+          structure: selectedTemplate || null,
+          wordCountTarget: selectedTemplate ? (selectedTemplate.length > 100 ? 'long-form' : 'short-form') : null,
+          selectionReason: templateReason || null
+        },
         fullPrompt: debugInfo.fullPrompt,
         aiRequest: aiRequest,
         providerMetrics: aiProviderManager.getProviderMetrics()

@@ -235,6 +235,37 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
     )
   }
 
+  const renderTemplatePreview = () => {
+    if (!showGenerationProcess || !debugInfo?.template?.used) return null
+
+    return (
+      <div className="mt-3 p-3 bg-orange-50 border border-orange-300 rounded-lg">
+        <div className="flex items-center justify-between mb-2">
+          <div className="flex items-center">
+            <span className="text-lg mr-2">📝</span>
+            <span className="font-medium text-orange-700">
+              Template Selected
+            </span>
+          </div>
+          <span className="text-sm text-orange-600">
+            {debugInfo.template.wordCountTarget}
+          </span>
+        </div>
+        
+        <div className="text-sm text-orange-700 mb-2">
+          <p><strong>Reason:</strong> {debugInfo.template.selectionReason}</p>
+        </div>
+        
+        <div className="bg-white p-2 rounded border border-orange-200">
+          <p className="text-xs text-orange-600 font-medium mb-1">Template Structure:</p>
+          <p className="text-sm text-orange-800 font-mono">
+            {debugInfo.template.structure}
+          </p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="mb-4">
@@ -310,6 +341,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
             onChange={(e) => setTweetContent(e.target.value)}
           />
           {renderContentAnalysis()}
+          {renderTemplatePreview()}
         </div>
 
         {/* Debug Information Display */}
@@ -358,6 +390,30 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
                 </p>
               </div>
             )}
+            
+            {/* Template Information */}
+            <div className="mb-3 p-3 bg-orange-100 rounded border-2 border-orange-400">
+              <h4 className="font-medium text-orange-900 mb-2">📝 Template Usage</h4>
+              <p className="text-sm text-orange-900 font-semibold">
+                <strong>Template Used:</strong> {debugInfo.template?.used ? 'Yes' : 'No'}
+              </p>
+              {debugInfo.template?.used && (
+                <>
+                  <p className="text-sm text-orange-900 font-semibold">
+                    <strong>Selection Reason:</strong> {debugInfo.template.selectionReason}
+                  </p>
+                  <p className="text-sm text-orange-900 font-semibold">
+                    <strong>Template Type:</strong> {debugInfo.template.wordCountTarget}
+                  </p>
+                  <div className="mt-2 p-2 bg-orange-50 rounded border">
+                    <p className="text-xs text-orange-800 font-medium">Selected Template:</p>
+                    <p className="text-sm text-orange-900 font-mono bg-white p-2 rounded mt-1">
+                      {debugInfo.template.structure}
+                    </p>
+                  </div>
+                </>
+              )}
+            </div>
             
             <details className="mt-3">
               <summary className="cursor-pointer font-medium text-gray-900 hover:text-gray-700 bg-gray-100 p-2 rounded">
