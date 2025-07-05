@@ -17,6 +17,9 @@ const voiceProjectSchema = z.object({
   writing_samples: z.array(z.string())
     .max(10, 'Too many writing samples (max 10)')
     .default([]),
+  tweet_templates: z.array(z.string())
+    .max(20, 'Too many tweet templates (max 20)')
+    .default([]),
   is_active: z.boolean().default(false),
 })
 
@@ -83,10 +86,11 @@ export async function POST(request: NextRequest) {
       }, { status: 400 })
     }
 
-    const { instructions, writing_samples, is_active } = validation.data
+    const { instructions, writing_samples, tweet_templates, is_active } = validation.data
 
-    // Filter out empty writing samples
-    const filteredSamples = writing_samples.filter(sample => sample.trim().length > 0)
+    // Filter out empty writing samples and tweet templates
+    const filteredSamples = writing_samples.filter((sample: string) => sample.trim().length > 0)
+    const filteredTemplates = tweet_templates.filter((template: string) => template.trim().length > 0)
 
     const { data: voiceProject, error: dbError } = await supabase
       .from('user_voice_projects')
@@ -94,6 +98,7 @@ export async function POST(request: NextRequest) {
         user_id: user.id,
         instructions: instructions.trim(),
         writing_samples: filteredSamples,
+        tweet_templates: filteredTemplates,
         is_active,
         updated_at: new Date().toISOString()
       }, {
@@ -117,7 +122,7 @@ export async function POST(request: NextRequest) {
       }, { status: 500 })
     }
 
-    console.log(`Voice project saved for user ${user.id}: ${filteredSamples.length} samples, active: ${is_active}`)
+    console.log(`Voice project saved for user ${user.id}: ${filteredSamples.length} samples, ${filteredTemplates.length} templates, active: ${is_active}`)
 
     return NextResponse.json({ 
       success: true, 

@@ -213,6 +213,7 @@ export type Database = {
           user_id: string
           instructions: string
           writing_samples: string[]
+          tweet_templates: string[]
           is_active: boolean | null
           created_at: string | null
           updated_at: string | null
@@ -222,6 +223,7 @@ export type Database = {
           user_id: string
           instructions?: string
           writing_samples?: string[]
+          tweet_templates?: string[]
           is_active?: boolean | null
           created_at?: string | null
           updated_at?: string | null
@@ -231,6 +233,7 @@ export type Database = {
           user_id?: string
           instructions?: string
           writing_samples?: string[]
+          tweet_templates?: string[]
           is_active?: boolean | null
           created_at?: string | null
           updated_at?: string | null

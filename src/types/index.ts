@@ -47,6 +47,7 @@ export interface VoiceProject {
   user_id: string
   instructions: string
   writing_samples: string[]
+  tweet_templates: string[]
   is_active: boolean
   created_at: string
   updated_at: string
@@ -280,6 +281,7 @@ export interface WritingSampleFormData {
 export interface VoiceProjectRequest {
   instructions: string
   writing_samples: string[]
+  tweet_templates: string[]
   is_active: boolean
 }
 

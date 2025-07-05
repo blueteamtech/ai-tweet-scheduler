@@ -12,6 +12,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
   const [voiceProject, setVoiceProject] = useState<VoiceProject | null>(null);
   const [instructions, setInstructions] = useState('');
   const [writingSamples, setWritingSamples] = useState<string[]>(['']);
+  const [tweetTemplates, setTweetTemplates] = useState<string[]>(['']);
   const [isActive, setIsActive] = useState(false);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -66,6 +67,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
         setVoiceProject(vp);
         setInstructions(vp.instructions || '');
         setWritingSamples(vp.writing_samples.length ? vp.writing_samples : ['']);
+        setTweetTemplates(vp.tweet_templates?.length ? vp.tweet_templates : ['']);
         setIsActive(vp.is_active || false);
       }
     } catch (error) {
@@ -89,7 +91,8 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
       
       const payload: VoiceProjectRequest = {
         instructions: instructions.trim(),
-        writing_samples: writingSamples.filter(sample => sample.trim()),
+        writing_samples: writingSamples.filter((sample: string) => sample.trim()),
+        tweet_templates: tweetTemplates.filter((template: string) => template.trim()),
         is_active: isActive
       };
 
@@ -143,6 +146,25 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
     const newSamples = [...writingSamples];
     newSamples[index] = value;
     setWritingSamples(newSamples);
+  };
+
+  const addTweetTemplate = () => {
+    if (tweetTemplates.length < 20) {
+      setTweetTemplates([...tweetTemplates, '']);
+    }
+  };
+
+  const removeTweetTemplate = (index: number) => {
+    if (tweetTemplates.length > 1) {
+      const newTemplates = tweetTemplates.filter((_: string, i: number) => i !== index);
+      setTweetTemplates(newTemplates);
+    }
+  };
+
+  const updateTweetTemplate = (index: number, value: string) => {
+    const newTemplates = [...tweetTemplates];
+    newTemplates[index] = value;
+    setTweetTemplates(newTemplates);
   };
 
   if (loading) {
@@ -275,6 +297,60 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
         )}
       </div>
 
+      {/* Tweet Templates Manager */}
+      <div className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-200 rounded-lg p-4">
+        <div className="mb-4">
+          <label className="block text-base font-semibold text-purple-900 mb-2">
+            📋 Tweet Templates
+            <span className="text-purple-700 font-normal ml-1">(Your proven tweet structures)</span>
+          </label>
+          <div className="bg-purple-100 border border-purple-200 rounded-lg p-3 mb-3">
+            <p className="text-purple-800 text-sm font-medium mb-2">
+              🎯 <strong>Template Best Practices:</strong>
+            </p>
+            <ul className="text-purple-700 text-xs space-y-1 ml-4">
+              <li>• Use placeholders like [HOOK], [MAIN_POINT], [CTA] for structure</li>
+              <li>• Include templates for different content types (insights, questions, stories)</li>
+              <li>• Keep templates focused on structure, not specific content</li>
+              <li>• Examples: "[PROBLEM] → [SOLUTION] → [CALL_TO_ACTION]"</li>
+            </ul>
+          </div>
+        </div>
+        
+        {tweetTemplates.map((template, index) => (
+          <div key={index} className="mb-3 relative">
+            <div className="flex items-start gap-2">
+              <div className="flex-1">
+                <textarea
+                  value={template}
+                  onChange={(e) => updateTweetTemplate(index, e.target.value)}
+                  placeholder={`Template ${index + 1} - e.g., "[BOLD_STATEMENT] → [SUPPORTING_EVIDENCE] → [QUESTION]"`}
+                  className="w-full p-4 border-2 border-purple-300 rounded-lg h-20 resize-none focus:ring-3 focus:ring-purple-500 focus:border-purple-500 bg-white text-gray-900 placeholder-gray-600 text-base font-medium leading-relaxed shadow-sm hover:border-purple-400 transition-colors"
+                />
+              </div>
+              {tweetTemplates.length > 1 && (
+                <button
+                  onClick={() => removeTweetTemplate(index)}
+                  className="mt-2 text-red-600 hover:text-red-800 text-sm px-2 py-1 rounded"
+                  title="Remove this template"
+                >
+                  ✕
+                </button>
+              )}
+            </div>
+          </div>
+        ))}
+        
+        {tweetTemplates.length < 20 && (
+          <button
+            onClick={addTweetTemplate}
+            className="text-purple-600 hover:text-purple-800 text-sm font-medium"
+          >
+            + Add Tweet Template ({tweetTemplates.length}/20)
+          </button>
+        )}
+      </div>
+
       {/* Activation Toggle */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
         <div className="flex items-center gap-3">
@@ -298,7 +374,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
       <div className="flex gap-3">
         <button
           onClick={saveVoiceProject}
-          disabled={saving || (!instructions.trim() && writingSamples.every(s => !s.trim()))}
+          disabled={saving || (!instructions.trim() && writingSamples.every((s: string) => !s.trim()) && tweetTemplates.every((t: string) => !t.trim()))}
           className="flex-1 bg-blue-600 text-white py-3 px-4 rounded-lg hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
         >
           {saving ? 'Saving Voice Project...' : 'Save Voice Project'}
@@ -329,7 +405,8 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
           <div className="space-y-1">
             <p><strong className="text-gray-900">Status:</strong> {isActive ? '🟢 Active - AI will use this voice project' : '🔴 Inactive - Click the checkbox above to activate'}</p>
             <p><strong className="text-gray-900">Instructions:</strong> {instructions.length > 0 ? `${instructions.length} characters` : 'None'}</p>
-            <p><strong className="text-gray-900">Writing Samples:</strong> {writingSamples.filter(s => s.trim()).length} samples</p>
+            <p><strong className="text-gray-900">Writing Samples:</strong> {writingSamples.filter((s: string) => s.trim()).length} samples</p>
+            <p><strong className="text-gray-900">Tweet Templates:</strong> {tweetTemplates.filter((t: string) => t.trim()).length} templates</p>
             <p><strong className="text-gray-900">Last Updated:</strong> {new Date(voiceProject.updated_at).toLocaleDateString()}</p>
           </div>
           
