@@ -159,7 +159,7 @@ const QueueDisplay = forwardRef<QueueDisplayRef, QueueDisplayProps>(function Que
     
     refreshIntervalRef.current = intervalId
     setAutoRefreshActive(true)
-  }, [autoRefreshInterval, loadQueueStatus, maxFailures])
+  }, [autoRefreshInterval, loadQueueStatus, maxFailures, stopAutoRefresh])
 
   // Expose methods to parent via ref
   useImperativeHandle(ref, () => ({

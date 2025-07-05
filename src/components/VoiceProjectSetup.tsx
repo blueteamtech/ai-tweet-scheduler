@@ -34,14 +34,14 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
 • Update samples regularly to reflect your evolving voice
 
 🔧 ACTIVATION TIPS:
-• Always check "Use this voice project" when ready
+• Always check &quot;Use this voice project&quot; when ready
 • Test with simple prompts first
-• Use "Show Generation Process" to see how AI interprets your voice
+• Use &quot;Show Generation Process&quot; to see how AI interprets your voice
 • Refine instructions based on results
 • Remember: AI will use ONLY your instructions when active (no built-in prompts)
 
 💡 EXAMPLE GOOD INSTRUCTIONS:
-"Write tweets like me: direct and conversational, focus on practical tech insights, avoid buzzwords, keep it human and authentic, no hashtags or emojis, share genuine experiences and lessons learned"`);
+&quot;Write tweets like me: direct and conversational, focus on practical tech insights, avoid buzzwords, keep it human and authentic, no hashtags or emojis, share genuine experiences and lessons learned&quot;`);
   const [editingBestPractices, setEditingBestPractices] = useState(false);
 
   // Load existing voice project
