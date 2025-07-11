@@ -359,33 +359,38 @@ ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
       // Template context varies by generation mode
       if (selectedTemplate) {
         if (generationMode === 'template') {
-          // Template Mode: Preserve exact viral essence with substance substitution
+          // Template Mode: Use ONLY structural patterns, ignore all template substance
           const templateWordCount = selectedTemplate.template_content.split(/\s+/).length;
-          templateContext = `🧬 VIRAL TEMPLATE DNA - PRESERVE EXACTLY:
+          const templateSentences = selectedTemplate.template_content.split(/[.!?]+/).filter(s => s.trim()).length;
+          
+          templateContext = `🧬 COPYWRITING STRUCTURE ONLY - IGNORE TEMPLATE SUBSTANCE:
 "${selectedTemplate.template_content}"
 
-📊 TEMPLATE ANALYSIS:
+🚨 CRITICAL: The template above is ONLY for structural reference. DO NOT USE any of its topic, subject matter, or content. COMPLETELY IGNORE what the template is talking about.
+
+📊 STRUCTURAL ANALYSIS:
 - Word Count: ${templateWordCount} words (MUST MATCH EXACTLY)
+- Sentence Count: ${templateSentences} sentences (MUST MATCH EXACTLY)
 - Category: ${selectedTemplate.category.replace('_', ' ')}
 - Tone: ${selectedTemplate.tone}
 - Structure: ${selectedTemplate.structure_type}
 
 🎯 TEMPLATE MODE RULES:
-1. WORD COUNT: Output must be EXACTLY ${templateWordCount} words (same as template)
-2. SENTENCE STRUCTURE: Preserve exact sentence count and flow patterns
-3. COPYWRITING FLOW: Keep the viral essence - the structural patterns that make this template effective
-4. PUNCTUATION PATTERNS: Maintain the rhythm and emphasis of original template
-5. SUBSTANCE ONLY: Change ONLY the topic/subject matter to match the user prompt
-6. WRITING VOICE: Use the writing samples to understand how the user expresses ideas about this substance
+1. SUBSTANCE SOURCE: Use ONLY content from writing samples below - never use template topics/subjects
+2. WORD COUNT: Output must be EXACTLY ${templateWordCount} words (same as template)
+3. SENTENCE STRUCTURE: Preserve exact sentence count and flow patterns from template
+4. COPYWRITING FLOW: Keep the viral essence - the structural patterns that make this template effective
+5. PUNCTUATION PATTERNS: Maintain the rhythm and emphasis of original template
+6. WRITING VOICE: Express ideas using patterns from the user's writing samples
 
-🔄 SUBSTANCE SUBSTITUTION PROCESS:
-- KEEP: All structural elements, flow, rhythm, emphasis patterns
-- REPLACE: Topic-specific words and concepts with user's prompt topic
-- VOICE: Express the new substance using patterns from the user's writing samples
-- VERIFY: Final output has exactly ${templateWordCount} words
+🔄 PURE STRUCTURAL SUBSTITUTION:
+- KEEP: Word count, sentence count, flow, rhythm, emphasis patterns, punctuation style
+- IGNORE: ALL template content, topics, subjects, examples, specific words
+- USE: Topics, expertise, and voice patterns from writing samples only
+- VERIFY: Final output has exactly ${templateWordCount} words and ${templateSentences} sentences
 
-⚡ VIRAL ESSENCE PRESERVATION:
-The template's power comes from its copywriting structure. Your job is to be a content translator - keeping the viral framework while changing only the substance to match the user's topic and voice.`;
+⚡ STRUCTURE-ONLY APPROACH:
+Think of the template as a blueprint or skeleton. You're building a completely new house (content from writing samples) using only the architectural framework (structure) of the template. The template's furniture, paint, and decorations (substance) are irrelevant.`;
         } else {
           // Hybrid Mode: Template-inspired with voice flexibility
           templateContext = `TEMPLATE INSPIRATION (FLEXIBLE):

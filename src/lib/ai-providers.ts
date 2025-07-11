@@ -191,21 +191,24 @@ class OpenAIProvider {
   }
 
   private buildSystemPrompt(request: AIGenerationRequest): string {
-    // TEMPLATE MODE: When template contains viral DNA instructions, prioritize template
-    if (request.templateContext && request.templateContext.includes('VIRAL TEMPLATE DNA')) {
+    // TEMPLATE MODE: When template contains structural instructions, prioritize structure-only approach
+    if (request.templateContext && request.templateContext.includes('COPYWRITING STRUCTURE ONLY')) {
       return `${request.templateContext}
 
 VOICE PROJECT CONTEXT:
 ${request.personalityContext || 'Use natural, engaging writing style'}
 
-PRIMARY TASK: You are a content translator specializing in preserving viral copywriting structures while adapting substance. Your expertise is in maintaining the exact word count and structural DNA of proven templates while expressing new topics in the user's authentic voice.
+PRIMARY TASK: You are a copywriting structure specialist. Your ONLY job is to use the template's structural framework (word count, sentence count, flow patterns) while filling it with content exclusively from the user's writing samples. You must COMPLETELY IGNORE the template's substance.
 
 CRITICAL SUCCESS CRITERIA:
 - Exact word count match (verify before responding)
-- Preserved sentence structure and flow
-- Viral copywriting patterns maintained
-- Only substance/topic changed
-- User's voice reflected in word choice and expression`
+- Exact sentence count match (verify before responding)
+- Preserved structural flow and rhythm from template
+- Zero influence from template's content/topics/substance
+- All content derived from user's writing samples only
+- User's authentic voice and expertise reflected throughout
+
+STRUCTURE-ONLY MINDSET: You are an architect using only the blueprint, never the original building's contents.`
     }
 
     // If personalityContext contains Voice Project instructions, use ONLY that
@@ -319,23 +322,26 @@ class ClaudeProvider {
   }
 
   private buildSystemPrompt(request: AIGenerationRequest): string {
-    // TEMPLATE MODE: When template contains viral DNA instructions, prioritize template
-    if (request.templateContext && request.templateContext.includes('VIRAL TEMPLATE DNA')) {
+    // TEMPLATE MODE: When template contains structural instructions, prioritize structure-only approach
+    if (request.templateContext && request.templateContext.includes('COPYWRITING STRUCTURE ONLY')) {
       return `${request.templateContext}
 
 VOICE PROJECT CONTEXT:
 ${request.personalityContext || 'Use natural, engaging writing style'}
 
-PRIMARY TASK: You are Claude, a content translator specializing in preserving viral copywriting structures while adapting substance. Your expertise is in maintaining the exact word count and structural DNA of proven templates while expressing new topics in the user's authentic voice.
+PRIMARY TASK: You are Claude, a copywriting structure specialist. Your ONLY job is to use the template's structural framework (word count, sentence count, flow patterns) while filling it with content exclusively from the user's writing samples. You must COMPLETELY IGNORE the template's substance.
 
 CRITICAL SUCCESS CRITERIA:
 - Exact word count match (verify before responding)
-- Preserved sentence structure and flow
-- Viral copywriting patterns maintained
-- Only substance/topic changed
-- User's voice reflected in word choice and expression
+- Exact sentence count match (verify before responding)
+- Preserved structural flow and rhythm from template
+- Zero influence from template's content/topics/substance
+- All content derived from user's writing samples only
+- User's authentic voice and expertise reflected throughout
 
-APPROACH: Analyze the template structure word-by-word, then replace only the topic-specific elements while keeping the viral framework intact.`
+APPROACH: Study the template's structural skeleton (word count, sentence flow, punctuation patterns) then build entirely new content using only the user's writing samples to fill that structure. The template's actual content is irrelevant to your task.
+
+STRUCTURE-ONLY MINDSET: You are an architect using only the blueprint, never the original building's contents.`
     }
 
     // If personalityContext contains Voice Project instructions, use ONLY that
