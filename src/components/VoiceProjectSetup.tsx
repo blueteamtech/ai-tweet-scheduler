@@ -17,6 +17,19 @@ interface TweetTemplate {
   is_active: boolean;
   usage_count: number;
   last_used_at: string | null;
+  effectiveness_score: number;
+  feedback_count: number;
+  average_rating: number;
+}
+
+interface TemplateAnalytics {
+  totalTemplates: number;
+  activeTemplates: number;
+  averageEffectiveness: number;
+  topPerformingCategories: { category: string; score: number; count: number }[];
+  recentlyUsed: TweetTemplate[];
+  underperforming: TweetTemplate[];
+  mostEffective: TweetTemplate[];
 }
 
 export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps) {
@@ -40,6 +53,12 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
   const [templateCategories, setTemplateCategories] = useState<string[]>([]);
   const [templateTones, setTemplateTones] = useState<string[]>([]);
   
+  // Phase 4: Analytics and optimization
+  const [showAnalytics, setShowAnalytics] = useState(false);
+  const [analytics, setAnalytics] = useState<TemplateAnalytics | null>(null);
+  const [loadingAnalytics, setLoadingAnalytics] = useState(false);
+  const [sortBy, setSortBy] = useState<'effectiveness' | 'usage' | 'recent' | 'rating'>('effectiveness');
+  
   const [bestPractices, setBestPractices] = useState(`📝 VOICE PROJECT BEST PRACTICES
 
 🎯 INSTRUCTIONS SECTION:
@@ -62,6 +81,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
 • Enable/disable templates based on your preferences
 • Templates enhance your voice without replacing it
 • AI automatically selects best template for each topic
+• Rate templates to improve future selections
 
 🔧 ACTIVATION TIPS:
 • Always check "Use this voice project" when ready
@@ -126,7 +146,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
         .from('tweet_templates')
         .select('*')
         .eq('voice_project_id', voiceProject.id)
-        .order('category', { ascending: true });
+        .order('effectiveness_score', { ascending: false });
 
       if (error) throw error;
 
@@ -144,6 +164,75 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
       setMessage({ type: 'error', text: 'Failed to load templates' });
     } finally {
       setLoadingTemplates(false);
+    }
+  };
+
+  const loadAnalytics = async () => {
+    if (!voiceProject || !templates.length) return;
+    
+    setLoadingAnalytics(true);
+    try {
+      const totalTemplates = templates.length;
+      const activeTemplates = templates.filter(t => t.is_active).length;
+      const templatesWithFeedback = templates.filter(t => t.feedback_count > 0);
+      
+      const averageEffectiveness = templatesWithFeedback.length > 0 
+        ? templatesWithFeedback.reduce((sum, t) => sum + t.effectiveness_score, 0) / templatesWithFeedback.length
+        : 0;
+
+      // Calculate category performance
+      const categoryStats = templates.reduce((acc, template) => {
+        const category = template.category;
+        if (!acc[category]) {
+          acc[category] = { totalScore: 0, count: 0, templates: [] };
+        }
+        if (template.effectiveness_score > 0) {
+          acc[category].totalScore += template.effectiveness_score;
+          acc[category].count++;
+        }
+        acc[category].templates.push(template);
+        return acc;
+      }, {} as Record<string, { totalScore: number; count: number; templates: TweetTemplate[] }>);
+
+      const topPerformingCategories = Object.entries(categoryStats)
+        .map(([category, stats]) => ({
+          category,
+          score: stats.count > 0 ? stats.totalScore / stats.count : 0,
+          count: stats.count
+        }))
+        .sort((a, b) => b.score - a.score)
+        .slice(0, 5);
+
+      // Get template insights
+      const recentlyUsed = templates
+        .filter(t => t.last_used_at)
+        .sort((a, b) => new Date(b.last_used_at!).getTime() - new Date(a.last_used_at!).getTime())
+        .slice(0, 5);
+
+      const underperforming = templates
+        .filter(t => t.feedback_count >= 2 && t.effectiveness_score < 3)
+        .sort((a, b) => a.effectiveness_score - b.effectiveness_score)
+        .slice(0, 5);
+
+      const mostEffective = templates
+        .filter(t => t.effectiveness_score > 0)
+        .sort((a, b) => b.effectiveness_score - a.effectiveness_score)
+        .slice(0, 5);
+
+      setAnalytics({
+        totalTemplates,
+        activeTemplates,
+        averageEffectiveness: Math.round(averageEffectiveness * 10) / 10,
+        topPerformingCategories,
+        recentlyUsed,
+        underperforming,
+        mostEffective
+      });
+
+    } catch (error) {
+      console.error('Failed to load analytics:', error);
+    } finally {
+      setLoadingAnalytics(false);
     }
   };
 
@@ -180,6 +269,80 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
     }
   };
 
+  const optimizeTemplates = async () => {
+    if (!analytics) return;
+    
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setMessage({ type: 'error', text: 'You must be logged in to optimize templates' });
+        return;
+      }
+
+      // Auto-disable underperforming templates (score < 2 with 3+ feedback)
+      const toDisable = templates.filter(t => 
+        t.feedback_count >= 3 && t.effectiveness_score < 2 && t.is_active
+      );
+      
+      for (const template of toDisable) {
+        await supabase
+          .from('tweet_templates')
+          .update({ is_active: false })
+          .eq('id', template.id);
+      }
+
+      // Auto-enable high-performing templates in top categories
+      const topCategories = analytics.topPerformingCategories.slice(0, 3).map(c => c.category);
+      const toEnable = templates.filter(t => 
+        topCategories.includes(t.category) && 
+        t.effectiveness_score >= 4 && 
+        !t.is_active
+      ).slice(0, 10); // Limit to 10 new activations
+      
+      for (const template of toEnable) {
+        await supabase
+          .from('tweet_templates')
+          .update({ is_active: true })
+          .eq('id', template.id);
+      }
+
+      await loadTemplates();
+      setMessage({ 
+        type: 'success', 
+        text: `Optimization complete! Disabled ${toDisable.length} underperforming templates, enabled ${toEnable.length} high-performing templates.` 
+      });
+      setTimeout(() => setMessage(null), 5000);
+
+    } catch (error) {
+      console.error('Failed to optimize templates:', error);
+      setMessage({ type: 'error', text: 'Failed to optimize templates' });
+    }
+  };
+
+  // Sort templates based on selected criteria
+  const getSortedTemplates = () => {
+    const filtered = filteredTemplates;
+    
+    switch (sortBy) {
+      case 'effectiveness':
+        return filtered.sort((a, b) => b.effectiveness_score - a.effectiveness_score);
+      case 'usage':
+        return filtered.sort((a, b) => b.usage_count - a.usage_count);
+      case 'recent':
+        return filtered.sort((a, b) => {
+          if (!a.last_used_at && !b.last_used_at) return 0;
+          if (!a.last_used_at) return 1;
+          if (!b.last_used_at) return -1;
+          return new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime();
+        });
+      case 'rating':
+        return filtered.sort((a, b) => b.average_rating - a.average_rating);
+      default:
+        return filtered;
+    }
+  };
+
   // Filter templates based on current filters
   const filteredTemplates = templates.filter(template => {
     const matchesSearch = templateSearch === '' || 
@@ -191,7 +354,9 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
     const matchesTone = selectedTone === 'all' || template.tone === selectedTone;
     const matchesFilter = templateFilter === 'all' || 
       (templateFilter === 'active' && template.is_active) ||
-      (templateFilter === 'inactive' && !template.is_active);
+      (templateFilter === 'inactive' && !template.is_active) ||
+      (templateFilter === 'high-performing' && template.effectiveness_score >= 4) ||
+      (templateFilter === 'needs-improvement' && template.effectiveness_score < 3 && template.feedback_count > 0);
       
     return matchesSearch && matchesCategory && matchesTone && matchesFilter;
   });
@@ -404,17 +569,146 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
         <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-bold text-purple-900 text-lg">📋 Template Library ({activeTemplateCount}/{totalTemplateCount} active)</h3>
-            <button
-              onClick={() => setShowTemplates(!showTemplates)}
-              className="bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-700 text-sm font-medium"
-            >
-              {showTemplates ? 'Hide' : 'Manage'} Templates
-            </button>
+            <div className="flex space-x-2">
+              <button
+                onClick={() => {
+                  setShowAnalytics(!showAnalytics);
+                  if (!showAnalytics && !analytics) {
+                    loadAnalytics();
+                  }
+                }}
+                className="bg-green-600 text-white px-3 py-1 rounded-md hover:bg-green-700 text-sm font-medium"
+              >
+                {showAnalytics ? 'Hide' : 'Show'} Analytics
+              </button>
+              <button
+                onClick={() => setShowTemplates(!showTemplates)}
+                className="bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-700 text-sm font-medium"
+              >
+                {showTemplates ? 'Hide' : 'Manage'} Templates
+              </button>
+            </div>
           </div>
           
           <p className="text-purple-700 text-sm mb-3">
             300 proven tweet templates categorized by tone, structure, and purpose. Enable/disable templates to customize your AI&apos;s selection.
           </p>
+
+          {/* Phase 4: Template Analytics Dashboard */}
+          {showAnalytics && (
+            <div className="mb-4 space-y-4 bg-white rounded-lg p-4 border border-purple-300">
+              {loadingAnalytics ? (
+                <div className="flex items-center justify-center p-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                  <span className="ml-2 text-purple-700">Loading analytics...</span>
+                </div>
+              ) : analytics ? (
+                <>
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="font-bold text-purple-900">📊 Template Performance Analytics</h4>
+                    <button
+                      onClick={optimizeTemplates}
+                      className="bg-orange-600 text-white px-3 py-1 rounded-md hover:bg-orange-700 text-sm font-medium"
+                    >
+                      🚀 Auto-Optimize
+                    </button>
+                  </div>
+
+                  {/* Key Metrics */}
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                    <div className="bg-blue-50 p-3 rounded">
+                      <div className="text-2xl font-bold text-blue-700">{analytics.totalTemplates}</div>
+                      <div className="text-xs text-blue-600">Total Templates</div>
+                    </div>
+                    <div className="bg-green-50 p-3 rounded">
+                      <div className="text-2xl font-bold text-green-700">{analytics.activeTemplates}</div>
+                      <div className="text-xs text-green-600">Active Templates</div>
+                    </div>
+                    <div className="bg-yellow-50 p-3 rounded">
+                      <div className="text-2xl font-bold text-yellow-700">{analytics.averageEffectiveness.toFixed(1)}</div>
+                      <div className="text-xs text-yellow-600">Avg Effectiveness</div>
+                    </div>
+                    <div className="bg-purple-50 p-3 rounded">
+                      <div className="text-2xl font-bold text-purple-700">{analytics.topPerformingCategories.length}</div>
+                      <div className="text-xs text-purple-600">Top Categories</div>
+                    </div>
+                  </div>
+
+                  {/* Top Performing Categories */}
+                  {analytics.topPerformingCategories.length > 0 && (
+                    <div className="mb-4">
+                      <h5 className="font-semibold text-gray-800 mb-2">🏆 Top Performing Categories</h5>
+                      <div className="space-y-2">
+                        {analytics.topPerformingCategories.map((cat) => (
+                          <div key={cat.category} className="flex justify-between items-center bg-gray-50 p-2 rounded">
+                            <span className="text-sm font-medium">{cat.category.replace('_', ' ')}</span>
+                            <div className="flex items-center space-x-2">
+                              <span className="text-xs text-gray-600">{cat.count} rated</span>
+                              <span className="text-sm font-bold text-green-600">{cat.score.toFixed(1)}/5</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Template Insights */}
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {analytics.mostEffective.length > 0 && (
+                      <div>
+                        <h5 className="font-semibold text-green-800 mb-2">⭐ Most Effective</h5>
+                        <div className="space-y-1">
+                          {analytics.mostEffective.slice(0, 3).map((template) => (
+                            <div key={template.id} className="text-xs bg-green-50 p-2 rounded">
+                              <div className="font-medium">{template.category}</div>
+                              <div className="text-green-600">Score: {template.effectiveness_score}/5</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {analytics.recentlyUsed.length > 0 && (
+                      <div>
+                        <h5 className="font-semibold text-blue-800 mb-2">🕒 Recently Used</h5>
+                        <div className="space-y-1">
+                          {analytics.recentlyUsed.slice(0, 3).map((template) => (
+                            <div key={template.id} className="text-xs bg-blue-50 p-2 rounded">
+                              <div className="font-medium">{template.category}</div>
+                              <div className="text-blue-600">Used: {template.usage_count} times</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    {analytics.underperforming.length > 0 && (
+                      <div>
+                        <h5 className="font-semibold text-red-800 mb-2">⚠️ Needs Improvement</h5>
+                        <div className="space-y-1">
+                          {analytics.underperforming.slice(0, 3).map((template) => (
+                            <div key={template.id} className="text-xs bg-red-50 p-2 rounded">
+                              <div className="font-medium">{template.category}</div>
+                              <div className="text-red-600">Score: {template.effectiveness_score}/5</div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <div className="text-center text-gray-500 py-4">
+                  <button
+                    onClick={loadAnalytics}
+                    className="bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700"
+                  >
+                    Load Analytics
+                  </button>
+                </div>
+              )}
+            </div>
+          )}
           
           {showTemplates && (
             <div className="space-y-4 bg-white rounded-lg p-4 border border-purple-300">
@@ -426,7 +720,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
               ) : (
                 <>
                   {/* Template Filters */}
-                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-3">
                     <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Search</label>
                       <input
@@ -453,6 +747,21 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
                     </div>
                     
                     <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                      <select
+                        value={templateFilter}
+                        onChange={(e) => setTemplateFilter(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                      >
+                        <option value="all">All Templates</option>
+                        <option value="active">Active Only</option>
+                        <option value="inactive">Inactive Only</option>
+                        <option value="high-performing">High Performing</option>
+                        <option value="needs-improvement">Needs Improvement</option>
+                      </select>
+                    </div>
+                    
+                    <div>
                       <label className="block text-xs font-medium text-gray-700 mb-1">Tone</label>
                       <select
                         value={selectedTone}
@@ -465,17 +774,18 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
                         ))}
                       </select>
                     </div>
-                    
+
                     <div>
-                      <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Sort By</label>
                       <select
-                        value={templateFilter}
-                        onChange={(e) => setTemplateFilter(e.target.value)}
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
                         className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
                       >
-                        <option value="all">All Templates</option>
-                        <option value="active">Active Only</option>
-                        <option value="inactive">Inactive Only</option>
+                        <option value="effectiveness">Effectiveness</option>
+                        <option value="usage">Usage Count</option>
+                        <option value="recent">Recently Used</option>
+                        <option value="rating">User Rating</option>
                       </select>
                     </div>
                   </div>
@@ -483,10 +793,10 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
                   {/* Template List */}
                   <div className="space-y-2 max-h-96 overflow-y-auto">
                     <p className="text-sm text-gray-600 mb-2">
-                      Showing {filteredTemplates.length} templates
+                      Showing {getSortedTemplates().length} templates
                     </p>
                     
-                    {filteredTemplates.map((template) => (
+                    {getSortedTemplates().map((template) => (
                       <div key={template.id} className="border border-gray-200 rounded p-3 hover:bg-gray-50">
                         <div className="flex items-start justify-between">
                           <div className="flex-1 min-w-0 pr-3">
@@ -506,6 +816,16 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
                                   Used {template.usage_count} times
                                 </span>
                               )}
+                              {template.effectiveness_score > 0 && (
+                                <span className="bg-orange-100 text-orange-800 px-2 py-1 rounded">
+                                  Score: {template.effectiveness_score}/5
+                                </span>
+                              )}
+                              {template.average_rating > 0 && (
+                                <span className="bg-pink-100 text-pink-800 px-2 py-1 rounded">
+                                  Rating: {template.average_rating}/5
+                                </span>
+                              )}
                             </div>
                           </div>
                           <button
@@ -522,7 +842,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
                       </div>
                     ))}
                     
-                    {filteredTemplates.length === 0 && (
+                    {getSortedTemplates().length === 0 && (
                       <p className="text-center text-gray-500 py-4">
                         No templates match your current filters.
                       </p>
@@ -591,6 +911,9 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
             <p><strong className="text-gray-900">Instructions:</strong> {instructions.length > 0 ? `${instructions.length} characters` : 'None'}</p>
             <p><strong className="text-gray-900">Writing Samples:</strong> {writingSamples.filter(s => s.trim()).length} samples</p>
             <p><strong className="text-gray-900">Template Library:</strong> {activeTemplateCount} of {totalTemplateCount} templates active</p>
+            {analytics && (
+              <p><strong className="text-gray-900">Template Performance:</strong> {analytics.averageEffectiveness.toFixed(1)}/5 average effectiveness</p>
+            )}
             <p><strong className="text-gray-900">Last Updated:</strong> {new Date(voiceProject.updated_at).toLocaleDateString()}</p>
           </div>
           

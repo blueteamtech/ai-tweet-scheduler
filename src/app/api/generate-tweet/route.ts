@@ -38,7 +38,7 @@ async function loadVoiceProject(userId: string) {
   }
 }
 
-// Load active templates for voice project
+// Load active templates for voice project with template cycling logic
 async function loadActiveTemplates(voiceProjectId: string): Promise<TweetTemplate[]> {
   try {
     const { data: templates } = await supabase
@@ -55,26 +55,40 @@ async function loadActiveTemplates(voiceProjectId: string): Promise<TweetTemplat
   }
 }
 
-// Smart template selection using AI
-async function selectBestTemplate(prompt: string, templates: TweetTemplate[], preferredProvider?: AIProvider): Promise<{template: TweetTemplate | null, reasoning: string}> {
+// Smart template selection using AI with cycling logic
+async function selectBestTemplate(prompt: string, templates: TweetTemplate[], preferredProvider?: AIProvider, generationMode: string = 'hybrid'): Promise<{template: TweetTemplate | null, reasoning: string}> {
   if (templates.length === 0) {
     return { template: null, reasoning: 'No active templates available' };
   }
 
+  // For freeform mode, don't use templates
+  if (generationMode === 'freeform') {
+    return { template: null, reasoning: 'Free form mode - templates disabled by user' };
+  }
+
   try {
-    // Create template selection prompt
-    const templateOptions = templates.slice(0, 10).map((t, index) => 
+    // Template cycling: prioritize least used templates to ensure variety
+    const cyclingTemplates = templates.slice(0, Math.min(15, templates.length));
+    
+    // Create template selection prompt with mode-specific instructions
+    const templateOptions = cyclingTemplates.map((t, index) => 
       `${index + 1}. [${t.category}/${t.tone}/${t.structure_type}] "${t.template_content}"`
     ).join('\n');
+
+    const modeInstructions = generationMode === 'template' 
+      ? 'SELECT a template that provides the EXACT structure needed. The user wants strict adherence to template framework.'
+      : 'SELECT a template that can INSPIRE the content while allowing voice flexibility. The template should enhance, not constrain.';
 
     const selectionPrompt = `Analyze this topic and select the BEST template structure:
 
 TOPIC: "${prompt}"
+GENERATION MODE: ${generationMode.toUpperCase()}
 
 AVAILABLE TEMPLATES:
 ${templateOptions}
 
 INSTRUCTIONS:
+${modeInstructions}
 - Consider the topic's tone, purpose, and content type
 - Match the template's category, tone, and structure to the topic
 - Prefer templates that complement the topic without being repetitive
@@ -82,12 +96,12 @@ INSTRUCTIONS:
 - Avoid templates that seem forced or unnatural for this topic
 
 RESPOND WITH ONLY:
-Template number: [1-${Math.min(templates.length, 10)}]
-Reasoning: [One sentence explaining why this template matches the topic]
+Template number: [1-${Math.min(cyclingTemplates.length, 15)}]
+Reasoning: [One sentence explaining why this template matches the topic and mode]
 
 Example response:
 Template number: 3
-Reasoning: This statement structure works well for sharing personal insights about technology.`;
+Reasoning: This statement structure works well for sharing personal insights about technology in ${generationMode} mode.`;
 
     const selectionRequest: AIGenerationRequest = {
       prompt: selectionPrompt,
@@ -104,11 +118,11 @@ Reasoning: This statement structure works well for sharing personal insights abo
 
     if (templateMatch) {
       const templateIndex = parseInt(templateMatch[1]) - 1;
-      if (templateIndex >= 0 && templateIndex < Math.min(templates.length, 10)) {
-        const selectedTemplate = templates[templateIndex];
-        const reasoning = reasoningMatch ? reasoningMatch[1].trim() : 'AI selected this template as the best match for the topic.';
+      if (templateIndex >= 0 && templateIndex < Math.min(cyclingTemplates.length, 15)) {
+        const selectedTemplate = cyclingTemplates[templateIndex];
+        const reasoning = reasoningMatch ? reasoningMatch[1].trim() : `AI selected this template as the best match for the topic in ${generationMode} mode.`;
         
-        // Update template usage count
+        // Update template usage count for cycling
         await supabase
           .from('tweet_templates')
           .update({ 
@@ -121,11 +135,11 @@ Reasoning: This statement structure works well for sharing personal insights abo
       }
     }
 
-    // Fallback: select a random template to ensure variety
-    const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+    // Fallback: select least used template to ensure variety
+    const fallbackTemplate = cyclingTemplates[0]; // Already sorted by usage_count ascending
     return { 
-      template: randomTemplate, 
-      reasoning: 'Selected randomly to ensure template variety when AI selection failed.' 
+      template: fallbackTemplate, 
+      reasoning: `Selected least-used template to ensure variety when AI selection failed in ${generationMode} mode.` 
     };
 
   } catch (error) {
@@ -134,7 +148,7 @@ Reasoning: This statement structure works well for sharing personal insights abo
     const leastUsedTemplate = templates[0]; // Already sorted by usage_count ascending
     return { 
       template: leastUsedTemplate, 
-      reasoning: 'Selected least-used template as fallback when AI selection failed.' 
+      reasoning: `Selected least-used template as fallback when AI selection failed in ${generationMode} mode.` 
     };
   }
 }
@@ -179,6 +193,7 @@ export async function POST(request: NextRequest) {
     }
 
     const { prompt, aiProvider, contentType, showDebug } = validation.data
+    const generationMode = body.generationMode || 'hybrid'; // Default to hybrid mode
 
     // 4. Check if AI providers are available
     const availableProviders = aiProviderManager.getAvailableProviders()
@@ -191,6 +206,7 @@ export async function POST(request: NextRequest) {
     }
 
     console.log('🔑 Available AI providers:', availableProviders.join(', '));
+    console.log('🎨 Generation mode:', generationMode);
 
     // 5. VOICE PROJECT SYSTEM: Load active voice project
     const voiceProject = await loadVoiceProject(user.id);
@@ -205,38 +221,62 @@ export async function POST(request: NextRequest) {
       voiceProject: null as VoiceProjectDebugInfo | null, 
       legacyPersonality: null as LegacyPersonalityDebugInfo | null,
       templateSelection: null as { template: TweetTemplate | null, reasoning: string } | null,
+      generationMode,
       fullPrompt: ''
     };
 
     if (voiceProject) {
-      // Load active templates for smart selection
-      activeTemplates = await loadActiveTemplates(voiceProject.id);
-      console.log(`📋 Loaded ${activeTemplates.length} active templates for voice project`);
+      // Load active templates for smart selection (except in freeform mode)
+      if (generationMode !== 'freeform') {
+        activeTemplates = await loadActiveTemplates(voiceProject.id);
+        console.log(`📋 Loaded ${activeTemplates.length} active templates for voice project`);
 
-      // Smart template selection (Phase 2)
-      if (activeTemplates.length > 0) {
-        const preferredProvider = aiProvider === 'auto' ? undefined : aiProvider as AIProvider;
-        const templateSelection = await selectBestTemplate(prompt, activeTemplates, preferredProvider);
-        selectedTemplate = templateSelection.template;
-        templateReasoning = templateSelection.reasoning;
-        
-        debugInfo.templateSelection = templateSelection;
-        console.log(`🎯 Template selected: ${selectedTemplate?.category}/${selectedTemplate?.tone} - ${templateReasoning}`);
+        // Smart template selection with generation mode awareness
+        if (activeTemplates.length > 0) {
+          const preferredProvider = aiProvider === 'auto' ? undefined : aiProvider as AIProvider;
+          const templateSelection = await selectBestTemplate(prompt, activeTemplates, preferredProvider, generationMode);
+          selectedTemplate = templateSelection.template;
+          templateReasoning = templateSelection.reasoning;
+          
+          debugInfo.templateSelection = templateSelection;
+          console.log(`🎯 Template selected (${generationMode} mode): ${selectedTemplate?.category}/${selectedTemplate?.tone} - ${templateReasoning}`);
+        }
       }
 
-      // Build voice context with template if selected
+      // Build voice context based on generation mode
       personalityContext = `${voiceProject.instructions}
 
 WRITING SAMPLES:
 ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
 
+      // Template context varies by generation mode
       if (selectedTemplate) {
-        templateContext = `Structure: ${selectedTemplate.template_content}
-Guidance: Adapt this structure to your topic while maintaining your authentic voice.
-Category: ${selectedTemplate.category.replace('_', ' ')}
-Tone: ${selectedTemplate.tone}
-Structure: ${selectedTemplate.structure_type}
-Priority: Your personal voice takes precedence - the template is just structural guidance`;
+        if (generationMode === 'template') {
+          // Template Mode: Strict adherence
+          templateContext = `STRICT TEMPLATE STRUCTURE - FOLLOW EXACTLY:
+"${selectedTemplate.template_content}"
+
+TEMPLATE REQUIREMENTS:
+- Category: ${selectedTemplate.category.replace('_', ' ')}
+- Tone: ${selectedTemplate.tone}
+- Structure: ${selectedTemplate.structure_type}
+- CRITICAL: Follow the template structure precisely while adapting the content to the topic
+- MAINTAIN: Sentence count, flow, and structural patterns from the template
+- ADAPT: Only the subject matter and specific details to match the prompt`;
+        } else {
+          // Hybrid Mode: Template-inspired with voice flexibility
+          templateContext = `TEMPLATE INSPIRATION (FLEXIBLE):
+Structure reference: "${selectedTemplate.template_content}"
+
+HYBRID GUIDANCE:
+- Category: ${selectedTemplate.category.replace('_', ' ')}
+- Tone: ${selectedTemplate.tone}
+- Structure: ${selectedTemplate.structure_type}
+- INSPIRATION: Use this template as creative inspiration, not strict rules
+- PRIORITY: Your authentic voice takes precedence over template structure
+- FLEXIBILITY: Adapt, modify, or deviate from template as needed for natural expression
+- BALANCE: Blend template insights with personal voice authentically`;
+        }
       }
       
       debugInfo.voiceProject = {
@@ -246,7 +286,7 @@ Priority: Your personal voice takes precedence - the template is just structural
         isActive: voiceProject.is_active
       };
       
-      console.log(`🎭 Voice Project: Using active project with ${voiceProject.writing_samples.length} samples${selectedTemplate ? ' and selected template' : ''}`);
+      console.log(`🎭 Voice Project: Using active project with ${voiceProject.writing_samples.length} samples${selectedTemplate ? ' and selected template' : ''} in ${generationMode} mode`);
     } else {
       console.log('⚠️ No active voice project found, using basic prompting');
       // Basic prompting when no voice project is available
@@ -263,7 +303,7 @@ Priority: Your personal voice takes precedence - the template is just structural
       templateContext: templateContext || undefined
     };
 
-    console.log(`🤖 Generating tweet with provider: ${selectedProvider || 'auto-selection'}, content type: ${aiRequest.contentType}`);
+    console.log(`🤖 Generating tweet with provider: ${selectedProvider || 'auto-selection'}, content type: ${aiRequest.contentType}, mode: ${generationMode}`);
 
     // 7. Call AI Provider Manager with fallback
     const aiResponse = await aiProviderManager.generateTweet(aiRequest, selectedProvider, true);
@@ -275,7 +315,7 @@ Priority: Your personal voice takes precedence - the template is just structural
       )
     }
 
-    debugInfo.fullPrompt = `PERSONALITY: ${personalityContext}\n\nUSER: ${prompt}${selectedTemplate ? `\n\nTEMPLATE: ${templateContext}` : ''}`;
+    debugInfo.fullPrompt = `PERSONALITY: ${personalityContext}\n\nUSER: ${prompt}${selectedTemplate ? `\n\nTEMPLATE (${generationMode} mode): ${templateContext}` : ''}`;
 
     // 8. Build response with template information
     const response = {
@@ -283,6 +323,7 @@ Priority: Your personal voice takes precedence - the template is just structural
       model: aiResponse.model,
       provider: aiResponse.provider,
       usage: aiResponse.usage,
+      generationMode,
       debug: showDebug ? debugInfo : undefined,
       template: selectedTemplate ? {
         id: selectedTemplate.id,
@@ -294,11 +335,12 @@ Priority: Your personal voice takes precedence - the template is just structural
         used: true
       } : {
         used: false,
-        reason: activeTemplates?.length === 0 ? 'No active templates available' : 'No voice project with templates found'
+        reason: generationMode === 'freeform' ? 'Free form mode - templates disabled' : 
+                activeTemplates?.length === 0 ? 'No active templates available' : 'No voice project with templates found'
       }
     }
 
-    console.log('✅ Tweet generated successfully with template integration');
+    console.log(`✅ Tweet generated successfully with template integration in ${generationMode} mode`);
     return NextResponse.json(response)
 
   } catch (error) {

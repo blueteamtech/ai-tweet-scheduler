@@ -31,6 +31,7 @@ interface GenerationResponse {
     totalTokens: number;
   };
   template: TweetTemplate | { used: false; reason: string };
+  generationMode?: string;
   error?: string;
 }
 
@@ -39,11 +40,13 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   const [tweetContent, setTweetContent] = useState('')
   const [selectedProvider, setSelectedProvider] = useState<'openai' | 'claude' | 'grok' | 'auto'>('auto')
   const [contentType, setContentType] = useState<'single' | 'long-form' | 'auto'>('auto')
+  const [generationMode, setGenerationMode] = useState<'template' | 'hybrid' | 'freeform'>('hybrid')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
   const [showDebug, setShowDebug] = useState(false)
   const [lastGenerationInfo, setLastGenerationInfo] = useState<GenerationResponse | null>(null)
   const [templateInfo, setTemplateInfo] = useState<TweetTemplate | null>(null)
+  const [templateFeedback, setTemplateFeedback] = useState<{ rating: number; templateId: string } | null>(null)
 
   const characterCount = {
     displayCount: tweetContent.length,
@@ -63,6 +66,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
     onError('')
     onSuccess('')
     setTemplateInfo(null)
+    setTemplateFeedback(null)
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -77,6 +81,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
           prompt: prompt.trim(),
           aiProvider: selectedProvider,
           contentType,
+          generationMode,
           showDebug
         }),
       })
@@ -92,9 +97,12 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
       
       // Set template information if a template was used
       if (data.template && 'used' in data.template && data.template.used) {
-        setTemplateInfo(data.template as TweetTemplate)
+        const template = data.template as TweetTemplate;
+        setTemplateInfo(template)
+        setTemplateFeedback({ rating: 0, templateId: template.id })
       } else {
         setTemplateInfo(null)
+        setTemplateFeedback(null)
       }
 
       onSuccess('Tweet generated successfully! ✨')
@@ -105,6 +113,36 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
       console.error('Error generating tweet:', error)
     } finally {
       setIsGenerating(false)
+    }
+  }
+
+  const submitTemplateFeedback = async (rating: number) => {
+    if (!templateFeedback || !templateInfo) return;
+
+    try {
+      const { data: { session } } = await supabase.auth.getSession()
+      
+      // Update template effectiveness score
+      await fetch('/api/template-feedback', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` }),
+        },
+        body: JSON.stringify({
+          templateId: templateInfo.id,
+          rating,
+          prompt: prompt.trim(),
+          generatedContent: tweetContent
+        }),
+      })
+
+      setTemplateFeedback({ ...templateFeedback, rating })
+      onSuccess(`Thank you for rating the template! (${rating}/5 stars)`)
+      setTimeout(() => onSuccess(''), 3000)
+
+    } catch (error) {
+      console.error('Error submitting template feedback:', error)
     }
   }
 
@@ -204,6 +242,70 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
       </div>
 
       <div className="space-y-4">
+        {/* Generation Mode Selection */}
+        <div className="p-3 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg">
+          <label className="block text-sm font-medium text-indigo-700 mb-2">
+            🎨 Generation Mode
+          </label>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
+            <button
+              onClick={() => setGenerationMode('template')}
+              className={`p-3 rounded-md text-sm font-medium transition-all ${
+                generationMode === 'template'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-white text-indigo-700 border border-indigo-300 hover:bg-indigo-50'
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-1">
+                <span>📋</span>
+                <span>Template Mode</span>
+              </div>
+              <div className="text-xs mt-1 opacity-90">
+                Strict adherence to template structure
+              </div>
+            </button>
+            
+            <button
+              onClick={() => setGenerationMode('hybrid')}
+              className={`p-3 rounded-md text-sm font-medium transition-all ${
+                generationMode === 'hybrid'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-white text-indigo-700 border border-indigo-300 hover:bg-indigo-50'
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-1">
+                <span>🎨</span>
+                <span>Hybrid Mode</span>
+              </div>
+              <div className="text-xs mt-1 opacity-90">
+                Template-inspired with voice flexibility
+              </div>
+            </button>
+            
+            <button
+              onClick={() => setGenerationMode('freeform')}
+              className={`p-3 rounded-md text-sm font-medium transition-all ${
+                generationMode === 'freeform'
+                  ? 'bg-indigo-600 text-white shadow-md'
+                  : 'bg-white text-indigo-700 border border-indigo-300 hover:bg-indigo-50'
+              }`}
+            >
+              <div className="flex items-center justify-center space-x-1">
+                <span>✍️</span>
+                <span>Free Form</span>
+              </div>
+              <div className="text-xs mt-1 opacity-90">
+                Pure voice project (no templates)
+              </div>
+            </button>
+          </div>
+          <p className="text-xs text-indigo-600 mt-2">
+            {generationMode === 'template' && 'AI follows the selected template structure precisely'}
+            {generationMode === 'hybrid' && 'AI uses templates as inspiration while prioritizing your voice'}
+            {generationMode === 'freeform' && 'AI uses only your voice project instructions and writing samples'}
+          </p>
+        </div>
+
         {/* AI Provider Selection */}
         <div className="p-3 bg-purple-50 border border-purple-200 rounded-lg">
           <label className="block text-sm font-medium text-purple-700 mb-2">
@@ -282,6 +384,32 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
                   &quot;{templateInfo.content}&quot;
                 </p>
               </details>
+              
+              {/* Template Feedback */}
+              {templateFeedback && templateFeedback.rating === 0 && (
+                <div className="mt-3 p-2 bg-green-100 rounded">
+                  <p className="text-xs text-green-800 mb-2">How well did this template work for your content?</p>
+                  <div className="flex space-x-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        onClick={() => submitTemplateFeedback(star)}
+                        className="text-lg hover:text-yellow-500 transition-colors"
+                      >
+                        ⭐
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              
+              {templateFeedback && templateFeedback.rating > 0 && (
+                <div className="mt-2 p-2 bg-green-100 rounded">
+                  <p className="text-xs text-green-800">
+                    You rated this template: {'⭐'.repeat(templateFeedback.rating)} ({templateFeedback.rating}/5)
+                  </p>
+                </div>
+              )}
             </div>
           </div>
         )}
