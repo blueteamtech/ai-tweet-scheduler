@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest, promptSchema, checkRateLimit, sanitizeError } from '@/lib/auth'
 import { createClient } from '@supabase/supabase-js'
 import { aiProviderManager, AIProvider, AIGenerationRequest } from '@/lib/ai-providers'
-import type { VoiceProjectDebugInfo, LegacyPersonalityDebugInfo } from '@/types/index'
+import type { VoiceProjectDebugInfo, LegacyPersonalityDebugInfo, VoiceProject } from '@/types/index'
 
 // Initialize Supabase client for writing samples
 const supabase = createClient(
@@ -155,7 +155,7 @@ Reasoning: This statement structure works well for sharing personal insights abo
 }
 
 // Generate autonomous topic based on voice project
-async function generateAutonomousTopic(voiceProject: any, preferredProvider: AIProvider | 'auto' = 'auto'): Promise<string> {
+async function generateAutonomousTopic(voiceProject: VoiceProject, preferredProvider: AIProvider | 'auto' = 'auto'): Promise<string> {
   const topicCategories = [
     'industry insights',
     'personal observations',
@@ -262,7 +262,8 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    let { prompt, aiProvider, contentType, showDebug } = validation.data
+    let { prompt } = validation.data
+    const { aiProvider, contentType, showDebug } = validation.data
     const generationMode = body.generationMode || 'hybrid'; // Default to hybrid mode
 
     // 4. Check if AI providers are available
