@@ -154,6 +154,57 @@ Reasoning: This statement structure works well for sharing personal insights abo
   }
 }
 
+// Generate autonomous topic based on voice project
+async function generateAutonomousTopic(voiceProject: any, preferredProvider: AIProvider | 'auto' = 'auto'): Promise<string> {
+  const topicCategories = [
+    'industry insights',
+    'personal observations',
+    'professional tips',
+    'motivational thoughts',
+    'commentary on trends',
+    'educational content',
+    'behind-the-scenes thoughts',
+    'lessons learned',
+    'productivity advice',
+    'creative inspiration'
+  ];
+
+  const randomCategory = topicCategories[Math.floor(Math.random() * topicCategories.length)];
+  
+  const topicGenerationPrompt = `Based on this user's voice and writing style, generate a specific topic for ${randomCategory} that they would authentically write about.
+
+USER'S VOICE CONTEXT:
+${voiceProject.instructions}
+
+WRITING SAMPLES:
+${voiceProject.writing_samples.join('\n\n---\n\n')}
+
+INSTRUCTIONS:
+- Analyze the user's interests, expertise, and tone from their writing samples
+- Generate a specific, engaging topic that fits the "${randomCategory}" category
+- The topic should be something this user would naturally write about
+- Make it specific enough to create a focused tweet, not too broad
+- Return ONLY the topic (no quotes, no extra text)
+
+Example format: "How I learned to say no to meetings that could have been emails"`;
+
+  try {
+    const topicRequest: AIGenerationRequest = {
+      prompt: topicGenerationPrompt,
+      personalityContext: 'You are a content strategist who generates authentic topics for social media creators.',
+      contentType: 'single'
+    };
+
+    const selectedProvider = preferredProvider === 'auto' ? undefined : preferredProvider;
+    const result = await aiProviderManager.generateTweet(topicRequest, selectedProvider, false);
+    
+    return result.content?.trim() || `Share thoughts on ${randomCategory}`;
+  } catch (error) {
+    console.error('Failed to generate autonomous topic:', error);
+    return `Share thoughts on ${randomCategory}`;
+  }
+}
+
 export async function POST(request: NextRequest) {
   console.log('🚀 generate-tweet API called');
   
@@ -180,20 +231,38 @@ export async function POST(request: NextRequest) {
 
     // 3. Parse and validate input
     const body = await request.json()
-    const validation = promptSchema.safeParse(body)
-    console.log('📝 Request validation:', { isValid: validation.success, prompt: validation.success ? validation.data.prompt : 'invalid' });
+    const autonomousGeneration = body.autonomousGeneration || false;
+    
+    // For autonomous generation, allow empty prompts
+    let validation;
+    if (autonomousGeneration && (!body.prompt || !body.prompt.trim())) {
+      // Create a valid structure for autonomous generation
+      validation = {
+        success: true,
+        data: {
+          prompt: '', // Empty prompt for autonomous generation
+          aiProvider: body.aiProvider || 'auto',
+          contentType: body.contentType || 'auto',
+          showDebug: body.showDebug || false
+        }
+      };
+    } else {
+      validation = promptSchema.safeParse(body);
+    }
+    
+    console.log('📝 Request validation:', { isValid: validation.success, prompt: validation.success ? validation.data.prompt : 'invalid', autonomous: autonomousGeneration });
     
     if (!validation.success) {
       return NextResponse.json(
         { 
           error: 'Invalid input', 
-          details: validation.error.issues.map(issue => issue.message)
+          details: validation.error?.issues?.map(issue => issue.message) || ['Validation failed']
         },
         { status: 400 }
       )
     }
 
-    const { prompt, aiProvider, contentType, showDebug } = validation.data
+    let { prompt, aiProvider, contentType, showDebug } = validation.data
     const generationMode = body.generationMode || 'hybrid'; // Default to hybrid mode
 
     // 4. Check if AI providers are available
@@ -208,9 +277,32 @@ export async function POST(request: NextRequest) {
 
     console.log('🔑 Available AI providers:', availableProviders.join(', '));
     console.log('🎨 Generation mode:', generationMode);
+    console.log('🤖 Autonomous generation:', autonomousGeneration);
 
     // 5. VOICE PROJECT SYSTEM: Load active voice project
     const voiceProject = await loadVoiceProject(user.id);
+    
+    // 5.1 Handle autonomous generation (generate topic if prompt is empty)
+    if (autonomousGeneration && !prompt.trim()) {
+      console.log('🎯 Generating autonomous topic...');
+      if (voiceProject) {
+        prompt = await generateAutonomousTopic(voiceProject, aiProvider as AIProvider || 'auto');
+      } else {
+        // Fallback topics when no voice project exists
+        const fallbackTopics = [
+          'productivity tips for busy professionals',
+          'lessons learned from recent challenges',
+          'thoughts on work-life balance',
+          'insights about personal growth',
+          'observations about modern technology',
+          'advice for career development',
+          'reflections on daily habits',
+          'thoughts on effective communication'
+        ];
+        prompt = fallbackTopics[Math.floor(Math.random() * fallbackTopics.length)];
+      }
+      console.log('🎯 Generated autonomous topic:', prompt);
+    }
     
     let personalityContext = '';
     let templateContext = '';

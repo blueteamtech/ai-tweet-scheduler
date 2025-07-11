@@ -44,11 +44,8 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   const [generatedTweet, setGeneratedTweet] = useState('')
 
   const generateTweet = async () => {
-    if (!prompt.trim()) {
-      onError('Please enter a topic or prompt')
-      return
-    }
-
+    const isAutonomousGeneration = !prompt.trim()
+    
     setIsGenerating(true)
     onError('')
     onSuccess('')
@@ -70,7 +67,8 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
           aiProvider: 'auto',
           contentType: 'auto',
           generationMode: 'template',  // Force Template Mode
-          showDebug: false
+          showDebug: false,
+          autonomousGeneration: isAutonomousGeneration
         }),
       })
 
@@ -92,7 +90,10 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         setTemplateFeedback(null)
       }
 
-      onSuccess('Tweet generated successfully! ✨')
+      const successMessage = isAutonomousGeneration 
+        ? 'Random tweet generated successfully! ✨' 
+        : 'Tweet generated successfully! ✨'
+      onSuccess(successMessage)
       setTimeout(() => onSuccess(''), 3000)
 
     } catch (error) {
@@ -223,7 +224,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
           📝 Tweet Composer
         </h2>
         <p className="text-gray-600 text-sm">
-          Write tweets manually or generate AI content using templates that match your style
+          Write tweets manually, generate AI content from topics, or generate random tweets using templates that match your style
         </p>
       </div>
 
@@ -231,12 +232,12 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         {/* Content Input */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            💡 Tweet Content or Topic
+            💡 Tweet Content or Topic (Optional)
           </label>
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="Enter your tweet content directly, or describe what you'd like to tweet about for AI generation..."
+            placeholder="Enter your tweet content directly, or describe what you'd like to tweet about for AI generation. Leave blank for autonomous generation based on your writing style..."
             className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none bg-white text-gray-900 placeholder-gray-500 h-32"
             disabled={isGenerating || isSaving}
           />
@@ -330,10 +331,14 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         <div className="flex space-x-3">
           <button
             onClick={generateTweet}
-            disabled={isGenerating || isSaving || !prompt.trim()}
+            disabled={isGenerating || isSaving}
             className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
-            {isGenerating ? '🤖 Generating...' : '🤖 Generate AI Tweet'}
+            {isGenerating ? (
+              prompt.trim() ? '🤖 Generating...' : '🤖 Generating Random Tweet...'
+            ) : (
+              prompt.trim() ? '🤖 Generate AI Tweet' : '🤖 Generate Random Tweet'
+            )}
           </button>
           
           <button

@@ -99,13 +99,6 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
     loadVoiceProject();
   }, []);
 
-  // Load templates when voice project is loaded
-  useEffect(() => {
-    if (voiceProject) {
-      loadTemplates();
-    }
-  }, [voiceProject]);
-
   const loadVoiceProject = async () => {
     setLoading(true);
     try {
@@ -134,18 +127,17 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
   };
 
   const loadTemplates = useCallback(async () => {
-    if (!voiceProject) return;
-    
     setLoadingTemplates(true);
     try {
       const { data: { session } } = await supabase.auth.getSession();
       
       if (!session) return;
 
+      // Load all SaaS product templates (voice_project_id IS NULL)
       const { data: templatesData, error } = await supabase
         .from('tweet_templates')
         .select('*')
-        .eq('voice_project_id', voiceProject.id)
+        .is('voice_project_id', null)
         .order('effectiveness_score', { ascending: false });
 
       if (error) throw error;
@@ -165,10 +157,15 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
     } finally {
       setLoadingTemplates(false);
     }
-  }, [voiceProject]);
+  }, []);
+
+  // Load SaaS product templates (available to all users)
+  useEffect(() => {
+    loadTemplates();
+  }, [loadTemplates]);
 
   const loadAnalytics = async () => {
-    if (!voiceProject || !templates.length) return;
+    if (!templates.length) return;
     
     setLoadingAnalytics(true);
     try {

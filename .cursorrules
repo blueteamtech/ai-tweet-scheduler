@@ -17,16 +17,16 @@
 
 ## 🚨 CRITICAL DEPLOYMENT ENVIRONMENT RULES
 
-### 🛡️ **CATASTROPHIC DATA LOSS PREVENTION** 
+### 🛡️ **DATA PROTECTION WITH BACKUP RECOVERY** 
 **MANDATORY:** NEVER delete USER DATA without explicit permission
 ```
-🚨 CRITICAL: User is on FREE TIER - NO AUTOMATIC BACKUPS
+✅ PAID TIER: User has AUTOMATIC BACKUPS and POINT-IN-TIME RECOVERY
 ❌ NEVER delete tables/data that contain USER INPUT without explicit consent
 ❌ NEVER run "reset", "rollback", or "clean" operations that delete USER DATA
 ❌ NEVER delete user-generated content (tweets, settings, connections, etc.)
 ❌ NEVER run destructive operations on populated tables without user approval
 ✅ ALWAYS ask permission before deleting USER DATA (not empty schema)
-✅ ALWAYS warn about FREE TIER = NO BACKUPS before deleting USER DATA
+✅ User has backup recovery options if needed
 ✅ Schema creation/modification for empty tables = NO PERMISSION NEEDED
 ✅ Creating new tables or rebuilding empty schema = PROCEED WITHOUT ASKING
 ```
@@ -39,9 +39,9 @@
 Before ANY operation that could delete USER DATA:
 1. ⚠️ **STOP** - Does this table contain user input/data?
 2. 🔍 **VERIFY** - Will this delete actual user-generated content?
-3. 📋 **CHECK** - Is user on paid plan with backups?
+3. 📋 **CHECK** - User has backups available for recovery if needed
 4. 💬 **ASK** - Get explicit user permission for USER DATA deletion
-5. ⚠️ **WARN** - Explain FREE TIER = NO RECOVERY for user data
+5. ✅ **INFORM** - User has backup recovery options available
 6. ✅ **CONFIRM** - Double-check user wants to proceed
 
 ### 🌐 **NEVER ASSUME LOCAL DEVELOPMENT**
@@ -111,14 +111,14 @@ Before ANY operation that could delete USER DATA:
 
 **🚨 CRITICAL MCP SUPABASE SAFEGUARDS:**
 ```
-🛡️ DATA LOSS PREVENTION WITH MCP SUPABASE:
+🛡️ DATA PROTECTION WITH MCP SUPABASE:
 ❌ NEVER use mcp_supabase_apply_migration with DROP TABLE without user permission
 ❌ NEVER run migrations named "reset", "rollback", "clean" without explicit consent
 ❌ NEVER assume migration operations are safe - always check SQL content first
 ❌ NEVER run destructive operations based on assumptions or "cleanup" needs
 ✅ ALWAYS show user the SQL before running destructive migrations
 ✅ ALWAYS ask permission before DROP, TRUNCATE, or DELETE operations
-✅ ALWAYS remind user about FREE TIER = NO BACKUPS before destructive operations
+✅ User has backup recovery options available if needed
 ✅ ALWAYS get explicit "YES" confirmation for any data deletion
 ```
 
@@ -127,8 +127,9 @@ Before ANY operation that could delete USER DATA:
 2. 🔍 **ANALYZE** - Look for DROP, TRUNCATE, DELETE keywords
 3. ⚠️ **WARN** - Alert user about potential data loss
 4. 💬 **ASK** - Get explicit permission with clear explanation
-5. ⏸️ **WAIT** - For user's explicit "YES" response
-6. ✅ **EXECUTE** - Only after confirmed permission
+5. ✅ **INFORM** - User has backup recovery options available
+6. ⏸️ **WAIT** - For user's explicit "YES" response
+7. ✅ **EXECUTE** - Only after confirmed permission
 
 **WORKFLOW:**
 1. **Database Changes:** Use MCP Supabase tools for schema management
@@ -280,21 +281,21 @@ AI-Personality-Tweets-to-Scheduler/
 
 ---
 
-## 🚨 CRITICAL USER CONTEXT - FREE TIER LIMITATIONS
+## 🚨 CRITICAL USER CONTEXT - PAID TIER WITH BACKUPS
 
-**⚠️ IMPORTANT: USER IS ON SUPABASE FREE TIER**
+**✅ IMPORTANT: USER IS ON SUPABASE PAID TIER**
 ```
-🔴 NO AUTOMATIC BACKUPS - Data loss is PERMANENT
-🔴 NO POINT-IN-TIME RECOVERY - Cannot restore to previous state
-🔴 NO DAILY BACKUPS - Zero recovery options if data is deleted
-🔴 CATASTROPHIC IMPACT - Any data deletion is irreversible
+✅ AUTOMATIC BACKUPS AVAILABLE - Point-in-time recovery possible
+✅ DAILY BACKUPS - Multiple recovery options available
+✅ BACKUP RECOVERY - Can restore to previous states if needed
+✅ DATA PROTECTION - Backup safety net available for operations
 ```
 
 **BEFORE ANY DATABASE OPERATION:**
-1. 🛑 **REMEMBER** - User has NO backups
+1. 🛑 **REMEMBER** - User has backup recovery options
 2. 💭 **THINK** - Could this delete data?
 3. 🚨 **STOP** - If yes, ask permission first
-4. 📢 **WARN** - Explain FREE TIER = NO RECOVERY
+4. 📢 **INFORM** - User has backup recovery available
 5. ✅ **CONFIRM** - Get explicit user consent
 
 ## 🎯 CURRENT DEVELOPMENT PRIORITIES
@@ -304,7 +305,7 @@ AI-Personality-Tweets-to-Scheduler/
 2. **AI Output Quality:** Make tweets sound more human and natural
 3. **Enhanced Voice Matching:** Better writing sample utilization
 4. **User Experience:** Improve queue management and interface
-5. **Database Safety:** CRITICAL - User has NO backups on free tier
+5. **Database Operations:** User has backup recovery options available
 6. **Production-Only Approach:** Use feature flags, no test environment needed
 
 ---
