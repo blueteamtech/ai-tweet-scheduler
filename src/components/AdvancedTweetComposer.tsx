@@ -41,7 +41,6 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   const [isSaving, setIsSaving] = useState(false)
   const [templateInfo, setTemplateInfo] = useState<TweetTemplate | null>(null)
   const [templateFeedback, setTemplateFeedback] = useState<{ rating: number; templateId: string } | null>(null)
-  const [generatedTweet, setGeneratedTweet] = useState('')
 
   const generateTweet = async () => {
     const isAutonomousGeneration = !prompt.trim()
@@ -51,7 +50,6 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
     onSuccess('')
     setTemplateInfo(null)
     setTemplateFeedback(null)
-    setGeneratedTweet('')
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
@@ -78,7 +76,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         throw new Error(data.error || 'Failed to generate tweet')
       }
 
-      setGeneratedTweet(data.content)
+      setPrompt(data.content)
       
       // Set template information if a template was used
       if (data.template && 'used' in data.template && data.template.used) {
@@ -120,7 +118,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
           templateId: templateInfo.id,
           rating,
           prompt: prompt.trim(),
-          generatedContent: generatedTweet
+          generatedContent: prompt.trim()
         }),
       })
 
@@ -134,7 +132,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   }
 
   const saveDraft = async () => {
-    const contentToSave = generatedTweet.trim() || prompt.trim()
+    const contentToSave = prompt.trim()
     
     if (!contentToSave) {
       onError('No content to save as draft')
@@ -169,7 +167,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   }
 
   const addToQueue = async () => {
-    const contentToQueue = generatedTweet.trim() || prompt.trim()
+    const contentToQueue = prompt.trim()
     
     if (!contentToQueue) {
       onError('No content to add to queue')
@@ -256,21 +254,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
 
 
 
-        {/* Generated Tweet Display */}
-        {generatedTweet && (
-          <div className="p-4 bg-gray-50 border border-gray-200 rounded-lg">
-            <h3 className="text-sm font-medium text-gray-700 mb-2">Generated Tweet:</h3>
-            <p className="text-gray-900 whitespace-pre-wrap">{generatedTweet}</p>
-            <div className="text-xs text-gray-500 mt-2">
-              {generatedTweet.length}/4000 characters
-              {generatedTweet.length > 280 && (
-                <span className="ml-2 text-blue-600">
-                  (Long-form tweet)
-                </span>
-              )}
-            </div>
-          </div>
-        )}
+
 
         {/* Template Information Display */}
         {templateInfo && (
