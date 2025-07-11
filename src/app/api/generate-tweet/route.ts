@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest, promptSchema, checkRateLimit, sanitizeError } from '@/lib/auth'
 import { createClient } from '@supabase/supabase-js'
-import { aiProviderManager, AIProvider } from '@/lib/ai-providers'
+import { aiProviderManager, AIProvider, AIGenerationRequest } from '@/lib/ai-providers'
 import type { VoiceProjectDebugInfo, LegacyPersonalityDebugInfo } from '@/types/index'
 
 // Initialize Supabase client for writing samples
@@ -9,6 +9,17 @@ const supabase = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 )
+
+interface TweetTemplate {
+  id: string;
+  template_content: string;
+  category: string;
+  tone: string;
+  structure_type: string;
+  is_active: boolean;
+  usage_count: number;
+  last_used_at: string | null;
+}
 
 // Load user's voice project
 async function loadVoiceProject(userId: string) {
@@ -24,6 +35,107 @@ async function loadVoiceProject(userId: string) {
   } catch {
     console.log('No active voice project found');
     return null;
+  }
+}
+
+// Load active templates for voice project
+async function loadActiveTemplates(voiceProjectId: string): Promise<TweetTemplate[]> {
+  try {
+    const { data: templates } = await supabase
+      .from('tweet_templates')
+      .select('*')
+      .eq('voice_project_id', voiceProjectId)
+      .eq('is_active', true)
+      .order('usage_count', { ascending: true }); // Prefer less-used templates for variety
+    
+    return templates || [];
+  } catch (error) {
+    console.error('Failed to load templates:', error);
+    return [];
+  }
+}
+
+// Smart template selection using AI
+async function selectBestTemplate(prompt: string, templates: TweetTemplate[], preferredProvider?: AIProvider): Promise<{template: TweetTemplate | null, reasoning: string}> {
+  if (templates.length === 0) {
+    return { template: null, reasoning: 'No active templates available' };
+  }
+
+  try {
+    // Create template selection prompt
+    const templateOptions = templates.slice(0, 10).map((t, index) => 
+      `${index + 1}. [${t.category}/${t.tone}/${t.structure_type}] "${t.template_content}"`
+    ).join('\n');
+
+    const selectionPrompt = `Analyze this topic and select the BEST template structure:
+
+TOPIC: "${prompt}"
+
+AVAILABLE TEMPLATES:
+${templateOptions}
+
+INSTRUCTIONS:
+- Consider the topic's tone, purpose, and content type
+- Match the template's category, tone, and structure to the topic
+- Prefer templates that complement the topic without being repetitive
+- Choose templates that allow for authentic voice expression
+- Avoid templates that seem forced or unnatural for this topic
+
+RESPOND WITH ONLY:
+Template number: [1-${Math.min(templates.length, 10)}]
+Reasoning: [One sentence explaining why this template matches the topic]
+
+Example response:
+Template number: 3
+Reasoning: This statement structure works well for sharing personal insights about technology.`;
+
+    const selectionRequest: AIGenerationRequest = {
+      prompt: selectionPrompt,
+      personalityContext: 'You are a copywriting expert who selects the best template structures for content creation.',
+      contentType: 'single'
+    };
+
+    const result = await aiProviderManager.generateTweet(selectionRequest, preferredProvider, false);
+
+    // Parse the AI response to extract template number and reasoning
+    const response = result.content || '';
+    const templateMatch = response.match(/Template number:\s*(\d+)/i);
+    const reasoningMatch = response.match(/Reasoning:\s*(.+?)(?:\n|$)/i);
+
+    if (templateMatch) {
+      const templateIndex = parseInt(templateMatch[1]) - 1;
+      if (templateIndex >= 0 && templateIndex < Math.min(templates.length, 10)) {
+        const selectedTemplate = templates[templateIndex];
+        const reasoning = reasoningMatch ? reasoningMatch[1].trim() : 'AI selected this template as the best match for the topic.';
+        
+        // Update template usage count
+        await supabase
+          .from('tweet_templates')
+          .update({ 
+            usage_count: selectedTemplate.usage_count + 1,
+            last_used_at: new Date().toISOString()
+          })
+          .eq('id', selectedTemplate.id);
+
+        return { template: selectedTemplate, reasoning };
+      }
+    }
+
+    // Fallback: select a random template to ensure variety
+    const randomTemplate = templates[Math.floor(Math.random() * templates.length)];
+    return { 
+      template: randomTemplate, 
+      reasoning: 'Selected randomly to ensure template variety when AI selection failed.' 
+    };
+
+  } catch (error) {
+    console.error('Template selection failed:', error);
+    // Fallback: select least used template
+    const leastUsedTemplate = templates[0]; // Already sorted by usage_count ascending
+    return { 
+      template: leastUsedTemplate, 
+      reasoning: 'Selected least-used template as fallback when AI selection failed.' 
+    };
   }
 }
 
@@ -83,19 +195,49 @@ export async function POST(request: NextRequest) {
     // 5. VOICE PROJECT SYSTEM: Load active voice project
     const voiceProject = await loadVoiceProject(user.id);
     
-    let systemPrompt = '';
+    let personalityContext = '';
+    let templateContext = '';
+    let selectedTemplate: TweetTemplate | null = null;
+    let templateReasoning = '';
+    let activeTemplates: TweetTemplate[] = [];
+    
     const debugInfo = { 
       voiceProject: null as VoiceProjectDebugInfo | null, 
       legacyPersonality: null as LegacyPersonalityDebugInfo | null,
+      templateSelection: null as { template: TweetTemplate | null, reasoning: string } | null,
       fullPrompt: ''
     };
 
     if (voiceProject) {
-      // Build voice context ONLY from user's instructions and writing samples - NO built-in prompts
-      systemPrompt = `${voiceProject.instructions}
+      // Load active templates for smart selection
+      activeTemplates = await loadActiveTemplates(voiceProject.id);
+      console.log(`📋 Loaded ${activeTemplates.length} active templates for voice project`);
+
+      // Smart template selection (Phase 2)
+      if (activeTemplates.length > 0) {
+        const preferredProvider = aiProvider === 'auto' ? undefined : aiProvider as AIProvider;
+        const templateSelection = await selectBestTemplate(prompt, activeTemplates, preferredProvider);
+        selectedTemplate = templateSelection.template;
+        templateReasoning = templateSelection.reasoning;
+        
+        debugInfo.templateSelection = templateSelection;
+        console.log(`🎯 Template selected: ${selectedTemplate?.category}/${selectedTemplate?.tone} - ${templateReasoning}`);
+      }
+
+      // Build voice context with template if selected
+      personalityContext = `${voiceProject.instructions}
 
 WRITING SAMPLES:
 ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
+
+      if (selectedTemplate) {
+        templateContext = `Structure: ${selectedTemplate.template_content}
+Guidance: Adapt this structure to your topic while maintaining your authentic voice.
+Category: ${selectedTemplate.category.replace('_', ' ')}
+Tone: ${selectedTemplate.tone}
+Structure: ${selectedTemplate.structure_type}
+Priority: Your personal voice takes precedence - the template is just structural guidance`;
+      }
       
       debugInfo.voiceProject = {
         hasInstructions: !!voiceProject.instructions,
@@ -104,65 +246,27 @@ ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
         isActive: voiceProject.is_active
       };
       
-      console.log(`🎭 Voice Project: Using active project with ${voiceProject.writing_samples.length} samples`);
+      console.log(`🎭 Voice Project: Using active project with ${voiceProject.writing_samples.length} samples${selectedTemplate ? ' and selected template' : ''}`);
     } else {
-      // FALLBACK: Use legacy personality system if no voice project
-      console.log('🧠 Voice Project: None active, falling back to legacy personality system');
-      
-      systemPrompt = 'You are a skilled social media content creator. Generate authentic, engaging tweets that sound natural and human-written.';
-      
-      try {
-        const { data: samples, error: samplesError } = await supabase
-          .from('user_writing_samples')
-          .select('content, content_type')
-          .eq('user_id', user.id)
-          .order('created_at', { ascending: false })
-          .limit(5);
-
-        if (!samplesError && samples && samples.length > 0) {
-          const sampleTexts = samples.map(s => s.content.substring(0, 300)).join('\n\n');
-          const personalityContext = `\n\nUser's writing style examples:\n${sampleTexts}\n\nPlease match this writing style, tone, and personality when creating the tweet.`;
-          
-          systemPrompt = systemPrompt + personalityContext;
-          debugInfo.legacyPersonality = {
-            samplesUsed: samples.length,
-            hasWritingSamples: true
-          };
-          
-          console.log(`🧠 Legacy Personality: Using ${samples.length} writing samples`);
-        } else {
-          debugInfo.legacyPersonality = {
-            samplesUsed: 0,
-            hasWritingSamples: false
-          };
-        }
-      } catch (error) {
-        console.error('Error fetching writing samples:', error);
-        debugInfo.legacyPersonality = {
-          samplesUsed: 0,
-          hasWritingSamples: false,
-          error: 'Failed to load samples'
-        };
-      }
+      console.log('⚠️ No active voice project found, using basic prompting');
+      // Basic prompting when no voice project is available
+      personalityContext = `You are a helpful assistant that creates engaging tweets. Focus on being authentic, conversational, and valuable.`;
     }
 
-    // Store full prompt for transparency
-    debugInfo.fullPrompt = systemPrompt;
-
-    // 6. Generate tweet using AI Provider Manager
-    const selectedProvider = aiProvider === 'auto' ? undefined : aiProvider as AIProvider
+    // 6. Generate the tweet using AI Provider Manager
+    const selectedProvider = aiProvider === 'auto' ? undefined : aiProvider as AIProvider;
     
-    const aiRequest = {
+    const aiRequest: AIGenerationRequest = {
       prompt,
       contentType: contentType === 'auto' ? 'single' : contentType,
-      personalityContext: systemPrompt || undefined,
-      templateContext: undefined // No more template context
-    }
+      personalityContext: personalityContext || undefined,
+      templateContext: templateContext || undefined
+    };
 
-    console.log(`🤖 Generating tweet with provider: ${selectedProvider || 'auto-selection'}, content type: ${aiRequest.contentType}`)
+    console.log(`🤖 Generating tweet with provider: ${selectedProvider || 'auto-selection'}, content type: ${aiRequest.contentType}`);
 
     // 7. Call AI Provider Manager with fallback
-    const aiResponse = await aiProviderManager.generateTweet(aiRequest, selectedProvider, true)
+    const aiResponse = await aiProviderManager.generateTweet(aiRequest, selectedProvider, true);
 
     if (!aiResponse.content) {
       return NextResponse.json(
@@ -171,73 +275,34 @@ ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
       )
     }
 
-    // 8. Ensure tweet is under appropriate character limit
-    const maxLength = aiRequest.contentType === 'long-form' ? 4000 : 280
-    const finalTweet = aiResponse.content.length > maxLength 
-      ? aiResponse.content.substring(0, maxLength - 3) + '...'
-      : aiResponse.content
+    debugInfo.fullPrompt = `PERSONALITY: ${personalityContext}\n\nUSER: ${prompt}${selectedTemplate ? `\n\nTEMPLATE: ${templateContext}` : ''}`;
 
-    // 9. Log successful generation
-    console.log(`Tweet generated for user ${user.id}: ${finalTweet.length} characters, Provider: ${aiResponse.provider}, Model: ${aiResponse.model}, Voice Project: ${!!voiceProject}`)
-
-    return NextResponse.json({
-      tweet: finalTweet,
-      characterCount: finalTweet.length,
-      aiProvider: {
-        used: aiResponse.provider,
-        model: aiResponse.model,
-        responseTime: aiResponse.responseTime,
-        fallbackUsed: selectedProvider !== aiResponse.provider
-      },
-      voiceProject: {
-        used: !!voiceProject,
-        hasInstructions: voiceProject?.instructions ? true : false,
-        sampleCount: voiceProject?.writing_samples?.length || 0,
-        isActive: voiceProject?.is_active || false
-      },
-      personalityAI: {
-        used: !voiceProject && (debugInfo.legacyPersonality?.samplesUsed || 0) > 0,
-        samplesUsed: debugInfo.legacyPersonality?.samplesUsed || 0,
-        hasWritingSamples: debugInfo.legacyPersonality?.hasWritingSamples || false
-      },
-      template: {
-        used: false, // Templates removed
-        category: null,
-        structure: null,
-        wordCountTarget: null
-      },
-      contentType: aiRequest.contentType,
+    // 8. Build response with template information
+    const response = {
+      content: aiResponse.content,
+      model: aiResponse.model,
+      provider: aiResponse.provider,
       usage: aiResponse.usage,
-      // DEBUG INFO - Only included if showDebug is true
-      debug: showDebug ? {
-        userId: user.id,
-        voiceProject: debugInfo.voiceProject,
-        legacyPersonality: debugInfo.legacyPersonality,
-        fullPrompt: debugInfo.fullPrompt,
-        aiRequest: aiRequest,
-        providerMetrics: aiProviderManager.getProviderMetrics()
-      } : undefined
-    })
-
-  } catch (error) {
-    console.error('Error generating tweet:', error)
-    
-    // Handle specific errors
-    if (error instanceof Error) {
-      if (error.message.includes('API key')) {
-        return NextResponse.json(
-          { error: 'Service configuration error' },
-          { status: 503 }
-        )
-      }
-      if (error.message.includes('quota') || error.message.includes('rate limit')) {
-        return NextResponse.json(
-          { error: 'Service temporarily overloaded. Please try again later.' },
-          { status: 429 }
-        )
+      debug: showDebug ? debugInfo : undefined,
+      template: selectedTemplate ? {
+        id: selectedTemplate.id,
+        content: selectedTemplate.template_content,
+        category: selectedTemplate.category,
+        tone: selectedTemplate.tone,
+        structure_type: selectedTemplate.structure_type,
+        reasoning: templateReasoning,
+        used: true
+      } : {
+        used: false,
+        reason: activeTemplates?.length === 0 ? 'No active templates available' : 'No voice project with templates found'
       }
     }
 
+    console.log('✅ Tweet generated successfully with template integration');
+    return NextResponse.json(response)
+
+  } catch (error) {
+    console.error('Error in generate-tweet:', error)
     return NextResponse.json(
       { error: sanitizeError(error) },
       { status: 500 }

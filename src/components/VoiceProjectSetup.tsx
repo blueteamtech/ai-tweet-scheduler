@@ -8,6 +8,17 @@ interface VoiceProjectSetupProps {
   className?: string;
 }
 
+interface TweetTemplate {
+  id: string;
+  template_content: string;
+  category: string;
+  tone: string;
+  structure_type: string;
+  is_active: boolean;
+  usage_count: number;
+  last_used_at: string | null;
+}
+
 export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps) {
   const [voiceProject, setVoiceProject] = useState<VoiceProject | null>(null);
   const [instructions, setInstructions] = useState('');
@@ -17,6 +28,18 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ type: 'success' | 'error', text: string } | null>(null);
   const [showBestPractices, setShowBestPractices] = useState(true);
+  
+  // Template management state
+  const [templates, setTemplates] = useState<TweetTemplate[]>([]);
+  const [loadingTemplates, setLoadingTemplates] = useState(false);
+  const [showTemplates, setShowTemplates] = useState(false);
+  const [templateFilter, setTemplateFilter] = useState('all');
+  const [templateSearch, setTemplateSearch] = useState('');
+  const [selectedCategory, setSelectedCategory] = useState('all');
+  const [selectedTone, setSelectedTone] = useState('all');
+  const [templateCategories, setTemplateCategories] = useState<string[]>([]);
+  const [templateTones, setTemplateTones] = useState<string[]>([]);
+  
   const [bestPractices, setBestPractices] = useState(`📝 VOICE PROJECT BEST PRACTICES
 
 🎯 INSTRUCTIONS SECTION:
@@ -33,6 +56,13 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
 • Keep samples 100-500 characters each
 • Update samples regularly to reflect your evolving voice
 
+📋 TEMPLATE LIBRARY:
+• 300 proven tweet templates automatically available
+• Categorized by tone, structure, and purpose
+• Enable/disable templates based on your preferences
+• Templates enhance your voice without replacing it
+• AI automatically selects best template for each topic
+
 🔧 ACTIVATION TIPS:
 • Always check "Use this voice project" when ready
 • Test with simple prompts first
@@ -48,6 +78,13 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
   useEffect(() => {
     loadVoiceProject();
   }, []);
+
+  // Load templates when voice project is loaded
+  useEffect(() => {
+    if (voiceProject) {
+      loadTemplates();
+    }
+  }, [voiceProject]);
 
   const loadVoiceProject = async () => {
     setLoading(true);
@@ -75,6 +112,89 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
       setLoading(false);
     }
   };
+
+  const loadTemplates = async () => {
+    if (!voiceProject) return;
+    
+    setLoadingTemplates(true);
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) return;
+
+      const { data: templatesData, error } = await supabase
+        .from('tweet_templates')
+        .select('*')
+        .eq('voice_project_id', voiceProject.id)
+        .order('category', { ascending: true });
+
+      if (error) throw error;
+
+      setTemplates(templatesData || []);
+      
+      // Extract unique categories and tones
+      const categories = [...new Set(templatesData?.map(t => t.category) || [])].sort();
+      const tones = [...new Set(templatesData?.map(t => t.tone) || [])].sort();
+      
+      setTemplateCategories(categories);
+      setTemplateTones(tones);
+      
+    } catch (error) {
+      console.error('Failed to load templates:', error);
+      setMessage({ type: 'error', text: 'Failed to load templates' });
+    } finally {
+      setLoadingTemplates(false);
+    }
+  };
+
+  const toggleTemplate = async (templateId: string, currentActive: boolean) => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      
+      if (!session) {
+        setMessage({ type: 'error', text: 'You must be logged in to manage templates' });
+        return;
+      }
+
+      const { error } = await supabase
+        .from('tweet_templates')
+        .update({ is_active: !currentActive })
+        .eq('id', templateId);
+
+      if (error) throw error;
+
+      // Update local state
+      setTemplates(templates.map(t => 
+        t.id === templateId ? { ...t, is_active: !currentActive } : t
+      ));
+
+      setMessage({ 
+        type: 'success', 
+        text: `Template ${!currentActive ? 'enabled' : 'disabled'} successfully` 
+      });
+      setTimeout(() => setMessage(null), 3000);
+
+    } catch (error) {
+      console.error('Failed to toggle template:', error);
+      setMessage({ type: 'error', text: 'Failed to update template' });
+    }
+  };
+
+  // Filter templates based on current filters
+  const filteredTemplates = templates.filter(template => {
+    const matchesSearch = templateSearch === '' || 
+      template.template_content.toLowerCase().includes(templateSearch.toLowerCase()) ||
+      template.category.toLowerCase().includes(templateSearch.toLowerCase()) ||
+      template.tone.toLowerCase().includes(templateSearch.toLowerCase());
+      
+    const matchesCategory = selectedCategory === 'all' || template.category === selectedCategory;
+    const matchesTone = selectedTone === 'all' || template.tone === selectedTone;
+    const matchesFilter = templateFilter === 'all' || 
+      (templateFilter === 'active' && template.is_active) ||
+      (templateFilter === 'inactive' && !template.is_active);
+      
+    return matchesSearch && matchesCategory && matchesTone && matchesFilter;
+  });
 
   const saveVoiceProject = async () => {
     setSaving(true);
@@ -153,6 +273,9 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
     );
   }
 
+  const activeTemplateCount = templates.filter(t => t.is_active).length;
+  const totalTemplateCount = templates.length;
+
   return (
     <div className={`space-y-6 ${className}`}>
       <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -165,6 +288,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
           <ol className="list-decimal list-inside ml-2 space-y-1">
             <li>Add instructions on how AI should write like you</li>
             <li>Paste 2-3 examples of your writing style</li>
+            <li>Manage your template library (300 proven structures)</li>
             <li>Check the &quot;Use this voice project&quot; box</li>
             <li>Click &quot;Save Voice Project&quot;</li>
           </ol>
@@ -275,6 +399,142 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
         )}
       </div>
 
+      {/* Template Library Management */}
+      {voiceProject && (
+        <div className="bg-purple-50 border border-purple-200 rounded-lg p-4">
+          <div className="flex items-center justify-between mb-3">
+            <h3 className="font-bold text-purple-900 text-lg">📋 Template Library ({activeTemplateCount}/{totalTemplateCount} active)</h3>
+            <button
+              onClick={() => setShowTemplates(!showTemplates)}
+              className="bg-purple-600 text-white px-3 py-1 rounded-md hover:bg-purple-700 text-sm font-medium"
+            >
+              {showTemplates ? 'Hide' : 'Manage'} Templates
+            </button>
+          </div>
+          
+          <p className="text-purple-700 text-sm mb-3">
+            300 proven tweet templates categorized by tone, structure, and purpose. Enable/disable templates to customize your AI&apos;s selection.
+          </p>
+          
+          {showTemplates && (
+            <div className="space-y-4 bg-white rounded-lg p-4 border border-purple-300">
+              {loadingTemplates ? (
+                <div className="flex items-center justify-center p-4">
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-purple-600"></div>
+                  <span className="ml-2 text-purple-700">Loading templates...</span>
+                </div>
+              ) : (
+                <>
+                  {/* Template Filters */}
+                  <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Search</label>
+                      <input
+                        type="text"
+                        value={templateSearch}
+                        onChange={(e) => setTemplateSearch(e.target.value)}
+                        placeholder="Search templates..."
+                        className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Category</label>
+                      <select
+                        value={selectedCategory}
+                        onChange={(e) => setSelectedCategory(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                      >
+                        <option value="all">All Categories</option>
+                        {templateCategories.map(cat => (
+                          <option key={cat} value={cat}>{cat.replace('_', ' ')}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Tone</label>
+                      <select
+                        value={selectedTone}
+                        onChange={(e) => setSelectedTone(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                      >
+                        <option value="all">All Tones</option>
+                        {templateTones.map(tone => (
+                          <option key={tone} value={tone}>{tone}</option>
+                        ))}
+                      </select>
+                    </div>
+                    
+                    <div>
+                      <label className="block text-xs font-medium text-gray-700 mb-1">Status</label>
+                      <select
+                        value={templateFilter}
+                        onChange={(e) => setTemplateFilter(e.target.value)}
+                        className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
+                      >
+                        <option value="all">All Templates</option>
+                        <option value="active">Active Only</option>
+                        <option value="inactive">Inactive Only</option>
+                      </select>
+                    </div>
+                  </div>
+                  
+                  {/* Template List */}
+                  <div className="space-y-2 max-h-96 overflow-y-auto">
+                    <p className="text-sm text-gray-600 mb-2">
+                      Showing {filteredTemplates.length} templates
+                    </p>
+                    
+                    {filteredTemplates.map((template) => (
+                      <div key={template.id} className="border border-gray-200 rounded p-3 hover:bg-gray-50">
+                        <div className="flex items-start justify-between">
+                          <div className="flex-1 min-w-0 pr-3">
+                            <p className="text-sm text-gray-900 mb-1">{template.template_content}</p>
+                            <div className="flex items-center space-x-2 text-xs text-gray-500">
+                              <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                                {template.category.replace('_', ' ')}
+                              </span>
+                              <span className="bg-green-100 text-green-800 px-2 py-1 rounded">
+                                {template.tone}
+                              </span>
+                              <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                                {template.structure_type}
+                              </span>
+                              {template.usage_count > 0 && (
+                                <span className="bg-gray-100 text-gray-800 px-2 py-1 rounded">
+                                  Used {template.usage_count} times
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => toggleTemplate(template.id, template.is_active)}
+                            className={`px-3 py-1 rounded text-xs font-medium ${
+                              template.is_active 
+                                ? 'bg-green-100 text-green-800 hover:bg-green-200' 
+                                : 'bg-gray-100 text-gray-800 hover:bg-gray-200'
+                            }`}
+                          >
+                            {template.is_active ? '✓ Active' : '○ Inactive'}
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                    
+                    {filteredTemplates.length === 0 && (
+                      <p className="text-center text-gray-500 py-4">
+                        No templates match your current filters.
+                      </p>
+                    )}
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* Activation Toggle */}
       <div className="bg-gray-50 border border-gray-200 rounded-lg p-4">
         <div className="flex items-center gap-3">
@@ -290,7 +550,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
           </label>
         </div>
         <p className="text-xs text-gray-500 mt-2 ml-6">
-          When active, AI will automatically reference your instructions and writing samples for every tweet.
+          When active, AI will automatically reference your instructions, writing samples, and enabled templates for every tweet.
         </p>
       </div>
 
@@ -330,6 +590,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
             <p><strong className="text-gray-900">Status:</strong> {isActive ? '🟢 Active - AI will use this voice project' : '🔴 Inactive - Click the checkbox above to activate'}</p>
             <p><strong className="text-gray-900">Instructions:</strong> {instructions.length > 0 ? `${instructions.length} characters` : 'None'}</p>
             <p><strong className="text-gray-900">Writing Samples:</strong> {writingSamples.filter(s => s.trim()).length} samples</p>
+            <p><strong className="text-gray-900">Template Library:</strong> {activeTemplateCount} of {totalTemplateCount} templates active</p>
             <p><strong className="text-gray-900">Last Updated:</strong> {new Date(voiceProject.updated_at).toLocaleDateString()}</p>
           </div>
           

@@ -1,15 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import type { User } from '@supabase/supabase-js'
-import { 
-  analyzeContent, 
-  getAccurateCharacterCount,
-  type ContentAnalysis,
-  type ContentFormatOptions
-} from '@/lib/content-management'
-import type { DebugInfo } from '@/types/index'
 
 interface AdvancedTweetComposerProps {
   user: User
@@ -18,70 +11,97 @@ interface AdvancedTweetComposerProps {
   onSuccess: (message: string) => void
 }
 
+interface TweetTemplate {
+  id: string;
+  content: string;
+  category: string;
+  tone: string;
+  structure_type: string;
+  reasoning: string;
+  used: boolean;
+}
+
+interface GenerationResponse {
+  content: string;
+  model: string;
+  provider: string;
+  usage?: {
+    promptTokens: number;
+    completionTokens: number;
+    totalTokens: number;
+  };
+  template: TweetTemplate | { used: false; reason: string };
+  error?: string;
+}
+
 export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onSuccess }: AdvancedTweetComposerProps) {
+  const [prompt, setPrompt] = useState('')
   const [tweetContent, setTweetContent] = useState('')
+  const [selectedProvider, setSelectedProvider] = useState<'openai' | 'claude' | 'grok' | 'auto'>('auto')
+  const [contentType, setContentType] = useState<'single' | 'long-form' | 'auto'>('auto')
   const [isGenerating, setIsGenerating] = useState(false)
   const [isSaving, setIsSaving] = useState(false)
-  const [contentAnalysis, setContentAnalysis] = useState<ContentAnalysis | null>(null)
-  const [formatOptions] = useState<ContentFormatOptions>({
-    maxCharactersPerTweet: 280,
-    longFormEnabled: true
-  })
-  const [showGenerationProcess, setShowGenerationProcess] = useState(false)
-  const [debugInfo, setDebugInfo] = useState<DebugInfo | null>(null)
-  const [selectedProvider, setSelectedProvider] = useState<'openai' | 'claude' | 'grok' | 'auto'>('auto')
+  const [showDebug, setShowDebug] = useState(false)
+  const [lastGenerationInfo, setLastGenerationInfo] = useState<GenerationResponse | null>(null)
+  const [templateInfo, setTemplateInfo] = useState<TweetTemplate | null>(null)
 
-  // Analyze content whenever it changes
-  useEffect(() => {
-    if (tweetContent.trim()) {
-      try {
-        const analysis = analyzeContent(tweetContent, formatOptions)
-        setContentAnalysis(analysis)
-      } catch {
-        // Content too long for both single and long-form
-        setContentAnalysis(null)
-      }
-    } else {
-      setContentAnalysis(null)
-    }
-  }, [tweetContent, formatOptions])
+  const characterCount = {
+    displayCount: tweetContent.length,
+    isThread: tweetContent.length > 280,
+    threadParts: tweetContent.length > 280 ? Math.ceil(tweetContent.length / 280) : 1
+  }
 
-  const characterCount = getAccurateCharacterCount(tweetContent)
-  const isOverLimit = characterCount.displayCount > 4000 // Content too long
+  const isOverLimit = tweetContent.length > 4000
 
   const generateTweet = async () => {
-    if (!user) return
-    
+    if (!prompt.trim()) {
+      onError('Please enter a topic or prompt')
+      return
+    }
+
     setIsGenerating(true)
     onError('')
-    
+    onSuccess('')
+    setTemplateInfo(null)
+
     try {
       const { data: { session } } = await supabase.auth.getSession()
-      
+
       const response = await fetch('/api/generate-tweet', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          ...(session && { 'Authorization': `Bearer ${session.access_token}` }),
+          ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` }),
         },
         body: JSON.stringify({
-          prompt: tweetContent || 'Write a motivational tweet about entrepreneurship and building startups',
-          contentType: 'auto',
-          maxLength: 4000,
-          showDebug: showGenerationProcess,
-          aiProvider: selectedProvider
+          prompt: prompt.trim(),
+          aiProvider: selectedProvider,
+          contentType,
+          showDebug
         }),
       })
 
+      const data: GenerationResponse = await response.json()
+
       if (!response.ok) {
-        throw new Error('Failed to generate tweet')
+        throw new Error(data.error || 'Failed to generate tweet')
       }
 
-      const data = await response.json()
-      setTweetContent(data.tweet)
-      setDebugInfo(data.debug)
+      setTweetContent(data.content)
+      setLastGenerationInfo(data)
+      
+      // Set template information if a template was used
+      if (data.template && 'used' in data.template && data.template.used) {
+        setTemplateInfo(data.template as TweetTemplate)
+      } else {
+        setTemplateInfo(null)
+      }
+
+      onSuccess('Tweet generated successfully! ✨')
+      setTimeout(() => onSuccess(''), 3000)
+
     } catch (error) {
-      onError('Failed to generate tweet. Please try again.')
+      onError(error instanceof Error ? error.message : 'Failed to generate tweet. Please try again.')
       console.error('Error generating tweet:', error)
     } finally {
       setIsGenerating(false)
@@ -89,34 +109,34 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   }
 
   const saveDraft = async () => {
-    if (!user || !tweetContent.trim()) {
-      onError('Please enter some content before saving')
+    if (!tweetContent.trim()) {
+      onError('No content to save as draft')
       return
     }
 
     setIsSaving(true)
     onError('')
+    onSuccess('')
 
     try {
+      const { data: { session } } = await supabase.auth.getSession()
+
       const { error } = await supabase
         .from('tweets')
-        .insert([
-          {
-            user_id: user.id,
-            tweet_content: tweetContent.trim(),
-            status: 'draft'
-          }
-        ])
+        .insert({
+          user_id: user.id,
+          tweet_content: tweetContent.trim(),
+          status: 'draft'
+        })
 
       if (error) throw error
 
-      onSuccess('Draft saved successfully!')
-      setTweetContent('')
       onTweetAdded()
-      
+      onSuccess('Draft saved successfully! 💾')
       setTimeout(() => onSuccess(''), 3000)
+
     } catch (error) {
-      onError('Failed to save draft. Please try again.')
+      onError('Failed to save draft')
       console.error('Error saving draft:', error)
     } finally {
       setIsSaving(false)
@@ -124,115 +144,50 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   }
 
   const addToQueue = async () => {
-    if (!user || !tweetContent.trim()) {
-      onError('Please enter some content before adding to queue')
+    if (!tweetContent.trim()) {
+      onError('No content to add to queue')
       return
     }
 
     if (isOverLimit) {
-      onError('Content is too long (max 4000 characters)')
+      onError('Tweet is too long for the queue (max 4000 characters)')
       return
     }
 
     setIsSaving(true)
     onError('')
+    onSuccess('')
 
     try {
       const { data: { session } } = await supabase.auth.getSession()
       
-      if (!session) {
-        onError('You must be logged in to add tweets to the queue')
-        return
-      }
-
-      // Use the automatic content type from analysis
-      const finalContentType = contentAnalysis?.contentType || 'single'
-
       const response = await fetch('/api/queue-tweet', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${session.access_token}`
+          ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` }),
         },
-        body: JSON.stringify({ 
-          content: tweetContent.trim(),
-          contentType: finalContentType
-        })
+        body: JSON.stringify({
+          content: tweetContent.trim()
+        }),
       })
 
-      const result = await response.json()
+      const data = await response.json()
 
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to add tweet to queue')
+        throw new Error(data.error || 'Failed to add tweet to queue')
       }
 
-      if (result.autoScheduled) {
-        onSuccess(`✅ ${result.message}`)
-      } else if (result.warning) {
-        onSuccess(`⚠️ ${result.warning}`)
-      } else {
-        const queueDate = new Date(result.queueSlot.date + 'T00:00:00').toLocaleDateString('en-US', {
-          weekday: 'short',
-          month: 'short',
-          day: 'numeric'
-        })
-        onSuccess(`${finalContentType === 'long-form' ? 'Long-form tweet' : 'Tweet'} added to queue for ${queueDate}`)
-      }
-      
-      setTweetContent('')
       onTweetAdded()
-      
-      setTimeout(() => onSuccess(''), 3000)
+      onSuccess(`Tweet added to queue! Will post on ${data.queueSlot.date} 📅`)
+      setTimeout(() => onSuccess(''), 5000)
+
     } catch (error) {
-      onError('Failed to add tweet to queue. Please try again.')
-      console.error('Error adding tweet to queue:', error)
+      onError(error instanceof Error ? error.message : 'Failed to add tweet to queue')
+      console.error('Error adding to queue:', error)
     } finally {
       setIsSaving(false)
     }
-  }
-
-  const renderContentAnalysis = () => {
-    if (!contentAnalysis) return null
-
-    const getIcon = () => {
-      switch (contentAnalysis.contentType) {
-        case 'long-form':
-          return '📄'
-        default:
-          return '💬'
-      }
-    }
-
-    const getDescription = () => {
-      switch (contentAnalysis.contentType) {
-        case 'long-form':
-          return 'Long-form tweet'
-        default:
-          return 'Single tweet'
-      }
-    }
-
-    return (
-      <div className="mt-3 p-3 bg-gray-50 rounded-lg">
-        <div className="flex items-center justify-between mb-2">
-          <div className="flex items-center">
-            <span className="text-lg mr-2">{getIcon()}</span>
-            <span className="font-medium text-gray-700">
-              {getDescription()}
-            </span>
-          </div>
-          <span className="text-sm text-gray-500">
-            {contentAnalysis.characterCount} chars
-          </span>
-        </div>
-        
-        {contentAnalysis.contentType === 'long-form' && (
-          <div className="text-sm text-gray-600">
-            <p>Read time: ~{contentAnalysis.estimatedReadTime} min</p>
-          </div>
-        )}
-      </div>
-    )
   }
 
   return (
@@ -273,102 +228,122 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         </div>
 
         {/* Generation Transparency Toggle */}
-        <div className="flex items-center gap-3 mb-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+        <div className="flex items-center space-x-2">
           <input
             type="checkbox"
-            id="show-generation"
-            checked={showGenerationProcess}
-            onChange={(e) => setShowGenerationProcess(e.target.checked)}
-            className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            id="show-debug"
+            checked={showDebug}
+            onChange={(e) => setShowDebug(e.target.checked)}
+            className="rounded border-gray-300 text-purple-600 focus:ring-purple-500"
           />
-          <label htmlFor="show-generation" className="text-sm font-medium text-blue-700">
-            🔍 Show Generation Process (Full Transparency)
+          <label htmlFor="show-debug" className="text-sm text-gray-700">
+            Show generation process details
           </label>
         </div>
 
-        {/* Content Input */}
+        {/* Content Type Selection */}
+        <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+          <label className="block text-sm font-medium text-blue-700 mb-2">
+            📝 Content Format
+          </label>
+          <select
+            value={contentType}
+            onChange={(e) => setContentType(e.target.value as 'single' | 'long-form' | 'auto')}
+            className="w-full p-2 border border-blue-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-white"
+          >
+            <option value="auto">🎯 Auto (AI Decides)</option>
+            <option value="single">🐦 Single Tweet (≤280 chars)</option>
+            <option value="long-form">📄 Long-form Tweet (281-4000 chars)</option>
+          </select>
+        </div>
+
+        {/* Template Information Display */}
+        {templateInfo && (
+          <div className="p-3 bg-green-50 border border-green-200 rounded-lg">
+            <h3 className="text-sm font-medium text-green-800 mb-2">📋 Template Used</h3>
+            <div className="space-y-2">
+              <p className="text-sm text-green-700">
+                <strong>Structure:</strong> {templateInfo.structure_type}
+              </p>
+              <p className="text-sm text-green-700">
+                <strong>Category:</strong> {templateInfo.category.replace('_', ' ')}
+              </p>
+              <p className="text-sm text-green-700">
+                <strong>Tone:</strong> {templateInfo.tone}
+              </p>
+              <p className="text-sm text-green-700">
+                <strong>Why selected:</strong> {templateInfo.reasoning}
+              </p>
+              <details className="mt-2">
+                <summary className="text-xs text-green-600 cursor-pointer hover:text-green-800">
+                  View original template structure
+                </summary>
+                <p className="text-xs text-green-600 mt-1 italic bg-green-100 p-2 rounded">
+                  &quot;{templateInfo.content}&quot;
+                </p>
+              </details>
+            </div>
+          </div>
+        )}
+
+        {/* No Template Information */}
+        {lastGenerationInfo && lastGenerationInfo.template && !('used' in lastGenerationInfo.template && lastGenerationInfo.template.used) && (
+          <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <h3 className="text-sm font-medium text-yellow-800 mb-1">📋 Template Status</h3>
+            <p className="text-sm text-yellow-700">
+              No template used: {(lastGenerationInfo.template as { reason: string }).reason}
+            </p>
+          </div>
+        )}
+
+        {/* Topic Input */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            💡 Tweet Topic or Prompt
+          </label>
+          <textarea
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            placeholder="What would you like to tweet about? (e.g., 'Share a tip about remote work productivity')"
+            className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none bg-white text-gray-900 placeholder-gray-500 h-20"
+            disabled={isGenerating || isSaving}
+          />
+        </div>
+
+        {/* Generated Content Area */}
         <div>
           <div className="flex justify-between items-center mb-2">
-            <label htmlFor="content" className="block text-sm font-medium text-gray-700">
-              Content
+            <label className="block text-sm font-medium text-gray-700">
+              Generated Tweet Content
             </label>
-            <div className="flex items-center space-x-2 text-xs">
-              <span className={`${isOverLimit ? 'text-red-500' : 'text-gray-500'}`}>
-                {characterCount.displayCount} / 4000
-              </span>
-              {isOverLimit && (
-                <span className="text-red-500 font-medium">Too long!</span>
+            <div className="text-sm text-gray-500">
+              {characterCount.displayCount > 0 && (
+                <>
+                  {characterCount.displayCount}/4000
+                  {characterCount.isThread && (
+                    <span className="ml-2 text-blue-600">
+                      ({characterCount.threadParts} parts)
+                    </span>
+                  )}
+                  {isOverLimit && (
+                    <span className="ml-2 text-red-600 font-medium">Too long!</span>
+                  )}
+                </>
               )}
             </div>
           </div>
           <textarea
-            id="content"
-            rows={6}
-            className="w-full p-4 border-2 border-gray-400 rounded-lg focus:ring-3 focus:ring-blue-500 focus:border-blue-500 resize-none bg-white text-gray-900 text-base font-medium leading-relaxed shadow-sm hover:border-gray-500 transition-colors"
-            placeholder="Write your tweet content here... It will automatically be formatted based on length."
             value={tweetContent}
             onChange={(e) => setTweetContent(e.target.value)}
+            placeholder="Generated tweet will appear here..."
+            className={`w-full p-4 border-2 rounded-lg focus:ring-2 focus:ring-purple-500 resize-none bg-white text-gray-900 placeholder-gray-500 h-32 ${
+              isOverLimit 
+                ? 'border-red-300 focus:border-red-500' 
+                : 'border-gray-300 focus:border-purple-500'
+            }`}
+            disabled={isGenerating || isSaving}
           />
-          {renderContentAnalysis()}
         </div>
-
-        {/* Debug Information Display */}
-        {showGenerationProcess && debugInfo && (
-          <div className="bg-white border-2 border-gray-400 p-4 rounded-lg mt-4 shadow-md">
-            <h3 className="font-semibold mb-3 text-black">🔍 Generation Process Transparency</h3>
-            
-            {debugInfo.aiProvider && (
-              <div className="mb-3 p-3 bg-purple-100 rounded border-2 border-purple-400">
-                <h4 className="font-medium text-purple-900 mb-2">🤖 AI Provider Used</h4>
-                <p className="text-sm text-purple-900 font-semibold">
-                  <strong>Provider:</strong> {debugInfo.aiProvider.provider}
-                </p>
-                <p className="text-sm text-purple-900 font-semibold">
-                  <strong>Model:</strong> {debugInfo.aiProvider.model}
-                </p>
-                <p className="text-sm text-purple-900 font-semibold">
-                  <strong>Response Time:</strong> {debugInfo.aiProvider.responseTime}ms
-                </p>
-              </div>
-            )}
-            
-            {debugInfo.voiceProject && (
-              <div className="mb-3 p-3 bg-blue-100 rounded border-2 border-blue-400">
-                <h4 className="font-medium text-blue-900 mb-2">🎭 Voice Project Used</h4>
-                <p className="text-sm text-blue-900 font-semibold">
-                  <strong>Instructions:</strong> {debugInfo.voiceProject.hasInstructions ? 'Yes' : 'No'}
-                </p>
-                <p className="text-sm text-blue-900 font-semibold">
-                  <strong>Writing Samples:</strong> {debugInfo.voiceProject.sampleCount}
-                </p>
-                <p className="text-sm text-blue-900 font-semibold">
-                  <strong>Status:</strong> {debugInfo.voiceProject.isActive ? 'Active' : 'Inactive'}
-                </p>
-              </div>
-            )}
-            
-            {debugInfo.legacyPersonality && (
-              <div className="mb-3 p-3 bg-yellow-100 rounded border-2 border-yellow-400">
-                <h4 className="font-medium text-yellow-900 mb-2">🧠 Legacy Personality System</h4>
-                <p className="text-sm text-yellow-900 font-semibold">
-                  <strong>Writing Samples Used:</strong> {debugInfo.legacyPersonality.samplesUsed}
-                </p>
-                <p className="text-sm text-yellow-900 font-semibold">
-                  <strong>Has Samples:</strong> {debugInfo.legacyPersonality.hasWritingSamples ? 'Yes' : 'No'}
-                </p>
-              </div>
-            )}
-            
-            <details className="mt-3">
-              <summary className="cursor-pointer font-medium text-gray-900 hover:text-gray-700 bg-gray-100 p-2 rounded">
-                📋 Full AI Prompt (Click to expand)
-              </summary>
-              <pre className="mt-2 p-4 bg-gray-50 rounded text-base overflow-auto max-h-64 border-2 border-gray-400 text-black font-mono leading-relaxed shadow-inner">
-                {debugInfo.fullPrompt}
-              </pre>
-            </details>
-          </div>
-        )}
 
         {/* Action Buttons */}
         <div className="flex space-x-3">
