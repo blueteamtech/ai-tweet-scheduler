@@ -38,13 +38,14 @@ async function loadVoiceProject(userId: string) {
   }
 }
 
-// Load active templates for voice project with template cycling logic
-async function loadActiveTemplates(voiceProjectId: string): Promise<TweetTemplate[]> {
+// Load active templates with template cycling logic (prioritize global templates)
+async function loadActiveTemplates(): Promise<TweetTemplate[]> {
   try {
+    // Load global templates (voice_project_id is NULL) - these are shared across all users
     const { data: templates } = await supabase
       .from('tweet_templates')
       .select('*')
-      .eq('voice_project_id', voiceProjectId)
+      .is('voice_project_id', null)
       .eq('is_active', true)
       .order('usage_count', { ascending: true }); // Prefer less-used templates for variety
     
@@ -228,8 +229,8 @@ export async function POST(request: NextRequest) {
     if (voiceProject) {
       // Load active templates for smart selection (except in freeform mode)
       if (generationMode !== 'freeform') {
-        activeTemplates = await loadActiveTemplates(voiceProject.id);
-        console.log(`📋 Loaded ${activeTemplates.length} active templates for voice project`);
+        activeTemplates = await loadActiveTemplates();
+        console.log(`📋 Loaded ${activeTemplates.length} global templates for template mode`);
 
         // Smart template selection with generation mode awareness
         if (activeTemplates.length > 0) {
