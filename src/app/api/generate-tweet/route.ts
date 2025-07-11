@@ -252,17 +252,33 @@ ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
       // Template context varies by generation mode
       if (selectedTemplate) {
         if (generationMode === 'template') {
-          // Template Mode: Strict adherence
-          templateContext = `STRICT TEMPLATE STRUCTURE - FOLLOW EXACTLY:
+          // Template Mode: Preserve exact viral essence with substance substitution
+          const templateWordCount = selectedTemplate.template_content.split(/\s+/).length;
+          templateContext = `🧬 VIRAL TEMPLATE DNA - PRESERVE EXACTLY:
 "${selectedTemplate.template_content}"
 
-TEMPLATE REQUIREMENTS:
+📊 TEMPLATE ANALYSIS:
+- Word Count: ${templateWordCount} words (MUST MATCH EXACTLY)
 - Category: ${selectedTemplate.category.replace('_', ' ')}
 - Tone: ${selectedTemplate.tone}
 - Structure: ${selectedTemplate.structure_type}
-- CRITICAL: Follow the template structure precisely while adapting the content to the topic
-- MAINTAIN: Sentence count, flow, and structural patterns from the template
-- ADAPT: Only the subject matter and specific details to match the prompt`;
+
+🎯 TEMPLATE MODE RULES:
+1. WORD COUNT: Output must be EXACTLY ${templateWordCount} words (same as template)
+2. SENTENCE STRUCTURE: Preserve exact sentence count and flow patterns
+3. COPYWRITING FLOW: Keep the viral essence - the structural patterns that make this template effective
+4. PUNCTUATION PATTERNS: Maintain the rhythm and emphasis of original template
+5. SUBSTANCE ONLY: Change ONLY the topic/subject matter to match the user prompt
+6. WRITING VOICE: Use the writing samples to understand how the user expresses ideas about this substance
+
+🔄 SUBSTANCE SUBSTITUTION PROCESS:
+- KEEP: All structural elements, flow, rhythm, emphasis patterns
+- REPLACE: Topic-specific words and concepts with user's prompt topic
+- VOICE: Express the new substance using patterns from the user's writing samples
+- VERIFY: Final output has exactly ${templateWordCount} words
+
+⚡ VIRAL ESSENCE PRESERVATION:
+The template's power comes from its copywriting structure. Your job is to be a content translator - keeping the viral framework while changing only the substance to match the user's topic and voice.`;
         } else {
           // Hybrid Mode: Template-inspired with voice flexibility
           templateContext = `TEMPLATE INSPIRATION (FLEXIBLE):

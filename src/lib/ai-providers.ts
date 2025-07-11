@@ -191,6 +191,23 @@ class OpenAIProvider {
   }
 
   private buildSystemPrompt(request: AIGenerationRequest): string {
+    // TEMPLATE MODE: When template contains viral DNA instructions, prioritize template
+    if (request.templateContext && request.templateContext.includes('VIRAL TEMPLATE DNA')) {
+      return `${request.templateContext}
+
+VOICE PROJECT CONTEXT:
+${request.personalityContext || 'Use natural, engaging writing style'}
+
+PRIMARY TASK: You are a content translator specializing in preserving viral copywriting structures while adapting substance. Your expertise is in maintaining the exact word count and structural DNA of proven templates while expressing new topics in the user's authentic voice.
+
+CRITICAL SUCCESS CRITERIA:
+- Exact word count match (verify before responding)
+- Preserved sentence structure and flow
+- Viral copywriting patterns maintained
+- Only substance/topic changed
+- User's voice reflected in word choice and expression`
+    }
+
     // If personalityContext contains Voice Project instructions, use ONLY that
     if (request.personalityContext && !request.personalityContext.includes('writing style examples')) {
       return request.personalityContext
@@ -302,6 +319,25 @@ class ClaudeProvider {
   }
 
   private buildSystemPrompt(request: AIGenerationRequest): string {
+    // TEMPLATE MODE: When template contains viral DNA instructions, prioritize template
+    if (request.templateContext && request.templateContext.includes('VIRAL TEMPLATE DNA')) {
+      return `${request.templateContext}
+
+VOICE PROJECT CONTEXT:
+${request.personalityContext || 'Use natural, engaging writing style'}
+
+PRIMARY TASK: You are Claude, a content translator specializing in preserving viral copywriting structures while adapting substance. Your expertise is in maintaining the exact word count and structural DNA of proven templates while expressing new topics in the user's authentic voice.
+
+CRITICAL SUCCESS CRITERIA:
+- Exact word count match (verify before responding)
+- Preserved sentence structure and flow
+- Viral copywriting patterns maintained
+- Only substance/topic changed
+- User's voice reflected in word choice and expression
+
+APPROACH: Analyze the template structure word-by-word, then replace only the topic-specific elements while keeping the viral framework intact.`
+    }
+
     // If personalityContext contains Voice Project instructions, use ONLY that
     if (request.personalityContext && !request.personalityContext.includes('writing style examples')) {
       return request.personalityContext
@@ -411,6 +447,25 @@ class GrokProvider {
   }
 
   private buildSystemPrompt(request: AIGenerationRequest): string {
+    // TEMPLATE MODE: When template contains viral DNA instructions, prioritize template
+    if (request.templateContext && request.templateContext.includes('VIRAL TEMPLATE DNA')) {
+      return `${request.templateContext}
+
+VOICE PROJECT CONTEXT:
+${request.personalityContext || 'Use natural, engaging writing style'}
+
+PRIMARY TASK: You are Grok, a content translator specializing in preserving viral copywriting structures while adapting substance. Your expertise is in maintaining the exact word count and structural DNA of proven templates while expressing new topics in the user's authentic voice.
+
+CRITICAL SUCCESS CRITERIA:
+- Exact word count match (verify before responding)
+- Preserved sentence structure and flow
+- Viral copywriting patterns maintained
+- Only substance/topic changed
+- User's voice reflected in word choice and expression
+
+GROK APPROACH: Be precise and clever about this structural preservation - treat it like a linguistic puzzle where you keep the viral framework but swap in the new substance with the user's authentic voice.`
+    }
+
     // If personalityContext contains Voice Project instructions, use ONLY that
     if (request.personalityContext && !request.personalityContext.includes('writing style examples')) {
       return request.personalityContext
