@@ -291,8 +291,11 @@ export interface VoiceProjectResponse {
 
 export interface VoiceProjectDebugInfo {
   hasInstructions: boolean
+  hasOriginalInstructions: boolean
+  usingDefaultInstructions: boolean
   sampleCount: number
   instructions: string
+  originalInstructions: string
   isActive: boolean
 }
 

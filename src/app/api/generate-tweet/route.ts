@@ -338,7 +338,20 @@ export async function POST(request: NextRequest) {
       }
 
       // Build voice context based on generation mode
-      personalityContext = `${voiceProject.instructions}
+      // If user has writing samples but no instructions, provide smart defaults
+      let instructions = voiceProject.instructions;
+      if ((!instructions || instructions.trim() === '') && voiceProject.writing_samples && voiceProject.writing_samples.length > 0) {
+        instructions = `ANALYZE my writing samples below and write tweets that match my authentic voice, style, and tone. Focus on:
+- Writing style: Match my sentence structure, flow, and natural patterns
+- Tone: Replicate how I naturally express ideas and emotions
+- Topics: Write about subjects that align with my expertise and interests
+- Voice: Use my unique way of explaining concepts and engaging with ideas
+- Authenticity: Make it sound like something I would actually write
+
+Study the patterns in my writing samples and use them as the foundation for generating tweets that sound genuinely like me.`;
+      }
+
+      personalityContext = `${instructions}
 
 WRITING SAMPLES:
 ${voiceProject.writing_samples.join('\n\n---\n\n')}`;
@@ -391,8 +404,11 @@ HYBRID GUIDANCE:
       
       debugInfo.voiceProject = {
         hasInstructions: !!voiceProject.instructions,
+        hasOriginalInstructions: !!voiceProject.instructions && voiceProject.instructions.trim() !== '',
+        usingDefaultInstructions: (!voiceProject.instructions || voiceProject.instructions.trim() === '') && voiceProject.writing_samples && voiceProject.writing_samples.length > 0,
         sampleCount: voiceProject.writing_samples.length,
-        instructions: voiceProject.instructions,
+        instructions: instructions, // Use the processed instructions (original or default)
+        originalInstructions: voiceProject.instructions,
         isActive: voiceProject.is_active
       };
       
