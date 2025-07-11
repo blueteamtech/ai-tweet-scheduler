@@ -133,7 +133,9 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   }
 
   const saveDraft = async () => {
-    if (!generatedTweet.trim()) {
+    const contentToSave = generatedTweet.trim() || prompt.trim()
+    
+    if (!contentToSave) {
       onError('No content to save as draft')
       return
     }
@@ -147,7 +149,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         .from('tweets')
         .insert({
           user_id: user.id,
-          tweet_content: generatedTweet.trim(),
+          tweet_content: contentToSave,
           status: 'draft'
         })
 
@@ -166,12 +168,14 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   }
 
   const addToQueue = async () => {
-    if (!generatedTweet.trim()) {
+    const contentToQueue = generatedTweet.trim() || prompt.trim()
+    
+    if (!contentToQueue) {
       onError('No content to add to queue')
       return
     }
 
-    if (generatedTweet.length > 4000) {
+    if (contentToQueue.length > 4000) {
       onError('Tweet is too long for the queue (max 4000 characters)')
       return
     }
@@ -190,7 +194,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
           ...(session?.access_token && { 'Authorization': `Bearer ${session.access_token}` }),
         },
         body: JSON.stringify({
-          content: generatedTweet.trim()
+          content: contentToQueue
         }),
       })
 
@@ -216,36 +220,40 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
     <div className="bg-white rounded-lg border border-gray-200 p-6">
       <div className="mb-4">
         <h2 className="text-xl font-semibold text-gray-900 mb-2">
-          📋 Template-Based Tweet Generator
+          📝 Tweet Composer
         </h2>
         <p className="text-gray-600 text-sm">
-          AI selects the best template from your library and matches your writing style
+          Write tweets manually or generate AI content using templates that match your style
         </p>
       </div>
 
       <div className="space-y-4">
-        {/* Topic Input */}
+        {/* Content Input */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            💡 Tweet Topic or Prompt
+            💡 Tweet Content or Topic
           </label>
           <textarea
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="What would you like to tweet about? (e.g., 'Share a tip about remote work productivity')"
-            className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none bg-white text-gray-900 placeholder-gray-500 h-24"
+            placeholder="Enter your tweet content directly, or describe what you'd like to tweet about for AI generation..."
+            className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none bg-white text-gray-900 placeholder-gray-500 h-32"
             disabled={isGenerating || isSaving}
           />
+          <div className="text-xs text-gray-500 mt-1">
+            {prompt.length}/4000 characters
+            {prompt.length > 280 && (
+              <span className="ml-2 text-blue-600">
+                (Long-form tweet)
+              </span>
+            )}
+            {prompt.length > 4000 && (
+              <span className="ml-2 text-red-600 font-medium">Too long!</span>
+            )}
+          </div>
         </div>
 
-        {/* Generate Button */}
-        <button
-          onClick={generateTweet}
-          disabled={isGenerating || isSaving || !prompt.trim()}
-          className="w-full bg-purple-600 text-white px-6 py-3 rounded-lg hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-        >
-          {isGenerating ? '🤖 Generating Template-Based Tweet...' : '🤖 Generate Tweet'}
-        </button>
+
 
         {/* Generated Tweet Display */}
         {generatedTweet && (
@@ -319,25 +327,31 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         )}
 
         {/* Action Buttons */}
-        {generatedTweet && (
-          <div className="flex space-x-3">
-            <button
-              onClick={saveDraft}
-              disabled={isSaving || isGenerating}
-              className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? '💾 Saving...' : '💾 Save Draft'}
-            </button>
-            
-            <button
-              onClick={addToQueue}
-              disabled={isSaving || isGenerating || generatedTweet.length > 4000}
-              className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSaving ? '📅 Adding...' : '📅 Add to Queue'}
-            </button>
-          </div>
-        )}
+        <div className="flex space-x-3">
+          <button
+            onClick={generateTweet}
+            disabled={isGenerating || isSaving || !prompt.trim()}
+            className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isGenerating ? '🤖 Generating...' : '🤖 Generate AI Tweet'}
+          </button>
+          
+          <button
+            onClick={saveDraft}
+            disabled={isSaving || isGenerating || !prompt.trim()}
+            className="flex-1 bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? '💾 Saving...' : '💾 Save Draft'}
+          </button>
+          
+          <button
+            onClick={addToQueue}
+            disabled={isSaving || isGenerating || !prompt.trim() || prompt.length > 4000}
+            className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {isSaving ? '📅 Adding...' : '📅 Add to Queue'}
+          </button>
+        </div>
       </div>
     </div>
   )
