@@ -157,8 +157,6 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
     onSuccess('')
 
     try {
-      const { data: { session } } = await supabase.auth.getSession()
-
       const { error } = await supabase
         .from('tweets')
         .insert({

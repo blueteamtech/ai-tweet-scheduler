@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { VoiceProject, VoiceProjectRequest } from '@/types/index';
 import { supabase } from '@/lib/supabase';
 
@@ -133,7 +133,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
     }
   };
 
-  const loadTemplates = async () => {
+  const loadTemplates = useCallback(async () => {
     if (!voiceProject) return;
     
     setLoadingTemplates(true);
@@ -165,7 +165,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
     } finally {
       setLoadingTemplates(false);
     }
-  };
+  }, [voiceProject]);
 
   const loadAnalytics = async () => {
     if (!voiceProject || !templates.length) return;
@@ -779,7 +779,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
                       <label className="block text-xs font-medium text-gray-700 mb-1">Sort By</label>
                       <select
                         value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as any)}
+                        onChange={(e) => setSortBy(e.target.value as 'effectiveness' | 'usage' | 'recent' | 'rating')}
                         className="w-full p-2 border border-gray-300 rounded text-sm focus:ring-1 focus:ring-purple-500 focus:border-purple-500"
                       >
                         <option value="effectiveness">Effectiveness</option>
