@@ -22,7 +22,7 @@ interface TweetTemplate {
 }
 
 // Quality assurance function for tweet content
-function cleanTweetContent(content: string): string {
+function cleanTweetContent(content: string, isLudicrousMode: boolean = false): string {
   if (!content) return content;
   
   let cleaned = content.trim();
@@ -33,17 +33,56 @@ function cleanTweetContent(content: string): string {
     cleaned = cleaned.slice(1, -1).trim();
   }
   
-  // Fix listicle formatting - convert numbered lists to proper line breaks
-  cleaned = cleaned.replace(/(\d+\.\s*)/g, '\n$1');
-  
-  // Clean up multiple consecutive line breaks
-  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
-  
-  // Remove leading line break if present
-  cleaned = cleaned.replace(/^\n+/, '');
-  
-  // Ensure proper spacing after periods in lists
-  cleaned = cleaned.replace(/(\d+\.\s*)([A-Z])/g, '$1 $2');
+  // For ludicrous mode, apply stricter cleaning
+  if (isLudicrousMode) {
+    // Remove all emojis (including various Unicode ranges)
+    cleaned = cleaned.replace(/[\u{1F600}-\u{1F64F}]|[\u{1F300}-\u{1F5FF}]|[\u{1F680}-\u{1F6FF}]|[\u{1F1E0}-\u{1F1FF}]|[\u{2600}-\u{26FF}]|[\u{2700}-\u{27BF}]/gu, '');
+    
+    // Remove hashtags
+    cleaned = cleaned.replace(/#\w+/g, '');
+    
+    // Remove @mentions if they appear
+    cleaned = cleaned.replace(/@\w+/g, '');
+    
+    // Clean up extra spaces left by emoji/hashtag removal
+    cleaned = cleaned.replace(/\s+/g, ' ').trim();
+    
+    // If content is too short, reject it
+    if (cleaned.length < 500) {
+      throw new Error('Ludicrous mode content must be at least 500 characters. Generated content was too short.');
+    }
+    
+    // If content is too long, truncate intelligently at sentence boundary
+    if (cleaned.length > 900) {
+      const truncated = cleaned.substring(0, 900);
+      const lastSentenceEnd = Math.max(
+        truncated.lastIndexOf('.'),
+        truncated.lastIndexOf('!'),
+        truncated.lastIndexOf('?')
+      );
+      
+      if (lastSentenceEnd > 500) {
+        cleaned = truncated.substring(0, lastSentenceEnd + 1).trim();
+      } else {
+        // If no good sentence boundary, truncate at word boundary
+        const lastSpace = truncated.lastIndexOf(' ');
+        cleaned = truncated.substring(0, lastSpace).trim() + '.';
+      }
+    }
+  } else {
+    // Regular tweet cleaning
+    // Fix listicle formatting - convert numbered lists to proper line breaks
+    cleaned = cleaned.replace(/(\d+\.\s*)/g, '\n$1');
+    
+    // Clean up multiple consecutive line breaks
+    cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+    
+    // Remove leading line break if present
+    cleaned = cleaned.replace(/^\n+/, '');
+    
+    // Ensure proper spacing after periods in lists
+    cleaned = cleaned.replace(/(\d+\.\s*)([A-Z])/g, '$1 $2');
+  }
   
   return cleaned;
 }
@@ -503,7 +542,19 @@ HYBRID GUIDANCE:
     debugInfo.fullPrompt = `PERSONALITY: ${personalityContext}\n\nUSER: ${prompt}${selectedTemplate ? `\n\nTEMPLATE (${generationMode} mode): ${templateContext}` : ''}`;
 
     // 8. Post-process content for quality assurance
-    const cleanedContent = cleanTweetContent(aiResponse.content);
+    let cleanedContent;
+    try {
+      cleanedContent = cleanTweetContent(aiResponse.content, ludicrousMode);
+      if (ludicrousMode) {
+        console.log(`⚡ Ludicrous mode content generated: ${cleanedContent.length} characters`);
+      }
+    } catch (cleaningError) {
+      console.error('Content cleaning failed:', cleaningError);
+      return NextResponse.json(
+        { error: cleaningError instanceof Error ? cleaningError.message : 'Generated content did not meet quality requirements. Please try again.' },
+        { status: 422 }
+      );
+    }
 
     // 8.1. Record ludicrous mode usage if successful
     if (ludicrousMode) {
@@ -517,7 +568,7 @@ HYBRID GUIDANCE:
             character_count: cleanedContent.length,
             created_at: new Date().toISOString()
           });
-        console.log('📊 Recorded ludicrous mode usage for user:', user.id);
+        console.log(`📊 Recorded ludicrous mode usage for user: ${user.id}, character count: ${cleanedContent.length}`);
       } catch (error) {
         console.error('Failed to record ludicrous mode usage:', error);
         // Don't fail the request if tracking fails

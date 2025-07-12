@@ -227,11 +227,27 @@ Generate a single tweet based on the user's input. The tweet should be:
 - No quotes around the tweet text
 - Avoid emojis - focus on text-based content`
 
+    // Override base prompt for ludicrous mode
+    if (request.contentType === 'ludicrous') {
+      prompt = `You are a master content creator specializing in sophisticated, long-form social media content that captivates audiences.
+
+CRITICAL LUDICROUS MODE REQUIREMENTS:
+- Generate EXACTLY 500-900 characters (not words, CHARACTERS - count carefully!)
+- ABSOLUTELY NO emojis, hashtags, or @mentions
+- Pure text only - sophisticated and professional
+- Write compelling, insightful content that deeply engages readers
+- Focus on stories, insights, or perspectives that truly captivate
+- Maintain authentic, conversational yet professional tone
+- Count every character to ensure you stay within 500-900 range
+
+Your response should be just the content - no quotes, no formatting, just the text.`
+    }
+
     if (request.contentType && request.contentType !== 'auto') {
       const contentInstructions = {
         'single': '- Format as a single tweet (280 characters max)',
         'long-form': '- Format as long-form content (up to 4000 characters)',
-        'ludicrous': '- LUDICROUS MODE: Generate 500-900 character long-form content with maximum creativity and insight. Break the normal constraints and create something exceptional that will truly engage and captivate the audience.'
+        'ludicrous': '- LUDICROUS MODE: Generate EXACTLY 500-900 characters (count carefully!). MANDATORY REQUIREMENTS: Absolutely NO emojis (🚫), NO hashtags (#), NO @mentions, pure text ONLY. Write sophisticated, thoughtful, professional content that deeply engages readers. Focus on insights, stories, or perspectives that truly captivate. Count characters carefully to stay within 500-900 range.'
       }
       
       prompt += '\n' + (contentInstructions[request.contentType] || contentInstructions.single)
