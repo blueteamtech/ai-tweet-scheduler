@@ -529,32 +529,59 @@ HYBRID GUIDANCE:
 
     console.log(`🤖 Generating tweet with provider: ${selectedProvider || 'auto-selection'}, content type: ${aiRequest.contentType}, mode: ${generationMode}`);
 
-    // 7. Call AI Provider Manager with fallback
-    const aiResponse = await aiProviderManager.generateTweet(aiRequest, selectedProvider, true);
+    // 7. Call AI Provider Manager with fallback and retry logic for ludicrous mode
+    let aiResponse;
+    let cleanedContent;
+    
+    // Retry mechanism for ludicrous mode to ensure proper character count
+    const maxRetries = ludicrousMode ? 2 : 0;
+    let attempts = 0;
+    
+    while (attempts <= maxRetries) {
+      attempts++;
+      
+      try {
+        aiResponse = await aiProviderManager.generateTweet(aiRequest, selectedProvider, true);
 
-    if (!aiResponse.content) {
-      return NextResponse.json(
-        { error: 'Failed to generate tweet. Please try again.' },
-        { status: 500 }
-      )
+        if (!aiResponse.content) {
+          if (attempts > maxRetries) {
+            return NextResponse.json(
+              { error: 'Failed to generate tweet. Please try again.' },
+              { status: 500 }
+            );
+          }
+          continue; // Try again
+        }
+
+        // 8. Post-process content for quality assurance
+        cleanedContent = cleanTweetContent(aiResponse.content, ludicrousMode);
+        
+        if (ludicrousMode) {
+          console.log(`⚡ Ludicrous mode content generated: ${cleanedContent.length} characters (attempt ${attempts})`);
+        }
+        
+        // If we get here, content meets requirements
+        break;
+        
+      } catch (cleaningError) {
+        console.error(`Content cleaning failed on attempt ${attempts}:`, cleaningError);
+        
+        if (attempts > maxRetries) {
+          // Final attempt failed
+          return NextResponse.json(
+            { error: cleaningError instanceof Error ? cleaningError.message : 'Generated content did not meet quality requirements after multiple attempts. Please try again.' },
+            { status: 422 }
+          );
+        }
+        
+        // Add more specific instructions for retry
+        if (ludicrousMode && attempts < maxRetries) {
+          aiRequest.prompt = `${prompt}\n\nIMPORTANT: Previous attempt was too short. You MUST write at least 500 characters of detailed, engaging content.`;
+        }
+      }
     }
 
     debugInfo.fullPrompt = `PERSONALITY: ${personalityContext}\n\nUSER: ${prompt}${selectedTemplate ? `\n\nTEMPLATE (${generationMode} mode): ${templateContext}` : ''}`;
-
-    // 8. Post-process content for quality assurance
-    let cleanedContent;
-    try {
-      cleanedContent = cleanTweetContent(aiResponse.content, ludicrousMode);
-      if (ludicrousMode) {
-        console.log(`⚡ Ludicrous mode content generated: ${cleanedContent.length} characters`);
-      }
-    } catch (cleaningError) {
-      console.error('Content cleaning failed:', cleaningError);
-      return NextResponse.json(
-        { error: cleaningError instanceof Error ? cleaningError.message : 'Generated content did not meet quality requirements. Please try again.' },
-        { status: 422 }
-      );
-    }
 
     // 8.1. Record ludicrous mode usage if successful
     if (ludicrousMode) {

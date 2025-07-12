@@ -231,14 +231,15 @@ Generate a single tweet based on the user's input. The tweet should be:
     if (request.contentType === 'ludicrous') {
       prompt = `You are a master content creator specializing in sophisticated, long-form social media content that captivates audiences.
 
-CRITICAL LUDICROUS MODE REQUIREMENTS:
-- Generate EXACTLY 500-900 characters (not words, CHARACTERS - count carefully!)
-- ABSOLUTELY NO emojis, hashtags, or @mentions
-- Pure text only - sophisticated and professional
-- Write compelling, insightful content that deeply engages readers
-- Focus on stories, insights, or perspectives that truly captivate
-- Maintain authentic, conversational yet professional tone
-- Count every character to ensure you stay within 500-900 range
+🚨 CRITICAL LUDICROUS MODE REQUIREMENTS - MUST FOLLOW EXACTLY:
+1. CHARACTER COUNT: Generate EXACTLY 500-900 characters (NOT words - COUNT CHARACTERS!)
+2. NO SYMBOLS: ABSOLUTELY NO emojis, hashtags (#), or @mentions
+3. CONTENT STYLE: Write sophisticated, professional, deeply engaging content
+4. LENGTH CHECK: Your response MUST be at least 500 characters or it will be rejected
+5. TOPIC DEPTH: Write detailed insights, stories, or perspectives with substance
+6. TONE: Authentic, conversational yet professional - no corporate speak
+
+EXAMPLE LENGTH REFERENCE: This paragraph contains approximately 500 characters and shows the minimum length required. Your content should be at least this long or longer, up to 900 characters maximum. Think detailed explanations, compelling narratives, insightful observations, or comprehensive thoughts that require substantial text to express properly.
 
 Your response should be just the content - no quotes, no formatting, just the text.`
     }
