@@ -27,7 +27,7 @@ export interface AIResponse {
 
 export interface AIGenerationRequest {
   prompt: string
-  contentType?: 'single' | 'long-form' | 'auto'
+  contentType?: 'single' | 'long-form' | 'auto' | 'ludicrous'
   maxLength?: number
   personalityContext?: string
   templateContext?: string
@@ -38,7 +38,7 @@ export interface AIGenerationOptions {
   maxTokens?: number
   temperature?: number
   personalityContext?: string
-  contentType?: 'single' | 'long-form' | 'auto'
+  contentType?: 'single' | 'long-form' | 'auto' | 'ludicrous'
   maxLength?: number
 }
 
