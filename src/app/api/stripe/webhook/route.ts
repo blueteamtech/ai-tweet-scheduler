@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe } from '@/lib/stripe'
+import { StripeMCPService } from '@/lib/stripe-mcp'
 import { supabase } from '@/lib/supabase'
 import { createOrUpdateSubscription } from '@/lib/subscription'
 import Stripe from 'stripe'
@@ -20,6 +21,10 @@ export async function POST(request: NextRequest) {
   }
 
   try {
+    // Enhanced webhook processing with MCP insights
+    const mcpInsights = await StripeMCPService.processWebhookWithMCP(event)
+    console.log('🔍 MCP Webhook Insights:', mcpInsights)
+    
     switch (event.type) {
       case 'checkout.session.completed':
         await handleCheckoutCompleted(event.data.object as Stripe.Checkout.Session)

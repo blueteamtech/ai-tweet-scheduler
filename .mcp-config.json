@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "stripe": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@stripe/mcp",
+        "--tools=all",
+        "--api-key",
+        "STRIPE_SECRET_KEY"
+      ],
+      "description": "Official Stripe MCP server for payment processing, customer management, and subscription handling"
+    }
+  }
+}

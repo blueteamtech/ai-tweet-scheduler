@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { stripe, STRIPE_CONFIG } from '@/lib/stripe'
+import { StripeMCPService } from '@/lib/stripe-mcp'
 import { supabase } from '@/lib/supabase'
 import { getUserSubscription } from '@/lib/subscription'
 
@@ -19,15 +20,13 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: 'User already has active subscription' }, { status: 400 })
     }
 
-    // Create or retrieve Stripe customer
+    // Create or retrieve Stripe customer using MCP-enhanced service
     let stripeCustomerId = subscription?.stripe_customer_id
     
     if (!stripeCustomerId) {
-      const customer = await stripe.customers.create({
-        email: user.email!,
-        metadata: {
-          supabaseUserId: user.id,
-        },
+      const customer = await StripeMCPService.createCustomerWithMCP(user, {
+        plan: 'pro',
+        source: 'checkout_api'
       })
       stripeCustomerId = customer.id
 
