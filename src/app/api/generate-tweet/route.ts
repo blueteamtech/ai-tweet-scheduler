@@ -583,8 +583,8 @@ HYBRID GUIDANCE:
 
     debugInfo.fullPrompt = `PERSONALITY: ${personalityContext}\n\nUSER: ${prompt}${selectedTemplate ? `\n\nTEMPLATE (${generationMode} mode): ${templateContext}` : ''}`;
 
-    // Ensure cleanedContent is defined (safety check)
-    if (!cleanedContent) {
+    // Ensure cleanedContent and aiResponse are defined (safety check)
+    if (!cleanedContent || !aiResponse) {
       return NextResponse.json(
         { error: 'Failed to generate valid content. Please try again.' },
         { status: 500 }
