@@ -21,6 +21,33 @@ interface TweetTemplate {
   last_used_at: string | null;
 }
 
+// Quality assurance function for tweet content
+function cleanTweetContent(content: string): string {
+  if (!content) return content;
+  
+  let cleaned = content.trim();
+  
+  // Remove surrounding quotes (common AI response formatting)
+  if ((cleaned.startsWith('"') && cleaned.endsWith('"')) || 
+      (cleaned.startsWith("'") && cleaned.endsWith("'"))) {
+    cleaned = cleaned.slice(1, -1).trim();
+  }
+  
+  // Fix listicle formatting - convert numbered lists to proper line breaks
+  cleaned = cleaned.replace(/(\d+\.\s*)/g, '\n$1');
+  
+  // Clean up multiple consecutive line breaks
+  cleaned = cleaned.replace(/\n{3,}/g, '\n\n');
+  
+  // Remove leading line break if present
+  cleaned = cleaned.replace(/^\n+/, '');
+  
+  // Ensure proper spacing after periods in lists
+  cleaned = cleaned.replace(/(\d+\.\s*)([A-Z])/g, '$1 $2');
+  
+  return cleaned;
+}
+
 // Load user's voice project
 async function loadVoiceProject(userId: string) {
   try {
@@ -62,9 +89,13 @@ async function selectBestTemplate(prompt: string, templates: TweetTemplate[], pr
     return { template: null, reasoning: 'No active templates available' };
   }
 
-  // For freeform mode, don't use templates
+  // For freeform and ludicrous modes, don't use templates
   if (generationMode === 'freeform') {
     return { template: null, reasoning: 'Free form mode - templates disabled by user' };
+  }
+  
+  if (generationMode === 'ludicrous') {
+    return { template: null, reasoning: 'Ludicrous mode - maximum creativity without template constraints' };
   }
 
   try {
@@ -232,6 +263,29 @@ export async function POST(request: NextRequest) {
     // 3. Parse and validate input
     const body = await request.json()
     const autonomousGeneration = body.autonomousGeneration || false;
+    const ludicrousMode = body.ludicrousMode || false;
+
+    // 3.1. Ludicrous Mode Rate Limiting (1 per day)
+    if (ludicrousMode) {
+      const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
+      
+      // Check if user has already used ludicrous mode today
+      const { data: existingUsage } = await supabase
+        .from('ludicrous_mode_usage')
+        .select('id')
+        .eq('user_id', user.id)
+        .eq('usage_date', today)
+        .single();
+
+      if (existingUsage) {
+        return NextResponse.json(
+          { 
+            error: 'Ludicrous Mode is limited to 1 use per day to protect your audience engagement. This safety feature ensures optimal content quality and prevents overwhelming your followers.' 
+          },
+          { status: 429 }
+        );
+      }
+    }
     
     // For autonomous generation, allow empty prompts
     let validation;
@@ -264,7 +318,7 @@ export async function POST(request: NextRequest) {
 
     let { prompt } = validation.data
     const { aiProvider, contentType, showDebug } = validation.data
-    const generationMode = body.generationMode || 'hybrid'; // Default to hybrid mode
+    const generationMode = ludicrousMode ? 'ludicrous' : (body.generationMode || 'hybrid'); // Override for ludicrous mode
 
     // 4. Check if AI providers are available
     const availableProviders = aiProviderManager.getAvailableProviders()
@@ -320,8 +374,8 @@ export async function POST(request: NextRequest) {
     };
 
     if (voiceProject) {
-      // Load active templates for smart selection (except in freeform mode)
-      if (generationMode !== 'freeform') {
+      // Load active templates for smart selection (except in freeform and ludicrous modes)
+      if (generationMode !== 'freeform' && generationMode !== 'ludicrous') {
         activeTemplates = await loadActiveTemplates();
         console.log(`📋 Loaded ${activeTemplates.length} global templates for template mode`);
 
@@ -429,7 +483,7 @@ HYBRID GUIDANCE:
     
     const aiRequest: AIGenerationRequest = {
       prompt,
-      contentType: contentType === 'auto' ? 'single' : contentType,
+      contentType: ludicrousMode ? 'ludicrous' : (contentType === 'auto' ? 'single' : contentType),
       personalityContext: personalityContext || undefined,
       templateContext: templateContext || undefined
     };
@@ -448,9 +502,31 @@ HYBRID GUIDANCE:
 
     debugInfo.fullPrompt = `PERSONALITY: ${personalityContext}\n\nUSER: ${prompt}${selectedTemplate ? `\n\nTEMPLATE (${generationMode} mode): ${templateContext}` : ''}`;
 
-    // 8. Build response with template information
+    // 8. Post-process content for quality assurance
+    const cleanedContent = cleanTweetContent(aiResponse.content);
+
+    // 8.1. Record ludicrous mode usage if successful
+    if (ludicrousMode) {
+      const today = new Date().toISOString().split('T')[0];
+      try {
+        await supabase
+          .from('ludicrous_mode_usage')
+          .insert({
+            user_id: user.id,
+            usage_date: today,
+            character_count: cleanedContent.length,
+            created_at: new Date().toISOString()
+          });
+        console.log('📊 Recorded ludicrous mode usage for user:', user.id);
+      } catch (error) {
+        console.error('Failed to record ludicrous mode usage:', error);
+        // Don't fail the request if tracking fails
+      }
+    }
+
+    // 8.2. Build response with template information
     const response = {
-      content: aiResponse.content,
+      content: cleanedContent,
       model: aiResponse.model,
       provider: aiResponse.provider,
       usage: aiResponse.usage,
@@ -467,6 +543,7 @@ HYBRID GUIDANCE:
       } : {
         used: false,
         reason: generationMode === 'freeform' ? 'Free form mode - templates disabled' : 
+                generationMode === 'ludicrous' ? 'Ludicrous mode - maximum creativity without template constraints' :
                 activeTemplates?.length === 0 ? 'No active templates available' : 'No voice project with templates found'
       }
     }

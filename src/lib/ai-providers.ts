@@ -230,7 +230,8 @@ Generate a single tweet based on the user's input. The tweet should be:
     if (request.contentType && request.contentType !== 'auto') {
       const contentInstructions = {
         'single': '- Format as a single tweet (280 characters max)',
-        'long-form': '- Format as long-form content (up to 4000 characters)'
+        'long-form': '- Format as long-form content (up to 4000 characters)',
+        'ludicrous': '- LUDICROUS MODE: Generate 500-900 character long-form content with maximum creativity and insight. Break the normal constraints and create something exceptional that will truly engage and captivate the audience.'
       }
       
       prompt += '\n' + (contentInstructions[request.contentType] || contentInstructions.single)

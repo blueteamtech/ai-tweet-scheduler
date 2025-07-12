@@ -41,6 +41,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
   const [isSaving, setIsSaving] = useState(false)
   const [templateInfo, setTemplateInfo] = useState<TweetTemplate | null>(null)
   const [templateFeedback, setTemplateFeedback] = useState<{ rating: number; templateId: string } | null>(null)
+  const [ludicrousMode, setLudicrousMode] = useState(false)
 
   const generateTweet = async () => {
     const isAutonomousGeneration = !prompt.trim()
@@ -63,10 +64,11 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
         body: JSON.stringify({
           prompt: prompt.trim(),
           aiProvider: 'auto',
-          contentType: 'auto',
-          generationMode: 'template',  // Force Template Mode
+          contentType: ludicrousMode ? 'ludicrous' : 'auto',
+          generationMode: ludicrousMode ? 'ludicrous' : 'template',  // Force Template Mode or Ludicrous Mode
           showDebug: false,
-          autonomousGeneration: isAutonomousGeneration
+          autonomousGeneration: isAutonomousGeneration,
+          ludicrousMode
         }),
       })
 
@@ -311,6 +313,31 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
           </div>
         )}
 
+        {/* Ludicrous Mode Toggle */}
+        <div className="p-4 bg-gradient-to-r from-red-50 to-orange-50 border border-red-200 rounded-lg">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h3 className="text-sm font-semibold text-red-800 mb-1">⚡ Ludicrous Mode</h3>
+              <p className="text-xs text-red-700">
+                Generate 500-900 character long-form content with maximum creativity. 
+                <strong className="block mt-1">Limited to 1 per day to protect your audience engagement.</strong>
+              </p>
+            </div>
+            <div className="ml-4">
+              <label className="relative inline-flex items-center cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={ludicrousMode}
+                  onChange={(e) => setLudicrousMode(e.target.checked)}
+                  disabled={isGenerating || isSaving}
+                  className="sr-only peer"
+                />
+                <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-red-300 rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-600"></div>
+              </label>
+            </div>
+          </div>
+        </div>
+
         {/* Action Buttons */}
         <div className="flex space-x-3">
           <button
@@ -319,8 +346,10 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
             className="flex-1 bg-purple-600 text-white px-4 py-2 rounded-md hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             {isGenerating ? (
+              ludicrousMode ? '⚡ Generating Ludicrous Content...' :
               prompt.trim() ? '🤖 Generating...' : '🤖 Generating Random Tweet...'
             ) : (
+              ludicrousMode ? '⚡ Generate Ludicrous Tweet' :
               prompt.trim() ? '🤖 Generate AI Tweet' : '🤖 Generate Random Tweet'
             )}
           </button>
