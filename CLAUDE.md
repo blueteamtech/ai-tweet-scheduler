@@ -216,29 +216,33 @@ text-gray-500 → text-gray-700
 
 ### **Development (Cloud-First Approach)**
 ```bash
-# Local development for quick iteration
-npm run dev          # Start development server (http://localhost:3000)
-npm run build        # Build for production
+# NEVER run npm run dev locally - always use cloud deployment
+# Cloud development for ALL testing (Stripe webhooks, social auth, etc.)
+git checkout development
+git add .
+git commit -m "feat: description"
+git push origin development
+# Access via: https://ai-personality-tweets-to-scheduler-git-development-jesswood.vercel.app
+
+# Build verification (run locally only for syntax checking)
+npm run build        # Build for production verification
 npm run type-check   # Check TypeScript errors
 npm run lint         # Run ESLint
-
-# Cloud development for public testing (Stripe webhooks, social auth, etc.)
-git checkout development
-git push origin development
-# Access via: https://your-app-git-development-username.vercel.app
 ```
 
 ### **Cloud Development Strategy**
-- **Local**: Quick UI changes and immediate feedback
-- **Development Branch Deployment**: Public URL for Stripe webhooks, social auth testing
+- **NO LOCAL DEVELOPMENT**: Never run npm run dev - always deploy to cloud
+- **Development Branch Deployment**: Primary development environment with public HTTPS URL
 - **Staging**: Pre-production testing with real integrations
 - **Production**: Live user environment (main branch)
 
-### **Why Cloud Development?**
-- **Stripe Webhooks**: Require public HTTPS endpoints
+### **Why Cloud Development Only?**
+- **Stripe Webhooks**: Require public HTTPS endpoints (cannot use localhost)
 - **Social Auth**: OAuth redirects need public URLs
-- **Real Testing**: Simulate actual user experience
+- **Real Testing**: Simulate actual user experience with live APIs
 - **No Port Forwarding**: Avoid local network configuration
+- **Environment Variables**: Production environment variables in Vercel
+- **Database**: Production Supabase instance always used
 
 ### **Database**
 ```bash

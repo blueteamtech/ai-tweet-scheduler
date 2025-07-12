@@ -238,7 +238,7 @@ export default function AdvancedTweetComposer({ user, onTweetAdded, onError, onS
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
             placeholder="Enter your tweet content directly, or describe what you'd like to tweet about for AI generation. Leave blank for autonomous generation based on your writing style..."
-            className="w-full p-4 border-2 border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none bg-white text-gray-900 placeholder-gray-700 h-32"
+            className="w-full p-4 border-2 border-gray-400 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-purple-500 resize-none bg-white text-gray-900 placeholder-gray-800 h-32"
             disabled={isGenerating || isSaving}
           />
           <div className="text-xs text-gray-500 mt-1">
