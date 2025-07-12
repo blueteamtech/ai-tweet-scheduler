@@ -379,7 +379,8 @@ Key requirements:
     if (request.contentType && request.contentType !== 'auto') {
       const contentInstructions = {
         'single': '- Keep it concise, under 280 characters',
-        'long-form': '- Write as a long-form tweet (280-4000 characters) with detailed insights and proper structure'
+        'long-form': '- Write as a long-form tweet (280-4000 characters) with detailed insights and proper structure',
+        'ludicrous': '- LUDICROUS MODE: Generate EXACTLY 500-900 characters with maximum creativity and engagement'
       }
       
       prompt += '\n' + (contentInstructions[request.contentType] || contentInstructions.single)
@@ -507,7 +508,8 @@ Your style:
     if (request.contentType && request.contentType !== 'auto') {
       const contentInstructions = {
         'single': '- Keep it punchy and under 280 characters',
-        'long-form': '- Write as a long-form tweet (280-4000 characters) with depth and personality'
+        'long-form': '- Write as a long-form tweet (280-4000 characters) with depth and personality',
+        'ludicrous': '- LUDICROUS MODE: Generate EXACTLY 500-900 characters with maximum creativity and personality'
       }
       
       prompt += '\n' + (contentInstructions[request.contentType] || contentInstructions.single)
