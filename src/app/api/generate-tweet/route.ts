@@ -583,8 +583,16 @@ HYBRID GUIDANCE:
 
     debugInfo.fullPrompt = `PERSONALITY: ${personalityContext}\n\nUSER: ${prompt}${selectedTemplate ? `\n\nTEMPLATE (${generationMode} mode): ${templateContext}` : ''}`;
 
+    // Ensure cleanedContent is defined (safety check)
+    if (!cleanedContent) {
+      return NextResponse.json(
+        { error: 'Failed to generate valid content. Please try again.' },
+        { status: 500 }
+      );
+    }
+
     // 8.1. Record ludicrous mode usage if successful
-    if (ludicrousMode) {
+    if (ludicrousMode && cleanedContent) {
       const today = new Date().toISOString().split('T')[0];
       try {
         await supabase
