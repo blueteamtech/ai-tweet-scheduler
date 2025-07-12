@@ -10,6 +10,7 @@ import QueueDisplay, { type QueueDisplayRef } from '@/components/QueueDisplay'
 import AdvancedTweetComposer from '@/components/AdvancedTweetComposer'
 import TweetManager from '@/components/TweetManager'
 import VoiceProjectSetup from '@/components/VoiceProjectSetup'
+import SubscriptionStatus from '@/components/SubscriptionStatus'
 
 export default function DashboardPage() {
   const [user, setUser] = useState<User | null>(null)
@@ -108,6 +109,14 @@ export default function DashboardPage() {
               <span className="text-sm text-gray-600">
                 Welcome, {user?.email}
               </span>
+              {user?.email === '10jwood@gmail.com' && (
+                <a
+                  href="/admin"
+                  className="bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-md text-sm font-medium"
+                >
+                  Admin Dashboard
+                </a>
+              )}
               <button
                 onClick={handleLogout}
                 className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium"
@@ -121,6 +130,9 @@ export default function DashboardPage() {
 
       {/* Main Content */}
       <main className="max-w-4xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+
+        {/* Subscription Status */}
+        <SubscriptionStatus userId={user.id} />
 
         {/* Main Navigation */}
         <div className="mt-8">

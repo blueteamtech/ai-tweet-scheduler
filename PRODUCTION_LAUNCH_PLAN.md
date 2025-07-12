@@ -12,9 +12,8 @@
 - □ **Subscription Tiers Setup**
   ```typescript
   enum SubscriptionTier {
-    FREE = 'free',        // 5 tweets/month, basic AI only
-    PRO = 'pro',          // $19/month, unlimited tweets + ludicrous mode
-    ENTERPRISE = 'enterprise' // $49/month, multi-account + analytics
+    TRIAL = 'trial',      // 7-day free trial, full access
+    PRO = 'pro',          // $50/month, unlimited tweets + all features
   }
   ```
 
@@ -24,28 +23,28 @@
   - □ Update user table with subscription status
   - □ Rate limiting based on subscription tier
 
-- □ **Usage Tracking & Limits**
-  - □ Tweet generation counter per user per month
-  - □ Automatic blocking when free tier limit reached
-  - □ Clear upgrade prompts and billing portal access
+- □ **Trial & Subscription Logic**
+  - □ 7-day trial period tracking with automatic expiration
+  - □ Full feature access during trial (all AI providers, ludicrous mode)
+  - □ Graceful transition to paid subscription or access restriction
   - □ Cost monitoring for AI provider usage per user
 
 #### 💻 **Cost Control Implementation**
 ```typescript
-// Usage-based rate limiting
-const monthlyUsage = await getUserMonthlyUsage(user.id)
-const tierLimits = {
-  free: 5,
-  pro: 999999,
-  enterprise: 999999
-}
+// Trial and subscription logic
+const user = await getCurrentUser()
+const isTrialActive = isWithinTrialPeriod(user.created_at, 7) // 7 days
+const hasActiveSubscription = user.subscription_status === 'active'
 
-if (monthlyUsage >= tierLimits[user.subscription_tier]) {
+if (!isTrialActive && !hasActiveSubscription) {
   return NextResponse.json(
-    { error: 'Monthly limit reached. Upgrade to continue.' },
-    { status: 429 }
+    { error: 'Trial expired. Subscribe for $50/month to continue.' },
+    { status: 402 } // Payment Required
   )
 }
+
+// Cost monitoring: AI usage averaging $10-15/month per active user
+// $50/month pricing provides 3-4x margin for profitability
 ```
 
 ### 🎨 **Critical UI Fixes (User Experience)**
@@ -466,10 +465,12 @@ const FEATURES = {
 ## 🚀 **IMMEDIATE PRIORITY ACTIONS**
 
 ### **Phase 1: Revenue Foundation (Complete First)**
-1. □ **Stripe integration** - Start earning revenue immediately
-2. □ **Usage limits** - Control AI costs per free user
-3. □ **Admin dashboard** - Monitor revenue and costs
-4. □ **Critical UI fixes** - Remove signup friction
+1. □ **Cloud development environment** - Vercel staging for public testing
+2. □ **Stripe integration** - 7-day trial → $50/month subscription
+3. □ **Trial period logic** - Full access for 7 days, then payment required
+4. □ **Admin dashboard** - Monitor MRR, trial conversions, costs
+5. □ **Critical UI fixes** - Remove signup friction
+6. □ **Existing user migration** - Grandfather current users, preserve data
 
 ### **Phase 2: User Experience (Revenue Optimization)**
 1. □ **Landing page** - Drive conversions to paid tiers

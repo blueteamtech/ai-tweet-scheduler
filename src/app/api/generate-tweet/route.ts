@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { getUserFromRequest, promptSchema, checkRateLimit, sanitizeError } from '@/lib/auth'
 import { createClient } from '@supabase/supabase-js'
 import { aiProviderManager, AIProvider, AIGenerationRequest } from '@/lib/ai-providers'
+import { userHasAccess } from '@/lib/subscription'
 import type { VoiceProjectDebugInfo, LegacyPersonalityDebugInfo, VoiceProject } from '@/types/index'
 
 // Initialize Supabase client for writing samples
@@ -290,7 +291,16 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 2. Rate limiting (10 requests per minute per user)
+    // 2. Check subscription access
+    const hasAccess = await userHasAccess(user.id)
+    if (!hasAccess) {
+      return NextResponse.json(
+        { error: 'Trial expired. Subscribe for $50/month to continue generating tweets.' },
+        { status: 402 } // Payment Required
+      )
+    }
+
+    // 3. Rate limiting (10 requests per minute per user)
     const rateLimitResult = checkRateLimit(user.id, 10, 60000)
     if (!rateLimitResult.allowed) {
       return NextResponse.json(

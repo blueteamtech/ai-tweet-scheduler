@@ -512,7 +512,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
           value={instructions}
           onChange={(e) => setInstructions(e.target.value)}
           placeholder="Write tweets like me: direct, humorous, tech-focused, use casual language, include personal anecdotes..."
-          className="w-full p-4 border-2 border-gray-400 rounded-lg h-32 resize-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-600 text-base font-medium leading-relaxed shadow-sm hover:border-gray-500 transition-colors"
+          className="w-full p-4 border-2 border-gray-400 rounded-lg h-32 resize-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-800 text-base font-medium leading-relaxed shadow-sm hover:border-gray-500 transition-colors"
           maxLength={2000}
         />
         <p className="text-sm text-gray-700 mt-1 font-medium">
@@ -535,7 +535,7 @@ export default function VoiceProjectSetup({ className }: VoiceProjectSetupProps)
                   value={sample}
                   onChange={(e) => updateWritingSample(index, e.target.value)}
                   placeholder={`Writing sample ${index + 1} - paste an example of your writing (tweet, email, blog post, etc.)`}
-                  className="w-full p-4 border-2 border-gray-400 rounded-lg h-24 resize-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-600 text-base font-medium leading-relaxed shadow-sm hover:border-gray-500 transition-colors"
+                  className="w-full p-4 border-2 border-gray-400 rounded-lg h-24 resize-none focus:ring-3 focus:ring-blue-500 focus:border-blue-500 bg-white text-gray-900 placeholder-gray-800 text-base font-medium leading-relaxed shadow-sm hover:border-gray-500 transition-colors"
                 />
               </div>
               {writingSamples.length > 1 && (
