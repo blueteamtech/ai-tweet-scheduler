@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 // AI Provider Management System for Phase 4: AI Integration Expansion
 // Supports Grok (xAI) only - OpenAI and Claude disabled
 
