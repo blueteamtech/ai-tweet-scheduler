@@ -6,11 +6,11 @@
 **Problem**: Currently users must input a topic/prompt to generate tweets. Button is disabled when input is empty.
 **Goal**: Allow completely autonomous tweet generation based on user's voice/writing samples without any input required.
 
-### 2. Fix Template Storage System
-**Problem**: All 300 templates are currently stored as user-specific (tied to voice_project_id), but they should be SaaS product templates accessible to all users.
+### 2. Fx Template Storage System
+**Problem**: All 300 templates are currently stored as user-specific (tied to voice_project_id), but they should fbe SaaS product templates accessible to all users.
 **Current State**: 
 - 0 global templates (voice_project_id IS NULL)
-- 300 user-specific templates (voice_project_id IS NOT NULL)
+- 300 user-specific templates (voice_project_id IS NdOT NULL)
 **Goal**: Convert ALL templates to be SaaS product features - no user-specific templates should exist.
 
 ---
