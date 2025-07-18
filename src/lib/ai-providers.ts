@@ -493,7 +493,9 @@ CRITICAL SUCCESS CRITERIA:
 - All content derived from user's writing samples only
 - User's authentic voice and expertise reflected throughout
 
-GROK APPROACH: Be precise and clever about this structural preservation - treat it like a linguistic puzzle where you keep the viral framework but swap in the new substance with the user's authentic voice. You are an architect using only the blueprint, never the original building's contents.`
+GROK APPROACH: Be precise and clever about this structural preservation - treat it like a linguistic puzzle where you keep the viral framework but swap in the new substance with the user's authentic voice. You are an architect using only the blueprint, never the original building's contents.
+
+OUTPUT FORMAT: Return ONLY the final tweet content. No explanations, no metadata, no instructions, no analysis - just the pure tweet text.`
     }
 
     // TEMPLATE MODE: When template contains viral DNA instructions, prioritize template
@@ -512,12 +514,16 @@ CRITICAL SUCCESS CRITERIA:
 - Only substance/topic changed
 - User's voice reflected in word choice and expression
 
-GROK APPROACH: Be precise and clever about this structural preservation - treat it like a linguistic puzzle where you keep the viral framework but swap in the new substance with the user's authentic voice.`
+GROK APPROACH: Be precise and clever about this structural preservation - treat it like a linguistic puzzle where you keep the viral framework but swap in the new substance with the user's authentic voice.
+
+OUTPUT FORMAT: Return ONLY the final tweet content. No explanations, no metadata, no instructions, no analysis - just the pure tweet text.`
     }
 
     // If personalityContext contains Voice Project instructions, use ONLY that
     if (request.personalityContext && !request.personalityContext.includes('writing style examples')) {
-      return request.personalityContext
+      return `${request.personalityContext}
+
+OUTPUT FORMAT: Return ONLY the final tweet content. No explanations, no metadata, no instructions, no analysis - just the pure tweet text.`
     }
     
     // Otherwise use built-in prompt for legacy system
@@ -551,6 +557,8 @@ Your style:
     if (request.userWritingStyle) {
       prompt += `\n\nUser's style: ${request.userWritingStyle}`
     }
+
+    prompt += `\n\nOUTPUT FORMAT: Return ONLY the final tweet content. No explanations, no metadata, no instructions, no analysis - just the pure tweet text.`
 
     return prompt
   }
