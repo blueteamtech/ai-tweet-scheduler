@@ -58,7 +58,7 @@ const PROVIDER_CONFIGS: Record<AIProvider, Partial<AIConfig>> = {
   },
   grok: {
     baseURL: 'https://api.x.ai/v1',
-    model: 'grok-beta',
+    model: 'grok-3-fast',
     maxTokens: 200,
     temperature: 0.8
   }
