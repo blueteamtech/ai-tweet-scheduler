@@ -153,13 +153,13 @@ const metrics = new ProviderMetrics()
 class OpenAIProvider {
   // private client: OpenAI
 
-  constructor(config: AIConfig) {
+  constructor(_config: AIConfig) {
     // this.client = new OpenAI({
     //   apiKey: config.apiKey
     // })
   }
 
-  async generate(request: AIGenerationRequest, config: AIConfig): Promise<AIResponse> {
+  async generate(_request: AIGenerationRequest, _config: AIConfig): Promise<AIResponse> {
     // OpenAI provider disabled - should not be called
     throw new Error('OpenAI provider is disabled. Only Grok is available.')
     
