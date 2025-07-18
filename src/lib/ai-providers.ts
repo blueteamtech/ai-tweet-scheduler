@@ -476,6 +476,26 @@ class GrokProvider {
   }
 
   private buildSystemPrompt(request: AIGenerationRequest): string {
+    // TEMPLATE MODE: When template contains structural instructions, prioritize structure-only approach
+    if (request.templateContext && request.templateContext.includes('COPYWRITING STRUCTURE ONLY')) {
+      return `${request.templateContext}
+
+VOICE PROJECT CONTEXT:
+${request.personalityContext || 'Use natural, engaging writing style'}
+
+PRIMARY TASK: You are Grok, a copywriting structure specialist. Your ONLY job is to use the template's structural framework (word count, sentence count, flow patterns) while filling it with content exclusively from the user's writing samples. You must COMPLETELY IGNORE the template's substance.
+
+CRITICAL SUCCESS CRITERIA:
+- Exact word count match (verify before responding)
+- Exact sentence count match (verify before responding)
+- Preserved structural flow and rhythm from template
+- Zero influence from template's content/topics/substance
+- All content derived from user's writing samples only
+- User's authentic voice and expertise reflected throughout
+
+GROK APPROACH: Be precise and clever about this structural preservation - treat it like a linguistic puzzle where you keep the viral framework but swap in the new substance with the user's authentic voice. You are an architect using only the blueprint, never the original building's contents.`
+    }
+
     // TEMPLATE MODE: When template contains viral DNA instructions, prioritize template
     if (request.templateContext && request.templateContext.includes('VIRAL TEMPLATE DNA')) {
       return `${request.templateContext}
