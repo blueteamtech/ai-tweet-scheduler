@@ -1,7 +1,7 @@
 // AI Provider Management System for Phase 4: AI Integration Expansion
-// Supports OpenAI, Claude (Anthropic), and Grok (xAI) with intelligent fallback
+// Supports Grok (xAI) only - OpenAI and Claude disabled
 
-import OpenAI from 'openai'
+// import OpenAI from 'openai' // DISABLED - Only using Grok
 
 export type AIProvider = 'openai' | 'claude' | 'grok'
 
@@ -149,45 +149,48 @@ class ProviderMetrics {
 
 const metrics = new ProviderMetrics()
 
-// OpenAI Provider
+// OpenAI Provider - DISABLED
 class OpenAIProvider {
-  private client: OpenAI
+  // private client: OpenAI
 
   constructor(config: AIConfig) {
-    this.client = new OpenAI({
-      apiKey: config.apiKey
-    })
+    // this.client = new OpenAI({
+    //   apiKey: config.apiKey
+    // })
   }
 
   async generate(request: AIGenerationRequest, config: AIConfig): Promise<AIResponse> {
-    const startTime = Date.now()
+    // OpenAI provider disabled - should not be called
+    throw new Error('OpenAI provider is disabled. Only Grok is available.')
     
-    const systemPrompt = this.buildSystemPrompt(request)
-    
-    const completion = await this.client.chat.completions.create({
-      model: config.model,
-      messages: [
-        { role: 'system', content: systemPrompt },
-        { role: 'user', content: request.prompt }
-      ],
-      max_tokens: config.maxTokens,
-      temperature: config.temperature
-    })
+    // const startTime = Date.now()
+    // 
+    // const systemPrompt = this.buildSystemPrompt(request)
+    // 
+    // const completion = await this.client.chat.completions.create({
+    //   model: config.model,
+    //   messages: [
+    //     { role: 'system', content: systemPrompt },
+    //     { role: 'user', content: request.prompt }
+    //   ],
+    //   max_tokens: config.maxTokens,
+    //   temperature: config.temperature
+    // })
 
-    const content = completion.choices[0]?.message?.content?.trim() || ''
-    const responseTime = Date.now() - startTime
+    // const content = completion.choices[0]?.message?.content?.trim() || ''
+    // const responseTime = Date.now() - startTime
 
-    return {
-      content,
-      provider: 'openai',
-      model: config.model,
-      usage: completion.usage ? {
-        promptTokens: completion.usage.prompt_tokens,
-        completionTokens: completion.usage.completion_tokens,
-        totalTokens: completion.usage.total_tokens
-      } : undefined,
-      responseTime
-    }
+    // return {
+    //   content,
+    //   provider: 'openai',
+    //   model: config.model,
+    //   usage: completion.usage ? {
+    //     promptTokens: completion.usage.prompt_tokens,
+    //     completionTokens: completion.usage.completion_tokens,
+    //     totalTokens: completion.usage.total_tokens
+    //   } : undefined,
+    //   responseTime
+    // }
   }
 
   private buildSystemPrompt(request: AIGenerationRequest): string {
@@ -542,32 +545,32 @@ export class AIProviderManager {
   }
 
   private initializeProviders() {
-    // OpenAI
-    if (process.env.OPENAI_API_KEY) {
-      const config: AIConfig = {
-        apiKey: process.env.OPENAI_API_KEY,
-        model: PROVIDER_CONFIGS.openai.model!,
-        maxTokens: PROVIDER_CONFIGS.openai.maxTokens!,
-        temperature: PROVIDER_CONFIGS.openai.temperature!
-      }
-      this.configs.set('openai', config)
-      this.providers.set('openai', new OpenAIProvider(config))
-    }
+    // OpenAI - DISABLED
+    // if (process.env.OPENAI_API_KEY) {
+    //   const config: AIConfig = {
+    //     apiKey: process.env.OPENAI_API_KEY,
+    //     model: PROVIDER_CONFIGS.openai.model!,
+    //     maxTokens: PROVIDER_CONFIGS.openai.maxTokens!,
+    //     temperature: PROVIDER_CONFIGS.openai.temperature!
+    //   }
+    //   this.configs.set('openai', config)
+    //   this.providers.set('openai', new OpenAIProvider(config))
+    // }
 
-    // Claude
-    if (process.env.ANTHROPIC_API_KEY) {
-      const config: AIConfig = {
-        apiKey: process.env.ANTHROPIC_API_KEY,
-        baseURL: PROVIDER_CONFIGS.claude.baseURL!,
-        model: PROVIDER_CONFIGS.claude.model!,
-        maxTokens: PROVIDER_CONFIGS.claude.maxTokens!,
-        temperature: PROVIDER_CONFIGS.claude.temperature!
-      }
-      this.configs.set('claude', config)
-      this.providers.set('claude', new ClaudeProvider(config))
-    }
+    // Claude - DISABLED
+    // if (process.env.ANTHROPIC_API_KEY) {
+    //   const config: AIConfig = {
+    //     apiKey: process.env.ANTHROPIC_API_KEY,
+    //     baseURL: PROVIDER_CONFIGS.claude.baseURL!,
+    //     model: PROVIDER_CONFIGS.claude.model!,
+    //     maxTokens: PROVIDER_CONFIGS.claude.maxTokens!,
+    //     temperature: PROVIDER_CONFIGS.claude.temperature!
+    //   }
+    //   this.configs.set('claude', config)
+    //   this.providers.set('claude', new ClaudeProvider(config))
+    // }
 
-    // Grok
+    // Grok - ONLY ACTIVE PROVIDER
     if (process.env.XAI_API_KEY) {
       const config: AIConfig = {
         apiKey: process.env.XAI_API_KEY,
